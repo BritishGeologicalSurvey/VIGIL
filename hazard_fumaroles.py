@@ -248,48 +248,55 @@ def run_model(day_input):
 
 root = os.getcwd()
 disgas_original = os.path.join(root,'disgas.inp')
+max_number_processes = 100
 days = pre_process()
-ps = []
-try:
-    for day in days:
-        infiles = os.path.join(root, 'simulations', day, 'infiles')
-        os.chdir(infiles)
-        p = subprocess.Popen(['srun', '-n', '1', 'presfc'])
-        p.wait()
-        ps.append(p)
-        p = subprocess.Popen(['srun', '-n', '1', 'preupr'])
-        p.wait()
-        ps.append(p)
-        p = subprocess.Popen(['srun', '-n', '1', 'diagno'])
-        ps.append(p)
-    for p in ps:
-        p.wait()
-    print('All weather data have been successfully processed with Diagno')
-except:
-    print('Unable to process weather data with Diagno')
+n_elaborated_days = 0
+while n_elaborated_days <= len(days):
+    ps = []
+    start = n_elaborated_days
+    end = n_elaborated_days + max_number_processes
+    if end > len(days):
+        end = len(days)
+    try:
+        for day in days[start:end]:
+            infiles = os.path.join(root, 'simulations', day, 'infiles')
+            os.chdir(infiles)
+            p = subprocess.Popen(['srun', '-n', '1', 'presfc'])
+            p.wait()
+            ps.append(p)
+            p = subprocess.Popen(['srun', '-n', '1', 'preupr'])
+            p.wait()
+            ps.append(p)
+            p = subprocess.Popen(['srun', '-n', '1', 'diagno'])
+            ps.append(p)
+        for p in ps:
+            p.wait()
+    except:
+        print('Unable to process weather data with Diagno')
+        exit()
+    print('Successfully processed days ' + str(days[start:end]))
+    n_elaborated_days = end
+    if n_elaborated_days == len(days):
+        break
+print('All weather data have been successfully processed with Diagno')
 
 os.chdir(root)
+n_elaborated_days = 0
+while n_elaborated_days <= len(days):
+    start = n_elaborated_days
+    end = n_elaborated_days + max_number_processes
+    if end > len(days):
+        end = len(days)
+    try:
+        pool = ThreadingPool(max_number_processes)
+        pool.map(run_model,days[start:end])
+        pool.join()
+    except:
+        print('Unable to run the models')
+        exit()
+    print('Successfully processed days ' + str(days[start:end]))
+    n_elaborated_days = end
 
-if len(days) > 500:
-    try:
-        pool = ThreadingPool(500)
-        pool.map(run_model,days[0:500])
-        pool.join()
-    except:
-        print('Unable to run the models')
-    try:
-        pool1 = ThreadingPool(len(days) - 500)
-        pool1.map(run_model,days[500:len(days)])
-        pool1.join()
-    except:
-        print('Unable to run the models')
-else:
-    try:
-        pool = ThreadingPool(len(days))
-        pool.map(run_model,days)
-        pool.join()
-    except:
-        print('Unable to run the models')
 
 
 

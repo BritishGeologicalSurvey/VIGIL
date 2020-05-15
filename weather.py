@@ -309,8 +309,8 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
         wtfile_prof = os.path.join(data_folder, 'profile_' + date_bis + '.txt')
         wtfile_sl_location = os.path.join(data_folder, 'data_location_' + date_bis + '.txt')
         print('Saving weather data along the vertical at the vent location')
-        os.system('wgrib2 ' + wtfile + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_prof)
-        os.system('wgrib2 ' + wtfile_sl + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_sl_location)
+        os.system('srun -n 1 wgrib2 ' + wtfile + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_prof)
+        os.system('srun -n 1 wgrib2 ' + wtfile_sl + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_sl_location)
 
         # Split wtfile_prof into multiple file, each one for a specific time step
         splitLen = 148

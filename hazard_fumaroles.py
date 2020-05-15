@@ -2,7 +2,7 @@ from random import sample,randrange
 import os
 import shutil
 from pathos.multiprocessing import Pool, ThreadingPool
-import multiprocessing
+import subprocess
 
 def pre_process():
     def random_sources(n_fumaroles):
@@ -140,11 +140,6 @@ def pre_process():
             # strFormat = len(samples) * '{:10f} '
             # formattedList = strFormat.format(*samples)
         return sampled_flux
-    #read and memorize disgas.inp file
-    disgas_input_records = []
-    with open('disgas.inp','r',encoding="utf-8", errors="surrogateescape") as disgas_or_input:
-        for line in disgas_or_input:
-            disgas_input_records.append(line)
 
     Nf=[2,3,4,5] # fumaroles number vector to be sampled
     raw_days = [] # store the days as originally formatted
@@ -162,10 +157,12 @@ def pre_process():
         i+=1
 
     for day in days:
-        path = os.path.join(os.getcwd(),'simulations',str(day))  # To modify accordingly
+        path = os.path.join(root,'simulations',str(day))  # To modify accordingly
         rawdata = os.path.join(path,'raw_data')
         infiles = os.path.join(path, 'infiles')
         outfiles = os.path.join(path, 'outfiles')
+        if not outfiles.endswith(os.path.sep):
+            outfiles += os.path.sep
         presfc = os.path.join(rawdata, 'presfc.dat')
         preupr = os.path.join(rawdata, 'preupr.dat')
         diagno = os.path.join(rawdata, 'diagno.inp')
@@ -212,66 +209,88 @@ def pre_process():
             shutil.move(diagno, os.path.join(infiles, 'diagno.inp'))
         except:
              print('Files already there')
+        shutil.copy('topography.grd',os.path.join(infiles,'topography.grd'))
+        # read and memorize disgas.inp file
+        disgas_input_records = []
+        with open(disgas_original, 'r', encoding="utf-8", errors="surrogateescape") as disgas_or_input:
+            for line in disgas_or_input:
+                disgas_input_records.append(line)
         with open(disgas_input,'w', encoding="utf-8", errors="surrogateescape") as disgas:
             for i in range(0,len(disgas_input_records)):
                 if i == 3:
                     disgas.write('  YEAR   = ' + day[0:4] + '\n')
-                    #disgas_input[3] = '  YEAR   = ' + day[0:4]
                 elif i == 4:
                     disgas.write('  MONTH  = ' + day[4:6] + '\n')
-                    #disgas_input[4] = '  MONTH  = ' + day[4:6]
                 elif i == 5:
                     disgas.write('  DAY    = ' + day[6:8] + '\n')
-                    #disgas_input[5] = '  DAY    = ' + day[6:8]
-                else:
-                    disgas.write(disgas_input_records[i])
-        shutil.copy('topography.grd',os.path.join(infiles,'topography.grd'))
-    #Move all infiles into the working folder
-    for day in days:
-        path = os.path.join(local_path, 'simulations', str(day))
-        infiles_local = os.path.join(path, 'infiles')
-        infiles_scratch = os.path.join(scratch_path, 'simulations', str(day), 'infiles/')
-        outfiles = os.path.join(scratch_path, 'simulations', str(day), 'outfiles/')
-        shutil.move(infiles_local,infiles_scratch)
-        os.makedirs(outfiles)
-        os.chdir(infiles_scratch)
-        disgas_input_records = []
-        with open('disgas.inp', 'r', encoding="utf-8", errors="surrogateescape") as disgas_or_input:
-            for line in disgas_or_input:
-                disgas_input_records.append(line)
-        with open('disgas.inp', 'w', encoding="utf-8", errors="surrogateescape") as disgas:
-            for i in range(0, len(disgas_input_records)):
-                if i == 45:
-                    disgas.write('   TOPOGRAPHY_FILE_PATH   = ' + infiles_scratch + 'topography.grd ' + '\n')
+                elif i == 45:
+                    disgas.write('   TOPOGRAPHY_FILE_PATH   = ' + os.path.join(infiles, 'topography.grd') + ' \n')
                 elif i == 46:
-                    disgas.write('   ROUGHNESS_FILE_PATH   = ' + infiles_scratch + 'roughness.grd ' + '\n')
+                    disgas.write('   ROUGHNESS_FILE_PATH   = ' + os.path.join(infiles, 'roughness.grd') + ' \n')
                 elif i == 47:
-                    disgas.write('   RESTART_FILE_PATH   = ' + infiles_scratch + 'restart.dat ' + '\n')
+                    disgas.write('   RESTART_FILE_PATH   = ' + os.path.join(infiles, 'restart.dat') + ' \n')
                 elif i == 48:
-                    disgas.write('   SOURCE_FILE_PATH   = ' + infiles_scratch + 'source.dat ' + '\n')
+                    disgas.write('   SOURCE_FILE_PATH   = ' + os.path.join(infiles, 'source.dat') + ' \n')
                 elif i == 49:
-                    disgas.write('   WIND_FILE_PATH   = ' + infiles_scratch + 'winds.dat ' + '\n')
+                    disgas.write('   WIND_FILE_PATH   = ' + os.path.join(infiles, 'winds.dat') + ' \n')
                 elif i == 50:
-                    disgas.write('   DIAGNO_FILE_PATH   = ' + infiles_scratch + 'diagno.out ' + '\n')
+                    disgas.write('   DIAGNO_FILE_PATH   = ' + os.path.join(infiles, 'diagno.out') + ' \n')
                 elif i == 51:
-                    disgas.write('   OUTPUT_DIRECTORY    = ' + outfiles + '\n')
+                    disgas.write('   OUTPUT_DIRECTORY    = ' + outfiles + ' \n')
                 else:
                     disgas.write(disgas_input_records[i])
-
     return days
 
-def run_model(day):
-    infiles = os.path.join(scratch_path, 'simulations', str(day),'infiles')  # To modify accordingly
-    os.chdir(infiles)
-    os.system('presfc && preupr && diagno && disgas disgas.inp &')
+def run_model(day_input):
+    infiles = os.path.join(root, 'simulations', day_input,'infiles')
+    disgas_input_file = os.path.join(infiles,'disgas.inp')
+    os.system('srun -n 1 disgas ' + disgas_input_file + ' &')
 
-scratch_path = '/scratch/silviamassaro'
-local_path = os.getcwd()
+root = os.getcwd()
+disgas_original = os.path.join(root,'disgas.inp')
 days = pre_process()
+ps = []
+try:
+    for day in days:
+        infiles = os.path.join(root, 'simulations', day, 'infiles')
+        os.chdir(infiles)
+        p = subprocess.Popen(['srun', '-n', '1', 'presfc'])
+        p.wait()
+        ps.append(p)
+        p = subprocess.Popen(['srun', '-n', '1', 'preupr'])
+        p.wait()
+        ps.append(p)
+        p = subprocess.Popen(['srun', '-n', '1', 'diagno'])
+        ps.append(p)
+    for p in ps:
+        p.wait()
+    print('All weather data have been successfully processed with Diagno')
+except:
+    print('Unable to process weather data with Diagno')
 
-path = os.getcwd()
-for day in days:
-    run_model(day)
+os.chdir(root)
+
+if len(days) > 500:
+    try:
+        pool = ThreadingPool(500)
+        pool.map(run_model,days[0:500])
+        pool.join()
+    except:
+        print('Unable to run the models')
+    try:
+        pool1 = ThreadingPool(len(days) - 500)
+        pool1.map(run_model,days[500:len(days)])
+        pool1.join()
+    except:
+        print('Unable to run the models')
+else:
+    try:
+        pool = ThreadingPool(len(days))
+        pool.map(run_model,days)
+        pool.join()
+    except:
+        print('Unable to run the models')
+
 
 
 

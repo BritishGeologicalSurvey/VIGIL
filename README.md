@@ -1,4 +1,4 @@
-# APVGDM
+﻿# APVGDM
 Automatic Probabilistic Volcanic Gas Dispersion Modelling
 The package contains the following files:
 - weather.py
@@ -69,3 +69,7 @@ usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB]
                         the days
   -S SPECIES [SPECIES ...], --species SPECIES [SPECIES ...]
                         List of gas species (e.g. CO2)
+
+
+Dependencies
+[include xlrd and pandas to those already listed]

@@ -1,7 +1,6 @@
 from random import sample,randrange
 import os
 import shutil
-from pathos.multiprocessing import Pool, ThreadingPool
 import subprocess
 
 def pre_process():
@@ -234,60 +233,71 @@ def pre_process():
                     disgas.write(disgas_input_records[i])
     return days
 
-def run_model(day_input):
-    infiles = os.path.join(root, 'simulations', day_input,'infiles')
-    disgas_input_file = os.path.join(infiles,'disgas.inp')
-    os.system('srun -n 1 disgas ' + disgas_input_file + ' &')
+def run_diagno():
+    n_elaborated_days = 0
+    while n_elaborated_days <= len(days):
+        ps = []
+        start = n_elaborated_days
+        end = n_elaborated_days + max_number_processes
+        if end > len(days):
+            end = len(days)
+        try:
+            for day in days[start:end]:
+                infiles = os.path.join(root, 'simulations', day, 'infiles')
+                os.chdir(infiles)
+                p = subprocess.Popen(['srun', '-n', '1', 'presfc'])
+                p.wait()
+                ps.append(p)
+                p = subprocess.Popen(['srun', '-n', '1', 'preupr'])
+                p.wait()
+                ps.append(p)
+                p = subprocess.Popen(['srun', '-n', '1', 'diagno'])
+                ps.append(p)
+            for p in ps:
+                p.wait()
+        except:
+            print('Unable to process weather data with Diagno')
+            exit()
+        print('Successfully processed days ' + str(days[start:end]))
+        n_elaborated_days = end
+        if n_elaborated_days == len(days):
+            break
+    print('All weather data have been successfully processed with Diagno')
+    os.chdir(root)
+
+def run_disgas():
+    n_elaborated_days = 0
+    while n_elaborated_days <= len(days):
+        ps = []
+        start = n_elaborated_days
+        end = n_elaborated_days + max_number_processes
+        if end > len(days):
+            end = len(days)
+        try:
+            for day in days[start:end]:
+                infiles = os.path.join(root, 'simulations', day, 'infiles')
+                disgas_input_file = os.path.join(infiles, 'disgas.inp')
+                p = subprocess.Popen(['srun', '-n', '1', 'disgas', disgas_input_file])
+                ps.append(p)
+            for p in ps:
+                p.wait()
+        except:
+            print('Unable to run DISGAS')
+            exit()
+        print('Successfully processed days ' + str(days[start:end]))
+        n_elaborated_days = end
+        if n_elaborated_days == len(days):
+            break
 
 root = os.getcwd()
 disgas_original = os.path.join(root,'disgas.inp')
-max_number_processes = 100
+max_number_processes = 2
 days = pre_process()
-n_elaborated_days = 0
-while n_elaborated_days <= len(days):
-    ps = []
-    start = n_elaborated_days
-    end = n_elaborated_days + max_number_processes
-    if end > len(days):
-        end = len(days)
-    try:
-        for day in days[start:end]:
-            infiles = os.path.join(root, 'simulations', day, 'infiles')
-            os.chdir(infiles)
-            p = subprocess.Popen(['srun', '-n', '1', 'presfc'])
-            p.wait()
-            ps.append(p)
-            p = subprocess.Popen(['srun', '-n', '1', 'preupr'])
-            p.wait()
-            ps.append(p)
-            p = subprocess.Popen(['srun', '-n', '1', 'diagno'])
-            ps.append(p)
-        for p in ps:
-            p.wait()
-    except:
-        print('Unable to process weather data with Diagno')
-        exit()
-    print('Successfully processed days ' + str(days[start:end]))
-    n_elaborated_days = end
-    if n_elaborated_days == len(days):
-        break
-print('All weather data have been successfully processed with Diagno')
 
-os.chdir(root)
-n_elaborated_days = 0
-while n_elaborated_days <= len(days):
-    start = n_elaborated_days
-    end = n_elaborated_days + max_number_processes
-    if end > len(days):
-        end = len(days)
-    try:
-        pool = ThreadingPool(end-start)
-        pool.map(run_model,days[start:end])
-    except:
-        print('Unable to run the models')
-        exit()
-    print('Successfully processed days ' + str(days[start:end]))
-    n_elaborated_days = end
+run_diagno()
+
+run_disgas()
+
 
 
 

@@ -5,7 +5,7 @@ from pathos.multiprocessing import Pool, ThreadingPool
 import subprocess
 
 def pre_process():
-    def random_sources(n_fumaroles):
+    def random_sources(n_fumaroles): #DA CAMBIARE
         import numpy as np
         from matplotlib import pyplot as plt
 
@@ -127,21 +127,14 @@ def pre_process():
         data = pd.read_csv('flux.csv', error_bad_lines=False)
         x = np.sort(data['flux'])
         y = np.arange(1, len(x) + 1) / len(x)
-        # plt.plot (x, y, marker= '.', markersize=3, linestyle='-', color='orange')
-        # plt.xlabel('H2O flux (kg/s)')
-        # plt.ylabel ('ECDF')
-        # plt.margins(0.02)
-        # plt.show()
 
         # Sample randomly 100 data
         with open('random_list_flux.txt', 'w') as outfile:
             list_x = list(x)
             sampled_flux = (sample(list_x, 1))
-            # strFormat = len(samples) * '{:10f} '
-            # formattedList = strFormat.format(*samples)
         return sampled_flux
 
-    Nf=[2,3,4,5] # fumaroles number vector to be sampled
+    Nf=[2,3,4,5] # fumaroles number vector to be sampled #DA CAMBIARE
     raw_days = [] # store the days as originally formatted
     days = [] #store days in format YYYYMMDD as per folder name
     # read days_list file
@@ -199,8 +192,8 @@ def pre_process():
                 i+=1
         with open('source.dat','w', encoding="utf-8", errors="surrogateescape") as source_file:
             for i in range(0,n_fumaroles-1):
-                h2o_flux = fluxes()
-                source_file.write(str(easting[i])+' '+str(northing[i]) + ' 0. ' + str(h2o_flux[0]) + '\n')
+                gas_flux = fluxes()
+                source_file.write(str(easting[i])+' '+str(northing[i]) + ' 0. ' + str(gas_flux[0]) + '\n')
         try:
             shutil.move('source.txt',os.path.join(rawdata,'source.txt'))
             shutil.move('source.dat',os.path.join(infiles,'source.dat'))
@@ -288,9 +281,8 @@ while n_elaborated_days <= len(days):
     if end > len(days):
         end = len(days)
     try:
-        pool = ThreadingPool(max_number_processes)
+        pool = ThreadingPool(end-start)
         pool.map(run_model,days[start:end])
-        pool.join()
     except:
         print('Unable to run the models')
         exit()

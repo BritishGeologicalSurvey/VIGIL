@@ -229,6 +229,7 @@ def elaborate_day(day_input):
             converted_file = specie + '_' + file
             converted_files.append(converted_file)
             outnames.append(os.path.join(os.path.join(disgas_converted_output_folder_daily, specie), converted_file))
+
     pool = ThreadingPool(len(files_list_path))
     pool.map(converter, files_list_path, outnames, species_list)
 
@@ -412,6 +413,8 @@ def save_plots():
             plot_file(file_to_plot,output_files[i])
             i += 1
 
+ncpus = int(os.environ["SLURM_JOB_CPUS_PER_NODE"])
+max_number_processes = ncpus # OR input
 plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities = read_arguments()
 
 cwd = os.getcwd()
@@ -438,8 +441,27 @@ days, days_to_plot = extract_days()
 
 species_properties = gas_properties()
 
-pool_days = ThreadingPool(len(days))
-pool_days.map(elaborate_day,days)
+n_elaborated_days = 0
+while n_elaborated_days <= len(days):
+    ps = []
+    start = n_elaborated_days
+    end = n_elaborated_days + max_number_processes
+    if end > len(days):
+        end = len(days)
+    try:
+        pool_days = ThreadingPool(max_number_processes)
+        pool_days.map(elaborate_day,days[start:end])
+    except:
+        print('Unable to elaborate days')
+        exit()
+    n_elaborated_days = end
+    if n_elaborated_days == len(days):
+        break
+print('All days have been successfully processed')
+
+
+#pool_days = ThreadingPool(len(days))
+#pool_days.map(elaborate_day, days)
 
 try:
     os.mkdir(disgas_ecdf)
@@ -491,8 +513,24 @@ for probability in exceedance_probabilities:
 n_pool = 0
 for probability in exceedance_probabilities:
     for specie in species:
-        pools_ecdfs[n_pool] = ThreadingPool(len(indexes))
-        pools_ecdfs[n_pool].map(ecdf,indexes)
+        n_completed_processes = 0
+        while n_completed_processes <= len(indexes):
+            ps = []
+            start = n_completed_processes
+            end = n_completed_processes + max_number_processes
+            if end > len(indexes):
+                end = len(indexes)
+            try:
+                pools_ecdfs[n_pool] = ThreadingPool(max_number_processes)
+                pools_ecdfs[n_pool].map(ecdf,indexes[start:end])
+            except:
+                print('Unable to elaborate days')
+                exit()
+            n_completed_processes = end
+            if n_completed_processes == len(indexes):
+                break
+        #pools_ecdfs[n_pool] = ThreadingPool(len(indexes))
+        #pools_ecdfs[n_pool].map(ecdf,indexes)
         n_pool += 1
 
 save_plots()

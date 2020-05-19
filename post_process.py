@@ -5,17 +5,17 @@ import matplotlib
 matplotlib.use('Agg') 
 from matplotlib import pyplot as plt
 import numpy as np
-import matplotlib.image as mpimg
-import matplotlib.ticker as ticker
+#import matplotlib.image as mpimg
+#import matplotlib.ticker as ticker
 import pandas as pd
 import random
 import sys, os
-from random import sample
-from PIL import Image
-from pathlib import Path
+#from random import sample
+#from PIL import Image
+#from pathlib import Path
 from pathos.multiprocessing import ThreadingPool
 from io import StringIO 
-import io
+#import io
 import argparse
 from shutil import rmtree
 

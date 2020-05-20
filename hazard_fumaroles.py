@@ -2,6 +2,12 @@ from random import sample,randrange
 import os
 import shutil
 import subprocess
+import argparse
+
+parser = argparse.ArgumentParser(description='Input data')
+parser.add_argument('-N', '--nproc', default=1, help='Maximum number of allowed simultaneous processes')
+args = parser.parse_args()
+nproc = args.nproc
 
 def pre_process():
     def random_sources(n_fumaroles): #DA CAMBIARE
@@ -291,7 +297,11 @@ def run_disgas():
 
 root = os.getcwd()
 disgas_original = os.path.join(root,'disgas.inp')
-max_number_processes = 2
+try:
+    max_number_processes = int(os.environ["SLURM_NPROCS"])
+except:
+    max_number_processes = int(nproc)
+
 days = pre_process()
 
 run_diagno()

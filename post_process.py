@@ -5,17 +5,11 @@ import matplotlib
 matplotlib.use('Agg') 
 from matplotlib import pyplot as plt
 import numpy as np
-#import matplotlib.image as mpimg
-#import matplotlib.ticker as ticker
 import pandas as pd
 import random
 import sys, os
-#from random import sample
-#from PIL import Image
-#from pathlib import Path
 from pathos.multiprocessing import ThreadingPool
-from io import StringIO 
-#import io
+from io import StringIO
 import argparse
 from shutil import rmtree
 
@@ -33,7 +27,9 @@ def read_arguments():
                         help='List of vertical levels (integer >= 1) to plot. Type all to plot all the levels')
     parser.add_argument('-D', '--days_plot', nargs='+', default=[],
                         help='List of days to plot (YYYYMMDD). Type all to plot all the days')
+    parser.add_argument('-C', '--convert', default='False', help='If True, convert output concentration into other species listed with the command -S (--species)')
     parser.add_argument('-S', '--species', nargs='+', default=[], help='List of gas species (e.g. CO2)')
+    parser.add_argument('-N', '--nproc', default=1, help='Maximum number of allowed simultaneous processes')
     args = parser.parse_args()
     plot = args.plot
     plot_ex_prob = args.plot_ex_prob
@@ -42,37 +38,51 @@ def read_arguments():
     levels = args.levels
     days_plot = args.days_plot
     species = args.species
+    nproc = args.nproc
+    convert = args.convert
     if plot == 'True':
         plot = True
         if len(days_plot) == 0:
             print('ERROR. Please specify at least one day to plot when --plot==True')
-            exit()
+            sys.exit()
     elif plot == 'False':
         plot = False
     else:
         print('ERROR. Wrong value for variable -P --plot')
-        exit()
+        sys.exit()
     if plot_ex_prob == 'True':
         plot_ex_prob = True
         if len(ex_prob) == 0:
             print('ERROR. Please specify at least one exceedance probability to plot when --plot_ex_prob==True')
-            exit()
+            sys.exit()
     elif plot_ex_prob == 'False':
         plot_ex_prob = False
     else:
         print('ERROR. Wrong value for variable -PE --plot_ex_prob')
-        exit()
+        sys.exit()
     if plot or plot_ex_prob:
         if len(time_steps) == 0:
             print('ERROR. Please specify at least one time step to plot')
-            exit()
+            sys.exit()
         if len(levels) == 0:
             print('ERROR. Please specify at least one level to plot')
-            exit()
+            sys.exit()
+    if convert == 'True':
+        convert = True
+        if len(species) == 0:
+            print('ERROR. Please specify at least one gas specie name when --convert=True')
+            sys.exit()
+    elif convert == 'False':
+        convert = False
+        if len(species) != 0:
+            species = []
+    else:
+        print('ERROR. Wrong value for variable -C --convert')
+        sys.exit()
     exceedance_probabilities = []
     for prob in ex_prob:
         exceedance_probabilities.append(float(prob))
-    return plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities
+    return plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert
 
 def gas_properties():
     def extract_gas_properties(specie):
@@ -229,9 +239,21 @@ def elaborate_day(day_input):
             converted_file = specie + '_' + file
             converted_files.append(converted_file)
             outnames.append(os.path.join(os.path.join(disgas_converted_output_folder_daily, specie), converted_file))
-
-    pool = ThreadingPool(len(files_list_path))
-    pool.map(converter, files_list_path, outnames, species_list)
+    n_elaborated_files = 0
+    while n_elaborated_files < len(files_list_path):
+        start = n_elaborated_files
+        end = n_elaborated_files + max_number_processes
+        if end > len(files_list_path):
+            end = len(files_list_path)
+            try:
+                pool_files = ThreadingPool(max_number_processes)
+                pool_files.map(converter,files_list_path[start:end], outnames[start:end], species_list[start:end])
+            except:
+                print('Unable to convert files')
+                sys.exit()
+        n_elaborated_files = end
+        if n_elaborated_files == len(files_list_path):
+            break
 
 def ecdf(index):
     specie = index[1]
@@ -413,9 +435,12 @@ def save_plots():
             plot_file(file_to_plot,output_files[i])
             i += 1
 
-ncpus = int(os.environ["SLURM_JOB_CPUS_PER_NODE"])
-max_number_processes = ncpus # OR input
-plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities = read_arguments()
+plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert = read_arguments()
+
+try:
+    max_number_processes = int(os.environ["SLURM_NPROCS"])
+except:
+    max_number_processes = int(nproc)
 
 cwd = os.getcwd()
 original_output_folder_name = 'simulations'
@@ -441,27 +466,9 @@ days, days_to_plot = extract_days()
 
 species_properties = gas_properties()
 
-n_elaborated_days = 0
-while n_elaborated_days <= len(days):
-    ps = []
-    start = n_elaborated_days
-    end = n_elaborated_days + max_number_processes
-    if end > len(days):
-        end = len(days)
-    try:
-        pool_days = ThreadingPool(max_number_processes)
-        pool_days.map(elaborate_day,days[start:end])
-    except:
-        print('Unable to elaborate days')
-        exit()
-    n_elaborated_days = end
-    if n_elaborated_days == len(days):
-        break
-print('All days have been successfully processed')
-
-
-#pool_days = ThreadingPool(len(days))
-#pool_days.map(elaborate_day, days)
+if convert:
+    for day in days:
+        elaborate_day(day)
 
 try:
     os.mkdir(disgas_ecdf)
@@ -525,12 +532,10 @@ for probability in exceedance_probabilities:
                 pools_ecdfs[n_pool].map(ecdf,indexes[start:end])
             except:
                 print('Unable to elaborate days')
-                exit()
+                sys.exit()
             n_completed_processes = end
             if n_completed_processes == len(indexes):
                 break
-        #pools_ecdfs[n_pool] = ThreadingPool(len(indexes))
-        #pools_ecdfs[n_pool].map(ecdf,indexes)
         n_pool += 1
 
 save_plots()

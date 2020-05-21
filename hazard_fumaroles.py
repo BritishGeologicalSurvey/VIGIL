@@ -251,13 +251,22 @@ def run_diagno():
             for day in days[start:end]:
                 infiles = os.path.join(root, 'simulations', day, 'infiles')
                 os.chdir(infiles)
-                p = subprocess.Popen(['srun', '-n', '1', 'presfc'])
+                try:
+                    p = subprocess.Popen(['srun', '-n', '1', 'presfc'])
+                except:
+                    p = subprocess.Popen(['presfc'])
                 p.wait()
                 ps.append(p)
-                p = subprocess.Popen(['srun', '-n', '1', 'preupr'])
+                try:
+                    p = subprocess.Popen(['srun', '-n', '1', 'preupr'])
+                except:
+                    p = subprocess.Popen(['preupr'])
                 p.wait()
                 ps.append(p)
-                p = subprocess.Popen(['srun', '-n', '1', 'diagno'])
+                try:
+                    p = subprocess.Popen(['srun', '-n', '1', 'diagno'])
+                except:
+                    p = subprocess.Popen(['diagno'])
                 ps.append(p)
             for p in ps:
                 p.wait()
@@ -283,7 +292,10 @@ def run_disgas():
             for day in days[start:end]:
                 infiles = os.path.join(root, 'simulations', day, 'infiles')
                 disgas_input_file = os.path.join(infiles, 'disgas.inp')
-                p = subprocess.Popen(['srun', '-n', '1', 'disgas', disgas_input_file])
+                try:
+                    p = subprocess.Popen(['srun', '-n', '1', 'disgas', disgas_input_file])
+                except:
+                    p = subprocess.Popen(['disgas', disgas_input_file])
                 ps.append(p)
             for p in ps:
                 p.wait()
@@ -297,10 +309,7 @@ def run_disgas():
 
 root = os.getcwd()
 disgas_original = os.path.join(root,'disgas.inp')
-try:
-    max_number_processes = int(os.environ["SLURM_NPROCS"])
-except:
-    max_number_processes = int(nproc)
+max_number_processes = int(nproc)
 
 days = pre_process()
 

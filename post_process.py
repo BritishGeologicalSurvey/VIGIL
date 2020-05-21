@@ -75,7 +75,8 @@ def read_arguments():
     elif convert == 'False':
         convert = False
         if len(species) != 0:
-            species = []
+            del species[:]
+        species.append('original_specie')
     else:
         print('ERROR. Wrong value for variable -C --convert')
         sys.exit()
@@ -83,6 +84,41 @@ def read_arguments():
     for prob in ex_prob:
         exceedance_probabilities.append(float(prob))
     return plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert
+
+def folder_structure():
+    original_output_folder_name = 'simulations'
+    post_processing = 'post_processing'
+    processed_output_folder_name = original_output_folder_name + '_processed'
+    ecdf_folder_name = 'output_ecdf'
+    disgas_outputs = os.path.join(root, post_processing)
+    disgas_original_output_folder = os.path.join(root, original_output_folder_name)
+    disgas_processed_output_folder = os.path.join(disgas_outputs, processed_output_folder_name)
+    disgas_ecdf = os.path.join(disgas_outputs, ecdf_folder_name)
+    try:
+        os.mkdir(disgas_outputs)
+    except FileExistsError:
+        print('Folder ' + disgas_outputs + ' already exists')
+    try:
+        os.mkdir(disgas_processed_output_folder)
+    except:
+        print('Folder ' + disgas_processed_output_folder + ' already exists')
+        list_temp = os.listdir(disgas_processed_output_folder)
+        for item in list_temp:
+            try:
+                rmtree(os.path.join(disgas_processed_output_folder, item), ignore_errors=True)
+            except:
+                print('Unable to remove ' + item + ' in ' + disgas_processed_output_folder)
+    try:
+        os.mkdir(disgas_ecdf)
+    except:
+        print('Folder ' + disgas_ecdf + ' already exists')
+        list_temp = os.listdir(disgas_ecdf)
+        for item in list_temp:
+            try:
+                rmtree(os.path.join(disgas_ecdf, item), ignore_errors=True)
+            except:
+                print('Unable to remove ' + item + ' in ' + disgas_ecdf)
+    return disgas_outputs, disgas_original_output_folder, disgas_processed_output_folder, ecdf_folder_name, disgas_ecdf
 
 def gas_properties():
     def extract_gas_properties(specie):
@@ -96,7 +132,7 @@ def gas_properties():
         print('The molar ratio ' + specie + '/H2O is', molar_ratio)
         return molar_ratio, molar_weight
 
-    gas_properties_file = os.path.join(cwd, 'gas_properties.csv')
+    gas_properties_file = os.path.join(root, 'gas_properties.csv')
     try:
         open(gas_properties_file, 'r')
     except:
@@ -147,7 +183,7 @@ def domain():
 
 def extract_days():
     days = []
-    days_list_path = os.path.join(cwd, 'days_list.txt')
+    days_list_path = os.path.join(root, 'days_list.txt')
     days_to_plot = []
     with open(days_list_path, 'r') as days_list:
         for line in days_list:
@@ -165,14 +201,18 @@ def extract_days():
 
 def converter(input_file, outname, specie_input):
     Z = np.loadtxt(input_file, skiprows=5)
-    for specie in species_properties:
-        if specie['specie_name'] == specie_input:
-            mol_ratio = specie['molar_ratio']
-            molar_weight = specie['molar_weight']
-    Z_converted = np.multiply(Z, mol_ratio)
-    Z_converted = [(Z_converted / molar_weight) / (44.64 * 1000000000)]
-    Z_converted = np.reshape(Z_converted, [nx, ny])
-    np.savetxt(outname, Z_converted, fmt='%.2e')
+    if specie_input == 'original_specie':
+        Z_converted = np.reshape(Z, [nx, ny])
+        np.savetxt(outname, Z_converted, fmt='%.2e')
+    else:
+        for specie in species_properties:
+            if specie['specie_name'] == specie_input:
+                mol_ratio = specie['molar_ratio']
+                molar_weight = specie['molar_weight']
+        Z_converted = np.multiply(Z, mol_ratio)
+        Z_converted = [(Z_converted / molar_weight) / (44.64 * 1000000000)]
+        Z_converted = np.reshape(Z_converted, [nx, ny])
+        np.savetxt(outname, Z_converted, fmt='%.2e')
 
 def cmap_map(function, cmap):
     """ Applies function (which should operate on vectors of shape 3: [r, g, b]), on colormap cmap.
@@ -206,22 +246,22 @@ def cmap_map(function, cmap):
 
 def elaborate_day(day_input):
     disgas_output_folder = os.path.join(disgas_original_output_folder, day_input, 'outfiles')
-    disgas_converted_output_folder_daily = os.path.join(disgas_converted_output_folder, day_input)
+    disgas_processed_output_folder_daily = os.path.join(disgas_processed_output_folder, day_input)
     try:
-        os.mkdir(disgas_converted_output_folder_daily)
+        os.mkdir(disgas_processed_output_folder_daily)
     except:
-        print('Folder ' + disgas_converted_output_folder_daily + ' already exists')
+        print('Folder ' + disgas_processed_output_folder_daily + ' already exists')
     for specie in species:
-        disgas_converted_output_folder_specie = os.path.join(disgas_converted_output_folder_daily, specie)
+        disgas_processed_output_folder_specie = os.path.join(disgas_processed_output_folder_daily, specie)
         try:
-            os.mkdir(disgas_converted_output_folder_specie)
+            os.mkdir(disgas_processed_output_folder_specie)
         except FileExistsError:
-            print('Folder ' + disgas_converted_output_folder_specie + ' already exists')
+            print('Folder ' + disgas_processed_output_folder_specie + ' already exists')
         except PermissionError: #retry
             try:
-                os.mkdir(disgas_converted_output_folder_specie)
+                os.mkdir(disgas_processed_output_folder_specie)
             except FileExistsError:
-                print('Folder ' + disgas_converted_output_folder_specie + ' already exists')
+                print('Folder ' + disgas_processed_output_folder_specie + ' already exists')
     files_list_temp = os.listdir(disgas_output_folder)
     files_list_path = []
     files_list = []
@@ -236,65 +276,121 @@ def elaborate_day(day_input):
     for file in files_list:
         for specie in species:
             species_list.append(specie)
-            converted_file = specie + '_' + file
+            converted_file = file
             converted_files.append(converted_file)
-            outnames.append(os.path.join(os.path.join(disgas_converted_output_folder_daily, specie), converted_file))
+            outnames.append(os.path.join(os.path.join(disgas_processed_output_folder_daily, specie), converted_file))
     n_elaborated_files = 0
     while n_elaborated_files < len(files_list_path):
         start = n_elaborated_files
         end = n_elaborated_files + max_number_processes
         if end > len(files_list_path):
             end = len(files_list_path)
-            try:
-                pool_files = ThreadingPool(max_number_processes)
-                pool_files.map(converter,files_list_path[start:end], outnames[start:end], species_list[start:end])
-            except:
-                print('Unable to convert files')
-                sys.exit()
+        try:
+            pool_files = ThreadingPool(max_number_processes)
+            pool_files.map(converter,files_list_path[start:end], outnames[start:end], species_list[start:end])
+        except:
+            print('Unable to convert files')
+            sys.exit()
         n_elaborated_files = end
         if n_elaborated_files == len(files_list_path):
             break
 
-def ecdf(index):
-    specie = index[1]
-    level = index[2]
-    time_step = index[3]
-    quantile = index[0]
-    output_files = []
-    for day in days:
-        file_name = specie + '_c_' + "{:03d}".format(int(level)) + '_' + "{:06d}".format(int(time_step)) + '.grd'
-        output_folder = os.path.join(disgas_converted_output_folder, day, specie)
-        output_files.append(os.path.join(output_folder, file_name))
-    ecdf_output_file = os.path.join(ecdf_folder_name, str(quantile), specie,
-                                    specie + '_c_' + "{:03d}".format(int(level)) + '_' + "{:06d}".format(int(time_step)) + '.grd')
-    quantile = 1 - quantile
-    output_quantile = np.zeros((nx, ny))
-    c_arrays = []
-    files_not_available = []
-    for file in output_files:
+def probabilistic_output():
+    def ecdf(index):
+        specie = index[1]
+        level = index[2]
+        time_step = index[3]
+        quantile = index[0]
+        output_files = []
+        for day in days:
+            file_name = 'c_' + "{:03d}".format(int(level)) + '_' + "{:06d}".format(int(time_step)) + '.grd'
+            output_folder = os.path.join(disgas_processed_output_folder, day, specie)
+            output_files.append(os.path.join(output_folder, file_name))
+        ecdf_output_file = os.path.join(disgas_ecdf, str(quantile), specie, 'c_' + "{:03d}".format(int(level)) + '_' + "{:06d}".format(int(time_step)) + '.grd')
+        quantile = 1 - quantile
+        output_quantile = np.zeros((nx, ny))
+        c_arrays = []
+        files_not_available = []
+        for file in output_files:
+            try:
+                input_file = open(file)
+            except:
+                print('File ' + file + ' not found')
+                files_not_available.append(file)
+                continue
+            records = []
+            for line in input_file:
+                records.append(line.split(' '))
+            c_arrays.append(records)
+        for file in files_not_available:
+            output_files.remove(file)
+        for i in range(0, nx):
+            for j in range(0, ny):
+                c_list = []
+                for k in range(0, len(output_files)):
+                    c_list.append(float(c_arrays[k][i][j]))
+                output_quantile[i, j] = np.quantile(c_list, q=quantile)
+        np.savetxt(ecdf_output_file, output_quantile, fmt='%.2e')
+
+    for probability in exceedance_probabilities:
+        prob_folder = os.path.join(disgas_ecdf, str(probability))
         try:
-            input_file = open(file)
+            os.mkdir(prob_folder)
         except:
-            print('File ' + file + ' not found')
-            files_not_available.append(file)
-            continue
-        records = []
-        for line in input_file:
-            records.append(line.split(' '))
-        c_arrays.append(records)
-    for file in files_not_available:
-        output_files.remove(file)
-    for i in range(0, nx):
-        for j in range(0, ny):
-            c_list = []
-            for k in range(0, len(output_files)):
-                c_list.append(float(c_arrays[k][i][j]))
-            output_quantile[i, j] = np.quantile(c_list, q=quantile)
-    np.savetxt(ecdf_output_file, output_quantile, fmt='%.2e')
+            print('Folder ' + prob_folder + ' already exists')
+        for specie in species:
+            specie_folder = os.path.join(disgas_ecdf, prob_folder, specie)
+            try:
+                os.mkdir(specie_folder)
+            except:
+                print('Folder ' + specie_folder + ' already exists')
+    indexes = []
+    pools_ecdfs = []
+    n_pool = 0
+    for probability in exceedance_probabilities:
+        for specie in species:
+            pools_ecdfs.append(n_pool)
+            if levels[0] == 'all':
+                for i in range(1, nz + 1):
+                    if time_steps[0] == 'all':
+                        for j in range(1, n_time_steps):
+                            indexes.append([probability, specie, i, j])
+                    else:
+                        for time_step in time_steps:
+                            indexes.append([probability, specie, i, time_step])
+            else:
+                for level in levels:
+                    if time_steps[0] == 'all':
+                        for j in range(1, n_time_steps):
+                            indexes.append([probability, specie, level, j])
+                    else:
+                        for time_step in time_steps:
+                            indexes.append([probability, specie, level, time_step])
+            n_pool += 1
+    n_pool = 0
+    for probability in exceedance_probabilities:
+        for specie in species:
+            n_completed_processes = 0
+            while n_completed_processes <= len(indexes):
+                start = n_completed_processes
+                end = n_completed_processes + max_number_processes
+                if end > len(indexes):
+                    end = len(indexes)
+                try:
+                    pools_ecdfs[n_pool] = ThreadingPool(max_number_processes)
+                    pools_ecdfs[n_pool].map(ecdf, indexes[start:end])
+                except:
+                    print('Unable to elaborate days')
+                    sys.exit()
+                n_completed_processes = end
+                if n_completed_processes == len(indexes):
+                    break
+            n_pool += 1
 
 def save_plots():
+    import re
     dark_jet = cmap_map(lambda x: x * 0.75, matplotlib.cm.jet)
-    graphical_outputs = (os.path.join(cwd, 'graphical_outputs'))
+    graphical_outputs = (os.path.join(disgas_outputs, 'graphical_outputs'))
     graphical_outputs_simulations = (os.path.join(graphical_outputs, 'simulations'))
     graphical_outputs_ecdf = (os.path.join(graphical_outputs, 'ecdf'))
     try:
@@ -321,6 +417,16 @@ def save_plots():
     def plot_file(input,output):
         with open(input) as input_file:
             Z = [[float(record) for record in line.split(' ')] for line in input_file]
+            # try:
+            #     Z = [[float(record) for record in line.split(' ')] for line in input_file]
+            # except:
+            #     Z_temp = np.loadtxt(input, encoding='utf8', skiprows=5)
+            #     Z_temp = np.reshape(Z_temp, [nx, ny])
+            #     np.savetxt('temp.txt',  Z_temp, encoding='utf8', fmt='%.2e')
+            #     with open('temp.txt', encoding="utf-8", errors='ignore') as temp_input_file:
+            #         Z = [[float(record) for record in line.split(' ')] for line in temp_input_file]
+            #         temp_input_file.close()
+            #     os.remove('temp.txt')
             fig = plt.figure(figsize=(8, 8))
             ax1 = fig.add_subplot(111)
             ax1.imshow(Z, extent=[x0, xf, y0, yf], cmap=dark_jet,aspect='auto')
@@ -334,33 +440,36 @@ def save_plots():
     output_files = []
     if plot:
         for day in days_to_plot:
-            disgas_converted_output_folder_daily = os.path.join(disgas_converted_output_folder, day)
-            disgas_converted_output_folder_species = []
-            for specie in species:
-                disgas_converted_output_folder_species.append(os.path.join(disgas_converted_output_folder_daily, specie))
             graphical_outputs_daily = os.path.join(graphical_outputs_simulations, day)
             try:
                 os.mkdir(graphical_outputs_daily)
             except FileExistsError:
                 print('Folder ' + graphical_outputs_daily + ' already exists')
+            disgas_processed_output_folder_daily = os.path.join(disgas_processed_output_folder, day)
+            disgas_processed_output_folder_species = []
+            for specie in species:
+                disgas_processed_output_folder_species.append(
+                    os.path.join(disgas_processed_output_folder_daily, specie))
             for specie in species:
                 try:
-                    os.mkdir(os.path.join(graphical_outputs_daily,specie))
+                    os.mkdir(os.path.join(graphical_outputs_daily, specie))
                 except FileExistsError:
-                    print('Folder ' + os.path.join(graphical_outputs_daily,specie) + ' already exists')
+                    print('Folder ' + os.path.join(graphical_outputs_daily, specie) + ' already exists')
             files_list_path = []
             files_list = []
-            for folder in disgas_converted_output_folder_species:
+            for folder in disgas_processed_output_folder_species:
                 files_list_temp = os.listdir(folder)
                 for file in files_list_temp:
                     files_list.append(file)
-                    files_list_path.append(os.path.join(folder,file))
+                    files_list_path.append(os.path.join(folder, file))
             i = 0
             for file in files_list_path:
+                file_specie = file.split(disgas_processed_output_folder_daily)
+                file_specie = file_specie[1].split(files_list[i])
+                file_specie = re.sub('\W+', '', file_specie[0])
                 file_name_splitted = files_list[i].split('_')
-                file_specie = file_name_splitted[0]
-                file_level = file_name_splitted[2]
-                file_time_step = file_name_splitted[3].split('.')[0]
+                file_level = file_name_splitted[1]
+                file_time_step = file_name_splitted[2].split('.')[0]
                 output_file_name = files_list[i].split('.')[0]
                 output_file_name += '.png'
                 if levels[0] == 'all':
@@ -371,20 +480,21 @@ def save_plots():
                         for time_step in time_steps:
                             if file_time_step == "{:06d}".format(int(time_step)):
                                 files_to_plot.append(file)
-                                output_files.append(os.path.join(graphical_outputs_daily, file_specie, output_file_name))
+                                output_files.append(
+                                    os.path.join(graphical_outputs_daily, file_specie, output_file_name))
                 else:
                     if time_steps[0] == 'all':
                         for level in levels:
                             if file_level == "{:03d}".format(int(level)):
                                 files_to_plot.append(file)
-                                output_files.append(os.path.join(graphical_outputs_daily, file_specie, output_file_name))
+                                output_files.append(
+                                    os.path.join(graphical_outputs_daily, file_specie, output_file_name))
                     else:
                         for level in levels:
                             for time_step in time_steps:
-                                if file_time_step == "{:06d}".format(int(time_step)) and file_level == "{:03d}".format(int(level)):
+                                if file_time_step == "{:06d}".format(int(time_step)) and file_level == "{:03d}".format(
+                                        int(level)):
                                     files_to_plot.append(file)
-                                    output_files.append(os.path.join(graphical_outputs_daily, file_specie, output_file_name))
-                i += 1
     if plot_ex_prob:
         for probability in exceedance_probabilities:
             try:
@@ -393,39 +503,45 @@ def save_plots():
                 print('Folder ' + os.path.join(disgas_ecdf, str(probability)) + ' already exists')
             for specie in species:
                 try:
-                    os.mkdir(os.path.join(graphical_outputs_ecdf,str(probability),specie))
+                    os.mkdir(os.path.join(graphical_outputs_ecdf, str(probability), specie))
                 except FileExistsError:
-                    print('Folder ' + os.path.join(graphical_outputs_ecdf,str(probability),specie) + ' already exists')
+                    print(
+                        'Folder ' + os.path.join(graphical_outputs_ecdf, str(probability), specie) + ' already exists')
                 files_list = os.listdir(os.path.join(disgas_ecdf, str(probability), specie))
                 for file in files_list:
-                    file_path = os.path.join(disgas_ecdf, str(probability), specie,file)
+                    file_path = os.path.join(disgas_ecdf, str(probability), specie, file)
                     file_name_splitted = file.split('_')
-                    file_specie = file_name_splitted[0]
-                    file_level = file_name_splitted[2]
-                    file_time_step = file_name_splitted[3].split('.')[0]
+                    file_level = file_name_splitted[1]
+                    file_time_step = file_name_splitted[2].split('.')[0]
                     output_file_name = file.split('.')[0]
                     output_file_name += '.png'
                     if levels[0] == 'all':
                         if time_steps[0] == 'all':
                             files_to_plot.append(file_path)
-                            output_files.append(os.path.join(graphical_outputs_ecdf, str(probability), file_specie, output_file_name))
+                            output_files.append(
+                                os.path.join(graphical_outputs_ecdf, str(probability), specie, output_file_name))
                         else:
                             for time_step in time_steps:
                                 if file_time_step == "{:06d}".format(int(time_step)):
                                     files_to_plot.append(file_path)
-                                    output_files.append(os.path.join(graphical_outputs_ecdf, str(probability), file_specie, output_file_name))
+                                    output_files.append(os.path.join(graphical_outputs_ecdf, str(probability), specie,
+                                                                     output_file_name))
                     else:
                         if time_steps[0] == 'all':
                             for level in levels:
                                 if file_level == "{:03d}".format(int(level)):
                                     files_to_plot.append(file_path)
-                                    output_files.append(os.path.join(graphical_outputs_ecdf, str(probability), file_specie, output_file_name))
+                                    output_files.append(os.path.join(graphical_outputs_ecdf, str(probability), specie,
+                                                                     output_file_name))
                         else:
                             for level in levels:
                                 for time_step in time_steps:
-                                    if file_time_step == "{:06d}".format(int(time_step)) and file_level == "{:03d}".format(int(level)):
+                                    if file_time_step == "{:06d}".format(
+                                            int(time_step)) and file_level == "{:03d}".format(int(level)):
                                         files_to_plot.append(file_path)
-                                        output_files.append(os.path.join(graphical_outputs_ecdf, str(probability), file_specie, output_file_name))
+                                        output_files.append(
+                                            os.path.join(graphical_outputs_ecdf, str(probability), specie,
+                                                         output_file_name))
     if len(files_to_plot) == 0:
         print('No files to plot')
     else:
@@ -435,6 +551,8 @@ def save_plots():
             plot_file(file_to_plot,output_files[i])
             i += 1
 
+root = os.getcwd()
+
 plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert = read_arguments()
 
 try:
@@ -442,100 +560,17 @@ try:
 except:
     max_number_processes = int(nproc)
 
-cwd = os.getcwd()
-original_output_folder_name = 'simulations'
-converted_output_folder_name = original_output_folder_name + '_converted'
-ecdf_folder_name = 'output_ecdf'
-disgas_original_output_folder = os.path.join(cwd,original_output_folder_name)
-disgas_converted_output_folder= os.path.join(cwd,converted_output_folder_name)
-disgas_ecdf = os.path.join(cwd,ecdf_folder_name)
-try:
-    os.mkdir(disgas_converted_output_folder) 
-except:
-    print('Folder ' + disgas_converted_output_folder + ' already exists')
-    list_temp = os.listdir(disgas_converted_output_folder)
-    for item in list_temp:
-        try:
-            rmtree(os.path.join(disgas_converted_output_folder,item),ignore_errors=True)
-        except:
-            print('Unable to remove ' + item + ' in ' + disgas_converted_output_folder)
+disgas_outputs, disgas_original_output_folder, disgas_processed_output_folder, ecdf_folder_name, disgas_ecdf = folder_structure()
 
 x0, xf, y0, yf, nx, ny, nz, n_time_steps = domain()
 
 days, days_to_plot = extract_days()
 
-species_properties = gas_properties()
-
 if convert:
-    for day in days:
-        elaborate_day(day)
+    species_properties = gas_properties()
+for day in days:
+    elaborate_day(day)
 
-try:
-    os.mkdir(disgas_ecdf)
-except:
-    print('Folder ' + disgas_ecdf + ' already exists')
-    list_temp = os.listdir(disgas_ecdf)
-    for item in list_temp:
-        try:
-            rmtree(os.path.join(disgas_ecdf,item), ignore_errors=True)
-        except:
-            print('Unable to remove ' + item + ' in ' + disgas_ecdf)
-
-for probability in exceedance_probabilities:
-    prob_folder = os.path.join(disgas_ecdf, str(probability))
-    try:
-        os.mkdir(prob_folder)
-    except:
-        print('Folder ' + prob_folder + ' already exists')
-    for specie in species:
-        specie_folder = os.path.join(disgas_ecdf, prob_folder,specie)
-        try:
-            os.mkdir(specie_folder)
-        except:
-            print('Folder ' + specie_folder + ' already exists')
-
-indexes = []
-pools_ecdfs = []
-n_pool = 0
-for probability in exceedance_probabilities:
-    for specie in species:
-        pools_ecdfs.append(n_pool)
-        if levels[0] == 'all':
-            for i in range(1, nz + 1):
-                if time_steps[0] == 'all':
-                    for j in range(1,n_time_steps):
-                        indexes.append([probability, specie, i, j])
-                else:
-                    for time_step in time_steps:
-                        indexes.append([probability, specie, i, time_step])
-        else:
-            for level in levels:
-                if time_steps[0] == 'all':
-                    for j in range(1,n_time_steps):
-                        indexes.append([probability, specie, level, j])
-                else:
-                    for time_step in time_steps:
-                        indexes.append([probability, specie, level, time_step])
-        n_pool += 1
-n_pool = 0
-for probability in exceedance_probabilities:
-    for specie in species:
-        n_completed_processes = 0
-        while n_completed_processes <= len(indexes):
-            ps = []
-            start = n_completed_processes
-            end = n_completed_processes + max_number_processes
-            if end > len(indexes):
-                end = len(indexes)
-            try:
-                pools_ecdfs[n_pool] = ThreadingPool(max_number_processes)
-                pools_ecdfs[n_pool].map(ecdf,indexes[start:end])
-            except:
-                print('Unable to elaborate days')
-                sys.exit()
-            n_completed_processes = end
-            if n_completed_processes == len(indexes):
-                break
-        n_pool += 1
+probabilistic_output()
 
 save_plots()

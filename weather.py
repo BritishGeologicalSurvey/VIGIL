@@ -776,7 +776,8 @@ while n_elaborated_days <= nsamples:
         break
     n_pool += 1
 
-while True:
+attempt = 0
+while attempt < 5:
     days_to_reelaborate = []
     with open('log.txt','r',encoding="utf-8", errors="surrogateescape") as log_file:
         for line in log_file:
@@ -821,3 +822,4 @@ while True:
         if n_elaborated_days == len(days_to_reelaborate):
             break
         n_pool += 1
+    attempt += 1

@@ -6,7 +6,6 @@ import os
 import utm
 import argparse
 import pandas as pd
-import subprocess
 
 root = os.getcwd()
 simulations = os.path.join(root,'simulations')
@@ -680,7 +679,10 @@ def automatic_weather(analysis_start):
     month = analysis_start_s[5:7]
     day = analysis_start_s[8:10]
     data_folder = os.path.join(root, 'simulations', year + month + day)
-    os.mkdir(data_folder)
+    try:
+        os.mkdir(data_folder)
+    except FileExistsError:
+        print('Folder ' + data_folder + ' already exists')
     try:
         copy('diagno.inp', os.path.join(data_folder, 'diagno.inp'))
     except:
@@ -711,17 +713,17 @@ def automatic_weather(analysis_start):
             i += 1
         extract_station_data(station_data_files, n_weather_stations, eastings, northings, data_folder)
 
-#time_start, time_stop, nsamples = get_input_data()
+time_start, time_stop, nsamples = get_input_data()
 
 delta = time_stop - time_start
 days_list = []
 sampled_periods_end = []
-# Generate a list of days in the time interval defined above
+#Generate a list of days in the time interval defined above
 for i in range(delta.days + 1):
     day = time_start + datetime.timedelta(days = i)
     days_list.append(day)
-
-# Create a new list of nsamples randomly-sampled periods
+#
+#Create a new list of nsamples randomly-sampled periods
 sampled_period_days = sample(days_list,nsamples)
 try:
     os.mkdir(simulations)
@@ -737,7 +739,7 @@ if os.path.exists('days_list.txt'):
 logger = open('log.txt','w', encoding="utf-8", errors="surrogateescape")
 logger.write('Unable to complete weather data processing for the following days\n')
 
-# Create a text file with the list of sampled days
+#Create a text file with the list of sampled days
 days_list_file = open('days_list.txt','a+', encoding="utf-8", errors="surrogateescape")
 for i in range(nsamples):
     days_list_file.write(str(sampled_period_days[i])+'\n')
@@ -773,3 +775,49 @@ while n_elaborated_days <= nsamples:
     if n_elaborated_days == nsamples:
         break
     n_pool += 1
+
+while True:
+    days_to_reelaborate = []
+    with open('log.txt','r',encoding="utf-8", errors="surrogateescape") as log_file:
+        for line in log_file:
+            try:
+                record = line.split('\n')[0]
+                days_to_reelaborate.append(datetime.datetime.strptime(record, '%Y-%m-%d %H:%M:%S'))
+            except:
+                continue
+    if len(days_to_reelaborate) == 0:
+        break
+    log_file.close()
+    os.remove('log.txt')
+    n_elaborated_days = 0
+    pools = []
+    n_pool = 0
+    while n_elaborated_days <= len(days_to_reelaborate):
+        start = n_elaborated_days
+        end = n_elaborated_days + max_number_processes
+        if end > len(days_to_reelaborate):
+            end = len(days_to_reelaborate)
+        n_elaborated_days = end
+        pools.append(n_pool)
+        if n_elaborated_days == len(days_to_reelaborate):
+            break
+        n_pool += 1
+    n_elaborated_days = 0
+    n_pool = 0
+    while n_elaborated_days <= len(days_to_reelaborate):
+        logger = open('log.txt','w', encoding="utf-8", errors="surrogateescape")
+        logger.write('Unable to complete weather data processing for the following days\n')
+        start = n_elaborated_days
+        end = n_elaborated_days + max_number_processes
+        if end > len(days_to_reelaborate):
+            end = len(days_to_reelaborate)
+        try:
+            pools[n_pool] = ThreadingPool(max_number_processes)
+            pools[n_pool].map(automatic_weather, days_to_reelaborate[start:end])
+        except:
+            print('Unable to process reanalysis weather data')
+            exit()
+        n_elaborated_days = end
+        if n_elaborated_days == len(days_to_reelaborate):
+            break
+        n_pool += 1

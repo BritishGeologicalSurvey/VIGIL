@@ -16,7 +16,7 @@ The weather data can be either retrieved from ECMWF ERA5 database or from time s
 The following flags control the execution of weather.py:
 usage: weather.py [-h] [-S START_DATE] [-E END_DATE] [-V VOLC] [-LAT LAT]
                   [-LON LON] [-EL ELEV] [-NS SAMPLES] [-ERA5 ERA5]
-                  [-WST STATION]
+                  [-WST STATION] [-N NPROC]
   -h, --help            show this help message and exit
   -S START_DATE, --start_date START_DATE
                         Start date of the sampling period. Format: DD/MM/YYYY
@@ -36,6 +36,8 @@ usage: weather.py [-h] [-S START_DATE] [-E END_DATE] [-V VOLC] [-LAT LAT]
   -WST STATION, --station STATION
                         True: Use weather station data. False: Do not use
                         weather station data
+  -N NPROC, --nproc NPROC
+                        Maximum number of allowed simultaneous processes
 
 - hazard_fumaroles.py
 Python script to run Diagno and DISGAS for the days sampled with weather.py. The simulations are run in parallel, with the maximum number of simulataneous simulation controlled by the flag -N (--nproc).

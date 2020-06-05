@@ -316,24 +316,7 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
         wtfile_sl_location = os.path.join(data_folder, 'data_location_' + date_bis + '.txt')
         print('Saving weather data along the vertical at the vent location')
         os.system('wgrib2 ' + wtfile + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_prof)
-        os.system(
-            'wgrib2 ' + wtfile_sl + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_sl_location)
-        #try:
-            #subprocess.Popen(['srun', '-n', '1', 'wgrib2', wtfile, '-s', '-lon' , slon_source , slat_source , '>' , wtfile_prof])
-            #p = subprocess.Popen('srun -n 1 wgrib2 ' + wtfile + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_prof)
-         #   os.system('srun -n 1 wgrib2 ' + wtfile + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_prof)
-        #except 'srun is not recognized as an internal or external command, operable program or batch file.':
-            #subprocess.Popen(['wgrib2', wtfile, '-s', '-lon' , slon_source , slat_source , '>' , wtfile_prof])
-            #p = subprocess.Popen('wgrib2 ' + wtfile + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_prof)
-        #    os.system('wgrib2 ' + wtfile + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_prof)
-        #try:
-            #p = subprocess.Popen('srun -n 1 wgrib2 ' + wtfile_sl + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_sl_location)
-            #subprocess.Popen(['srun', '-n', '1', 'wgrib2', wtfile_sl , '-s', '-lon' , slon_source , slat_source , '>' , wtfile_sl_location])
-        #    os.system('srun -n 1 wgrib2 ' + wtfile_sl + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_sl_location)
-        #except 'srun is not recognized as an internal or external command, operable program or batch file.':
-            #subprocess.Popen(['wgrib2', wtfile_sl , '-s', '-lon' , slon_source , slat_source , '>' , wtfile_sl_location])
-            #p = subprocess.Popen('srun -n 1 wgrib2 ' + wtfile_sl + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_sl_location)
-        #    os.system('wgrib2 ' + wtfile_sl + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_sl_location)
+        os.system('wgrib2 ' + wtfile_sl + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_sl_location)
         # Split wtfile_prof into multiple file, each one for a specific time step
         splitLen = 148
         outputBase = os.path.join(data_folder, 'profile_')
@@ -712,8 +695,6 @@ def automatic_weather(analysis_start):
             station_data_files.append(os.path.join(root,'weather_stations',station_data_file))
             i += 1
         extract_station_data(station_data_files, n_weather_stations, eastings, northings, data_folder)
-
-time_start, time_stop, nsamples = get_input_data()
 
 delta = time_stop - time_start
 days_list = []

@@ -1,12 +1,12 @@
 import datetime
 from random import sample
-from pathos.multiprocessing import Pool, ThreadingPool, ThreadPool
-import multiprocessing
+from pathos.multiprocessing import ThreadingPool
 from shutil import move, copy, rmtree
 import os
 import utm
 import argparse
 import pandas as pd
+import subprocess
 
 root = os.getcwd()
 simulations = os.path.join(root,'simulations')
@@ -22,6 +22,7 @@ parser.add_argument('-EL','--elev',default=999,help='Volcano elevation')
 parser.add_argument('-NS','--samples',default=1,help='Number of days to sample')
 parser.add_argument('-ERA5','--ERA5',default='False',help='True: Use ERA5 reanalysis. False: Do not use ERA5 reanalysis')
 parser.add_argument('-WST','--station',default='False',help='True: Use weather station data. False: Do not use weather station data')
+parser.add_argument('-N', '--nproc', default=1, help='Maximum number of allowed simultaneous processes')
 args = parser.parse_args()
 start_date = args.start_date
 end_date = args.end_date
@@ -32,6 +33,8 @@ elevation = float(args.elev)
 nsamples = int(args.samples)
 ERA5_on = args.ERA5
 weather_station_on = args.station
+args = parser.parse_args()
+nproc = args.nproc
 if ERA5_on == 'True':
     ERA5_on = True
 elif ERA5_on == 'False':
@@ -74,6 +77,10 @@ except:
     if volc_lat == 999 or volc_lon == 999 or elevation == 999:
         print('Some information on the volcano are missing')
         exit()
+try:
+    max_number_processes = int(nproc)
+except:
+    print('Please provide a valid number for the maximum number of process')
 out_utm = utm.from_latlon(volc_lat, volc_lon)
 easting = int(round(out_utm[0] / 1000))
 northing = int(round(out_utm[1] / 1000))
@@ -309,9 +316,25 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
         wtfile_prof = os.path.join(data_folder, 'profile_' + date_bis + '.txt')
         wtfile_sl_location = os.path.join(data_folder, 'data_location_' + date_bis + '.txt')
         print('Saving weather data along the vertical at the vent location')
-        os.system('srun -n 1 wgrib2 ' + wtfile + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_prof)
-        os.system('srun -n 1 wgrib2 ' + wtfile_sl + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_sl_location)
-
+        os.system('wgrib2 ' + wtfile + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_prof)
+        os.system(
+            'wgrib2 ' + wtfile_sl + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_sl_location)
+        #try:
+            #subprocess.Popen(['srun', '-n', '1', 'wgrib2', wtfile, '-s', '-lon' , slon_source , slat_source , '>' , wtfile_prof])
+            #p = subprocess.Popen('srun -n 1 wgrib2 ' + wtfile + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_prof)
+         #   os.system('srun -n 1 wgrib2 ' + wtfile + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_prof)
+        #except 'srun is not recognized as an internal or external command, operable program or batch file.':
+            #subprocess.Popen(['wgrib2', wtfile, '-s', '-lon' , slon_source , slat_source , '>' , wtfile_prof])
+            #p = subprocess.Popen('wgrib2 ' + wtfile + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_prof)
+        #    os.system('wgrib2 ' + wtfile + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_prof)
+        #try:
+            #p = subprocess.Popen('srun -n 1 wgrib2 ' + wtfile_sl + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_sl_location)
+            #subprocess.Popen(['srun', '-n', '1', 'wgrib2', wtfile_sl , '-s', '-lon' , slon_source , slat_source , '>' , wtfile_sl_location])
+        #    os.system('srun -n 1 wgrib2 ' + wtfile_sl + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_sl_location)
+        #except 'srun is not recognized as an internal or external command, operable program or batch file.':
+            #subprocess.Popen(['wgrib2', wtfile_sl , '-s', '-lon' , slon_source , slat_source , '>' , wtfile_sl_location])
+            #p = subprocess.Popen('srun -n 1 wgrib2 ' + wtfile_sl + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_sl_location)
+        #    os.system('wgrib2 ' + wtfile_sl + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_sl_location)
         # Split wtfile_prof into multiple file, each one for a specific time step
         splitLen = 148
         outputBase = os.path.join(data_folder, 'profile_')
@@ -720,22 +743,33 @@ for i in range(nsamples):
     days_list_file.write(str(sampled_period_days[i])+'\n')
 days_list_file.close()
 
-if nsamples > 500:
-     try:
-         pool = ThreadingPool(500)
-         pool.map(automatic_weather,sampled_period_days[0:500])
-         pool.join()
-     except:
-         print('Unable to process reanalysis weather data')
-     try:
-         pool1 = ThreadingPool(nsamples - 500)
-         pool1.map(automatic_weather,sampled_period_days[500:nsamples])
-         pool1.join()
-     except:
-         print('Unable to process reanalysis weather data')
-else:
-     try:
-         pool = ThreadingPool(nsamples)
-         pool.map(automatic_weather,sampled_period_days)
-     except:
-         print('Unable to process reanalysis weather data')
+n_elaborated_days = 0
+pools = []
+n_pool = 0
+while n_elaborated_days <= nsamples:
+    start = n_elaborated_days
+    end = n_elaborated_days + max_number_processes
+    if end > nsamples:
+        end = nsamples
+    n_elaborated_days = end
+    pools.append(n_pool)
+    if n_elaborated_days == nsamples:
+        break
+    n_pool += 1
+n_elaborated_days = 0
+n_pool = 0
+while n_elaborated_days <= nsamples:
+    start = n_elaborated_days
+    end = n_elaborated_days + max_number_processes
+    if end > nsamples:
+        end = nsamples
+    try:
+        pools[n_pool] = ThreadingPool(max_number_processes)
+        pools[n_pool].map(automatic_weather, sampled_period_days[start:end])
+    except:
+        print('Unable to process reanalysis weather data')
+        exit()
+    n_elaborated_days = end
+    if n_elaborated_days == nsamples:
+        break
+    n_pool += 1

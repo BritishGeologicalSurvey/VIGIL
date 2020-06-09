@@ -736,9 +736,9 @@ while n_elaborated_days <= nsamples:
         end = nsamples
     n_elaborated_days = end
     pools.append(n_pool)
+    n_pool += 1
     if n_elaborated_days == nsamples:
         break
-    n_pool += 1
 n_elaborated_days = 0
 n_pool = 0
 while n_elaborated_days <= nsamples:
@@ -753,9 +753,9 @@ while n_elaborated_days <= nsamples:
         print('Unable to process reanalysis weather data')
         exit()
     n_elaborated_days = end
+    n_pool += 1
     if n_elaborated_days == nsamples:
         break
-    n_pool += 1
 
 attempt = 0
 while attempt < 5:
@@ -781,9 +781,9 @@ while attempt < 5:
             end = len(days_to_reelaborate)
         n_elaborated_days = end
         pools.append(n_pool)
+        n_pool += 1
         if n_elaborated_days == len(days_to_reelaborate):
             break
-        n_pool += 1
     n_elaborated_days = 0
     n_pool = 0
     while n_elaborated_days <= len(days_to_reelaborate):
@@ -800,7 +800,7 @@ while attempt < 5:
             print('Unable to process reanalysis weather data')
             exit()
         n_elaborated_days = end
+        n_pool += 1
         if n_elaborated_days == len(days_to_reelaborate):
             break
-        n_pool += 1
     attempt += 1

@@ -3,157 +3,211 @@ import os
 import shutil
 import subprocess
 import argparse
+import numpy as np
+import sys
+import utm
 
-parser = argparse.ArgumentParser(description='Input data')
-parser.add_argument('-N', '--nproc', default=1, help='Maximum number of allowed simultaneous processes')
-args = parser.parse_args()
-nproc = args.nproc
+def read_arguments():
+    parser = argparse.ArgumentParser(description='Input data')
+    parser.add_argument('-N', '--nproc', default=1, help='Maximum number of allowed simultaneous processes')
+    parser.add_argument('-RS','--random_sources', default='off', help='on: randomly select NS locations from a probability map. off: fixed source locations')
+    parser.add_argument('-NS','--nsources',default='random', help='Specify a number for a fixed number of sources. If random, then randomly select the number of sources from an interval')
+    parser.add_argument('-SINT','--sources_interval', nargs='+', default=[], help='Type the minimum and maximum number of sources')
+    parser.add_argument('-SLOC','--source_location',nargs='+', default=[], help='Coordinate type (UTM/GEO), latitude/northing, longitude/easting, elevation (above ground in m) of 1 fixed source')
+    parser.add_argument('-D','--domain',nargs='+', default=[], help='Coordinates type (UTM/GEO), coordinates (latitude/northing, longitude/easting) of the bottom left corner and top right corner of the domain')
+    parser.add_argument('-SEM','--source_emission',default='999',help='Source emission rate [kg/s]. If specified, it is assigned to all the sources in the domain')
+    parser.add_argument('-RER','--random_emission',default='off',help='on: randomly assign emission rate for each source in the domain sampled from a flux.csv file. off: use specified emission rate')
+
+    args = parser.parse_args()
+    nproc = args.nproc
+    random_sources = args.random_sources
+    nsources = args.nsources
+    source_location = args.source_location
+    sources_interval = args.sources_interval
+    domain = args.domain
+    source_emission = args.source_emission
+    random_emission = args.random_emission
+    max_number_processes = int(nproc)
+    source_easting = source_northing = source_el = 0
+    try:
+        source_emission = float(source_emission)
+    except:
+        print('Pleae provide a valid number for the emission rate of the source')
+        sys.exit()
+    if len(domain) == 0 or len(domain) > 5:
+        print('ERROR. Please provide valid entries for -D --domain')
+        sys.exit()
+    else:
+        coordinates_type = domain[0]
+        if coordinates_type == 'GEO':
+            bottom_left_1 = float(domain[1])
+            bottom_left_2 = float(domain[2])
+            top_right_1 = float(domain[3])
+            top_right_2 = float(domain[4])
+            if (-90 <= bottom_left_1 <= 90 and -180 <= bottom_left_2 <= 180) and (-90 <= top_right_1 <= 90 and -180 <= top_right_2 <= 180):  # identify valid geographic coordinates
+                try:
+                    out_utm = utm.from_latlon(bottom_left_1, bottom_left_2)
+                    bottom_left_easting = float(out_utm[0])
+                    bottom_left_northing = float(out_utm[1])
+                except:
+                    print('ERROR. Please provide valid coordinates for the bottom left corner of the domain')
+                    sys.exit()
+                try:
+                    out_utm = utm.from_latlon(top_right_1, top_right_2)
+                    top_right_easting = float(out_utm[0])
+                    top_right_northing = float(out_utm[1])
+                except:
+                    print('ERROR. Please provide valid coordinates for the top right corner of the domain')
+                    sys.exit()
+            else:
+                print('ERROR. Please provide valid coordinates')
+                sys.exit()
+        elif coordinates_type == 'UTM':
+            bottom_left_northing = float(domain[1])
+            bottom_left_easting = float(domain[2])
+            top_right_northing = float(domain[3])
+            top_right_easting = float(domain[4])
+        else:
+            print('ERROR. Please provide a valide type of coordinates (UTM or GEO)')
+            sys.exit()
+    if random_sources == 'on':
+        try:
+            np.loadtxt('probability_map.txt')
+        except:
+            print('Please provide a valid probability_map.txt file when random_sources option is on')
+            sys.exit()
+        if nsources == 'random':
+            if len(sources_interval) == 0 or len(sources_interval) > 2:
+                print('ERROR. Please specify the minimum and maximum number of sources with -SINT --sources_interval')
+                sys.exit()
+        else:
+            try:
+                nsources = int(nsources)
+            except:
+                print('Please provide a valid integer for -NS --nsources')
+                sys.exit()
+        if random_emission == 'off' and source_emission == 999:
+            print('ERROR. random_sources set to on requires either random_emission set to on or a specified source_emission')
+            sys.exit()
+    else:
+        if random_sources != 'off':
+            print('Valid options for -RS --random_sources are on and off')
+            sys.exit()
+        else:
+            try:
+                sources_file =  open('sources.txt','r')
+                sources_file.close()
+            except:
+                print('File sources.txt not found. Using one source from input data')
+                if len(source_location) == 0 or len(source_location) > 4:
+                    print('ERROR. Please provide valid entries for -SLOC --sources_location')
+                    sys.exit()
+                else:
+                    coordinates_type = source_location[0]
+                    if coordinates_type == 'GEO':
+                        if -90 <= float(source_location[1]) <= 90 and -180 <= float(source_location[2]) <= 180: #identify geographic coordinates
+                            try:
+                                out_utm = utm.from_latlon(float(source_location[1]), float(source_location[2]))
+                                source_easting = float(out_utm[0])
+                                source_northing = float(out_utm[1])
+                            except:
+                                print('Please provide valid coordinates of the source location')
+                                sys.exit()
+                    elif coordinates_type == 'UTM':
+                        source_easting = float(source_location[1])
+                        source_northing = float(source_location[0])
+                        if not bottom_left_easting <= source_easting <= top_right_easting or not bottom_left_northing <= source_northing <= top_right_northing:
+                            print('Location not within the domain')
+                            sys.exit()
+                    else:
+                        print('ERROR. Please provide a valide type of coordinates (UTM or GEO)')
+                        sys.exit()
+                    if float(source_location[2]) < 0:
+                        print('Please provide a valid value for the source elevation in m above ground (>= 0 m)')
+                        sys.exit()
+                    else:
+                        source_el = float(source_location[2])
+    if random_emission == 'on':
+        try:
+            sources_file = open('flux.csv', 'r')
+            sources_file.close()
+        except:
+            print('ERROR. File flux.csv not found')
+            sys.exit()
+    elif random_emission != 'off':
+        print('Valid options for -RER --random_sources are on and off')
+        sys.exit()
+    return max_number_processes, random_sources, nsources, sources_interval, source_easting, source_northing, source_el, source_emission, random_emission, bottom_left_northing, bottom_left_easting, top_right_northing, top_right_easting
 
 def pre_process():
-    def random_sources(n_fumaroles): #DA CAMBIARE
-        import numpy as np
-        from matplotlib import pyplot as plt
+    def sample_random_sources(n_fumaroles, input_file, xmin, xmax, ymin, ymax):
+        from random import choices
 
-        #############################################
-        # CREAZIONE MATRICE PESI
-        #############################################
-        n = 98
-        heatmap_data = np.ones([n, n])  # valore di default 1 (np.ones crea una matrice con tutti valori 1)
-
-        # present-day ACTIVE FUMAROLES
-        heatmap_data[48:50, 46:50] += 5
-
-        # FRACTURES
-        # settore NS
-        heatmap_data[39:50, 46:47] += 3  # righe da 40 a 47 e colonna 46: assegno valore 3
-        heatmap_data[41:42, 44:46] += 4
-        # settore E
-        heatmap_data[50:51, 47:54] += 3
-        heatmap_data[51:52, 52:54] += 3
-        # settore NO fract Faujas
-        heatmap_data[42:44, 41:43] += 3
-        heatmap_data[42:43, 39:41] += 4
-        heatmap_data[43:44, 38:40] += 4
-        heatmap_data[44:47, 37:38] += 4
-        # settore NE fract du NordEst
-        heatmap_data[42:44, 49:50] += 3
-        heatmap_data[40:42, 50:51] += 3
-        # settore S past activity
-        heatmap_data[65:66, 46:48] += 4
-        heatmap_data[69:71, 47:48] += 4
-        # Ty fault
-        heatmap_data[62:64, 50:52] += 3
-        heatmap_data[64:68, 51:53] += 3
-        heatmap_data[60:62, 49:51] += 3
-        heatmap_data[68:70, 52:54] += 3
-
-        # settore SE fract del crater sud ???
-        heatmap_data[51:57, 48:50] += 3
-        # settore NO fract du NordOvest
-        heatmap_data[44:46, 44:45] += 3
-        heatmap_data[45:47, 45:46] += 3
-
-        # PAST fumarolic activity
-        # Nord 1976-77
-        heatmap_data[37:38, 45:48] += 4
-        # NE 1976-77
-        heatmap_data[44:47, 55:56] += 4
-        # Est 1976-77
-        heatmap_data[50:53, 55:59] += 4
-        heatmap_data[55:58, 54:57] += 4
-        # SSE 1976-77 Morue Mitan
-        heatmap_data[60:62, 50:55] += 4
-        # SE 1956
-        heatmap_data[53:54, 50:51] += 4
-        # Sud 2017
-        heatmap_data[61:62, 49:50] += 4
-
-        # inside DOME AREA
-        y, x = np.ogrid[-49:n - 49, -45:n - 45]
-        mask = x * x + y * y <= 11 * 11
-        heatmap_data[mask] += 2
-
-        # area a peso 0 aldisopra delle strutture di collasso calderico passato
-        bordo = [60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 58, 57, 54, 51, 51, 49, 47, 45, 41, 39, 39, 36,
-                 34, 34, 33, 33, 31, 31, 28, 28, 27, 27, 27, 26, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
-                 28, 28, 31, 30, 27, 27, 27, 27, 27, 27, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 31, 31, 31, 31, 31,
-                 33, 33, 33, 33, 35, 35, 35, 35, 35, 35, 35, 40, 40, 40, 40, 43, 43, 43, 45, 45, 45, 45, 45, 45]
-        for c, r in enumerate(bordo):
-            heatmap_data[:r, c] = 0
-
-        ##############################
-        # Calcolo probabilità best guess
-        ##############################
-
-        heatmap_data = heatmap_data / heatmap_data.sum()
-        np.savetxt('result_probabilities.txt', heatmap_data, fmt='%.2e')  # save a text file of the probabilities
-
-        #
-        # --The x and y coordinates from the grd file
-        #
-
-        xmin = 641525
-        xmax = 645475
-        x = np.linspace(xmin, xmax, n)
-
-        ymin = 1772530
-        ymax = 1776480
-        y = np.linspace(ymin, ymax, n)
-
-        ######################
-        # Randomly selecting probabilities and their rows and columns from the heatmap matrix in order to take at
-        # the same row and column the x and y
-        ######################
-
-        file = open('source.txt', 'w')
-
-        random_index = randrange(len(heatmap_data))
-        for i in range(0, n_fumaroles-1):
-            row = randrange(0, 97)
-            column = randrange(0, 97)
-            print(row, column)
-            probability = heatmap_data[row, column]
+        probabilities_input = np.loadtxt(input_file)
+        nx = probabilities_input.shape[0]
+        ny = probabilities_input.shape[1]
+        location_cum_indexes = []
+        location_indexes = []
+        probabilities = []
+        k = 0
+        for i in range(0, nx):
+            for j in range(0, ny):
+                location_cum_indexes.append(k)
+                location_indexes.append([i, j])
+                k += 1
+        x = np.linspace(xmin, xmax, nx)
+        y = np.linspace(ymin, ymax, ny)
+        for i in range(0, nx):
+            for j in range(0, ny):
+                probabilities.append(probabilities_input[i, j])
+        selected_locations = choices(location_cum_indexes, probabilities, k=n_fumaroles)
+        file = open('sources.txt', 'w')
+        for location in selected_locations:
+            row = location_indexes[location][0]
+            column = location_indexes[location][1]
             xpr = x[row]
             ypr = y[column]
+            probability = probabilities[location]
             print("at x", xpr, "at y", ypr, "Randomly selected probability - ", probability)
-            file.write(str(xpr))
-            file.write("|")
-            file.write(str(ypr))
-            file.write("|")
+            file.write('{0:7.1f}'.format(xpr))
+            file.write(",")
+            file.write('{0:7.1f}'.format(ypr))
+            file.write(",")
+            file.write('0.0') #elevation above ground
+            file.write(",")
             file.write(str(probability))
+            file.write(",")
+            file.write("nan")
             file.write('\n')
         file.close()
 
     def fluxes():
         import numpy as np
-        from matplotlib import pyplot as plt
         import pandas as pd
 
         data = pd.read_csv('flux.csv', error_bad_lines=False)
         x = np.sort(data['flux'])
         y = np.arange(1, len(x) + 1) / len(x)
-
-        # Sample randomly 100 data
-        with open('random_list_flux.txt', 'w') as outfile:
-            list_x = list(x)
-            sampled_flux = (sample(list_x, 1))
+        list_x = list(x)
+        sampled_flux = (sample(list_x, 1))
         return sampled_flux
 
-    Nf=[2,3,4,5] # fumaroles number vector to be sampled #DA CAMBIARE
+    if nsources == 'random':
+        Nsources = [*range(sources_interval[0],sources_interval[1] + 1)]
+    else:
+        Nsources = [nsources]
     raw_days = [] # store the days as originally formatted
     days = [] #store days in format YYYYMMDD as per folder name
     # read days_list file
     with open('days_list.txt','r',encoding="utf-8", errors="surrogateescape") as days_list_file:
         for line in days_list_file:
             raw_days.append(line)
-
     i=0
     for day in raw_days:
         temp = raw_days[i].split(' ')
         temp = temp[0].split('-')
         days.append(temp[0]+temp[1]+temp[2])
         i+=1
-
     for day in days:
         path = os.path.join(root,'simulations',str(day))  # To modify accordingly
         rawdata = os.path.join(path,'raw_data')
@@ -183,24 +237,43 @@ def pre_process():
             os.mkdir(outfiles)
         except:
             print('Folder outfiles already exists in ' + str(path))
-        n_fumaroles = sample(Nf,1)[0]
-        random_sources(n_fumaroles)
-        records=[]
+
+        if random_sources == 'on':
+            n_sources = sample(Nsources, 1)[0]
+            sample_random_sources(n_sources, 'probability_map.txt', bottom_left_easting, top_right_easting, bottom_left_northing, top_right_northing)
+        else:
+            with open('sources.txt','r',encoding="utf-8", errors="surrogateescape") as locations_file:
+                n_sources = 0
+                for line in locations_file:
+                    n_sources += 1
         easting=[]
         northing=[]
-        with open('source.txt','r',encoding="utf-8", errors="surrogateescape") as locations_file:
+        elevations=[]
+        probabilities=[]
+        fluxes_input=[]
+        with open('sources.txt','r',encoding="utf-8", errors="surrogateescape") as locations_file:
             i=0
             for line in locations_file:
-                records.append(line.split('|'))
-                easting.append(records[i][0])
-                northing.append(records[i][1])
+                records = line.split(',')
+                easting.append(records[0])
+                northing.append(records[1])
+                elevations.append(records[2])
+                probabilities.append(records[3])
+                fluxes_input.append(records[4])
                 i+=1
         with open('source.dat','w', encoding="utf-8", errors="surrogateescape") as source_file:
-            for i in range(0,n_fumaroles-1):
-                gas_flux = fluxes()
-                source_file.write(str(easting[i])+' '+str(northing[i]) + ' 0. ' + str(gas_flux[0]) + '\n')
+            for i in range(0,n_sources-1):
+                if random_emission == 'on':
+                    gas_flux = fluxes()
+                    gas_flux = '{0:7.3f}'.format(gas_flux[0])
+                else:
+                    if source_emission != 999:
+                        gas_flux = fluxes_input[i]
+                    else:
+                        gas_flux = '{0:7.3f}'.format(source_emission)
+                source_file.write(easting[i] + ' '+ northing[i] + ' ' + elevations[i] + ' ' + gas_flux + '\n')
         try:
-            shutil.move('source.txt',os.path.join(rawdata,'source.txt'))
+            shutil.move('sources.txt',os.path.join(rawdata,'source.txt'))
             shutil.move('source.dat',os.path.join(infiles,'source.dat'))
             shutil.move(presfc,os.path.join(infiles,'presfc.dat'))
             shutil.move(preupr, os.path.join(infiles, 'preupr.dat'))
@@ -309,16 +382,11 @@ def run_disgas():
 
 root = os.getcwd()
 disgas_original = os.path.join(root,'disgas.inp')
-max_number_processes = int(nproc)
+
+max_number_processes, random_sources, nsources, sources_interval, source_easting, source_northing, source_el, source_emission, random_emission, bottom_left_northing, bottom_left_easting, top_right_northing, top_right_easting = read_arguments()
 
 days = pre_process()
 
 run_diagno()
 
 run_disgas()
-
-
-
-
-
-

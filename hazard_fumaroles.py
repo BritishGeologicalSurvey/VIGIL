@@ -1,4 +1,4 @@
-from random import sample,randrange
+from random import sample
 import os
 import shutil
 import subprocess
@@ -70,6 +70,16 @@ def read_arguments():
         else:
             print('ERROR. Please provide a valide type of coordinates (UTM or GEO)')
             sys.exit()
+        if bottom_left_northing == top_right_northing or bottom_left_easting == top_right_easting:
+            print('ERROR. Coordinates of the corners cannot coincide')
+            sys.exit()
+        if bottom_left_northing > top_right_northing and bottom_left_easting > top_right_easting:  # Check coordinates are in the proper order, otherwise swap
+            temp = bottom_left_northing
+            bottom_left_northing = top_right_northing
+            top_right_northing = temp
+            temp = bottom_left_easting
+            bottom_left_easting = top_right_easting
+            top_right_easting = temp
     if random_sources == 'on':
         try:
             np.loadtxt('probability_map.txt')

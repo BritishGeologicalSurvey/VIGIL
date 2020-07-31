@@ -40,7 +40,40 @@ usage: weather.py [-h] [-S START_DATE] [-E END_DATE] [-V VOLC] [-LAT LAT]
                         Maximum number of allowed simultaneous processes
 
 - hazard_fumaroles.py
-Python script to run Diagno and DISGAS for the days sampled with weather.py. The simulations are run in parallel, with the maximum number of simulataneous simulation controlled by the flag -N (--nproc).
+Python script to run Diagno and DISGAS for the days sampled with weather.py. 
+The following flags control the execution of hazard_fumaroles.py:
+usage: hazard_fumaroles.py [-h] [-N NPROC] [-RS RANDOM_SOURCES] [-NS NSOURCES]
+                           [-SINT SOURCES_INTERVAL [SOURCES_INTERVAL ...]]
+                           [-SLOC SOURCE_LOCATION [SOURCE_LOCATION ...]]
+                           [-D DOMAIN [DOMAIN ...]] [-SEM SOURCE_EMISSION]
+                           [-RER RANDOM_EMISSION]
+  -h, --help            show this help message and exit
+  -N NPROC, --nproc NPROC
+                        Maximum number of allowed simultaneous processes
+  -RS RANDOM_SOURCES, --random_sources RANDOM_SOURCES
+                        on: randomly select NS locations from a probability
+                        map. off: fixed source locations
+  -NS NSOURCES, --nsources NSOURCES
+                        Specify a number for a fixed number of sources. If
+                        random, then randomly select the number of sources
+                        from an interval
+  -SINT SOURCES_INTERVAL [SOURCES_INTERVAL ...], --sources_interval SOURCES_INTERVAL [SOURCES_INTERVAL ...]
+                        Type the minimum and maximum number of sources
+  -SLOC SOURCE_LOCATION [SOURCE_LOCATION ...], --source_location SOURCE_LOCATION [SOURCE_LOCATION ...]
+                        Coordinate type (UTM/GEO), latitude/northing,
+                        longitude/easting, elevation (above ground in m) of 1
+                        fixed source
+  -D DOMAIN [DOMAIN ...], --domain DOMAIN [DOMAIN ...]
+                        Coordinates type (UTM/GEO), coordinates
+                        (latitude/northing, longitude/easting) of the bottom
+                        left corner and top right corner of the domain
+  -SEM SOURCE_EMISSION, --source_emission SOURCE_EMISSION
+                        Source emission rate [kg/s]. If specified, it is
+                        assigned to all the sources in the domain
+  -RER RANDOM_EMISSION, --random_emission RANDOM_EMISSION
+                        on: randomly assign emission rate for each source in
+                        the domain sampled from a flux.csv file. off: use
+                        specified emission rate
 
 - post_process.py
 Python script that:

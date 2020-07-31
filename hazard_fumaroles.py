@@ -10,7 +10,7 @@ import utm
 def read_arguments():
     parser = argparse.ArgumentParser(description='Input data')
     parser.add_argument('-N', '--nproc', default=1, help='Maximum number of allowed simultaneous processes')
-    parser.add_argument('-RS','--random_sources', default='off', help='on: randomly select NS locations from a probability map. off: fixed source locations')
+    parser.add_argument('-RS','--random_sources', default='off', help='on: randomly select NS locations from a probability map. off: fixed source locations from file sources_input.txt')
     parser.add_argument('-NS','--nsources',default='random', help='Specify a number for a fixed number of sources. If random, then randomly select the number of sources from an interval')
     parser.add_argument('-SINT','--sources_interval', nargs='+', default=[], help='Type the minimum and maximum number of sources')
     parser.add_argument('-SLOC','--source_location',nargs='+', default=[], help='Coordinate type (UTM/GEO), latitude/northing, longitude/easting, elevation (above ground in m) of 1 fixed source')
@@ -171,25 +171,40 @@ def pre_process():
             for j in range(0, ny):
                 probabilities.append(probabilities_input[i, j])
         selected_locations = choices(location_cum_indexes, probabilities, k=n_fumaroles)
-        file = open('sources.txt', 'w')
         for location in selected_locations:
             row = location_indexes[location][0]
             column = location_indexes[location][1]
             xpr = x[row]
             ypr = y[column]
             probability = probabilities[location]
-            print("at x", xpr, "at y", ypr, "Randomly selected probability - ", probability)
-            file.write('{0:7.1f}'.format(xpr))
-            file.write(",")
-            file.write('{0:7.1f}'.format(ypr))
-            file.write(",")
-            file.write('0.0') #elevation above ground
-            file.write(",")
-            file.write(str(probability))
-            file.write(",")
-            file.write("nan")
-            file.write('\n')
-        file.close()
+            random_eastings.append(xpr)
+            random_northings.append(ypr)
+            random_elevations.append(0.0)
+            random_probabilities.append(probability)
+            random_fluxes.append(99999999)
+        return random_eastings, random_northings, random_elevations, random_probabilities, random_elevations, random_fluxes
+        # with open('sources.txt', 'a+') as file:
+        #     file.seek(0)
+        #     data = file.read(100)
+        #     if len(data) > 0:
+        #         file.write('\n')
+        #     for location in selected_locations:
+        #         row = location_indexes[location][0]
+        #         column = location_indexes[location][1]
+        #         xpr = x[row]
+        #         ypr = y[column]
+        #         probability = probabilities[location]
+        #         print("at x", xpr, "at y", ypr, "Randomly selected probability - ", probability)
+        #         file.write('{0:7.1f}'.format(xpr))
+        #         file.write(",")
+        #         file.write('{0:7.1f}'.format(ypr))
+        #         file.write(",")
+        #         file.write('0.0') #elevation above ground
+        #         file.write(",")
+        #         file.write(str(probability))
+        #         file.write(",")
+        #         file.write("nan")
+        #         file.write('\n')
 
     def fluxes():
         import numpy as np
@@ -247,43 +262,58 @@ def pre_process():
             os.mkdir(outfiles)
         except:
             print('Folder outfiles already exists in ' + str(path))
-
+        random_eastings = []
+        random_northings = []
+        random_elevations = []
+        random_probabilities = []
+        random_fluxes = []
         if random_sources == 'on':
-            n_sources = sample(Nsources, 1)[0]
-            sample_random_sources(n_sources, 'probability_map.txt', bottom_left_easting, top_right_easting, bottom_left_northing, top_right_northing)
-        else:
-            with open('sources.txt','r',encoding="utf-8", errors="surrogateescape") as locations_file:
-                n_sources = 0
+            n_random_sources = sample(Nsources, 1)[0]
+            random_eastings, random_northings, random_elevations, random_probabilities, random_elevations, random_fluxes = sample_random_sources(n_random_sources, 'probability_map.txt', bottom_left_easting, top_right_easting, bottom_left_northing, top_right_northing)
+        # else:
+        #     with open('sources.txt','r',encoding="utf-8", errors="surrogateescape") as locations_file:
+        #         n_sources = 0
+        #         for line in locations_file:
+        #             n_sources += 1
+        easting = random_eastings
+        northing = random_northings
+        elevations = random_elevations
+        probabilities = random_probabilities
+        fluxes_input = random_fluxes
+        n_sources = 0
+        try:
+            with open('sources_input.txt','r',encoding="utf-8", errors="surrogateescape") as locations_file:
                 for line in locations_file:
                     n_sources += 1
-        easting=[]
-        northing=[]
-        elevations=[]
-        probabilities=[]
-        fluxes_input=[]
-        with open('sources.txt','r',encoding="utf-8", errors="surrogateescape") as locations_file:
-            i=0
-            for line in locations_file:
-                records = line.split(',')
-                easting.append(records[0])
-                northing.append(records[1])
-                elevations.append(records[2])
-                probabilities.append(records[3])
-                fluxes_input.append(records[4])
-                i+=1
+                    records = line.split(',')
+                    easting.append(float(records[0]))
+                    northing.append(float(records[1]))
+                    elevations.append(float(records[2]))
+                    probabilities.append(float(records[3]))
+                    fluxes_input.append(float(records[4]))
+        except:
+            easting.append(source_easting)
+            northing.append(source_northing)
+            elevations.append(source_el)
+            probabilities.append(1.0)
+            fluxes_input.append(source_emission)
+        n_sources = len(easting)
+        with open('sources.txt','w', encoding="utf-8", errors="surrogateescape") as locations_file_final:
+            for i in range(0,n_sources):
+                locations_file_final.write('{0:7.3f}'.format(easting[i]) + ',' + '{0:7.3f}'.format(northing[i]) + ','  + '{0:7.2f}'.format(elevations[i]) + ',' + '{0:8.6f}'.format(probabilities[i]) + ',' + '{0:7.3f}'.format(fluxes_input[i]) + '\n')
         with open('source.dat','w', encoding="utf-8", errors="surrogateescape") as source_file:
-            for i in range(0,n_sources-1):
-                if random_emission == 'on':
-                    gas_flux = fluxes()
-                    gas_flux = '{0:7.3f}'.format(gas_flux[0])
+            for i in range(0,n_sources):
+                if source_emission != 999:
+                    gas_flux = source_emission
                 else:
-                    if source_emission != 999:
-                        gas_flux = fluxes_input[i]
+                    if fluxes_input[i] == 99999999:
+                        gas_flux = fluxes()[0]
                     else:
-                        gas_flux = '{0:7.3f}'.format(source_emission)
-                source_file.write(easting[i] + ' '+ northing[i] + ' ' + elevations[i] + ' ' + gas_flux + '\n')
+                        gas_flux = fluxes_input[i]
+                source_file.write('{0:7.3f}'.format(easting[i]) + ' ' + '{0:7.3f}'.format(northing[i]) + ' ' + '{0:7.2f}'.format(elevations[i]) + ' ' + '{0:7.3f}'.format(gas_flux) + '\n')
         try:
-            shutil.move('sources.txt',os.path.join(rawdata,'source.txt'))
+            shutil.move('sources.txt',os.path.join(rawdata,'sources.txt'))
+            shutil.move('sources_input.txt', os.path.join(rawdata, 'sources_input.txt'))
             shutil.move('source.dat',os.path.join(infiles,'source.dat'))
             shutil.move(presfc,os.path.join(infiles,'presfc.dat'))
             shutil.move(preupr, os.path.join(infiles, 'preupr.dat'))

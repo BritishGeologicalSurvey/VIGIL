@@ -39,7 +39,7 @@ usage: weather.py [-h] [-S START_DATE] [-E END_DATE] [-V VOLC] [-LAT LAT]
   -N NPROC, --nproc NPROC
                         Maximum number of allowed simultaneous processes
 
-- hazard_fumaroles.py
+- run_models.py
 Python script to run Diagno and DISGAS for the days sampled with weather.py. 
 The following flags control the execution of hazard_fumaroles.py:
 usage: hazard_fumaroles.py [-h] [-N NPROC] [-RS RANDOM_SOURCES] [-NS NSOURCES]

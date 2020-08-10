@@ -183,28 +183,6 @@ def pre_process():
             random_probabilities.append(probability)
             random_fluxes.append(99999999)
         return random_eastings, random_northings, random_elevations, random_probabilities, random_elevations, random_fluxes
-        # with open('sources.txt', 'a+') as file:
-        #     file.seek(0)
-        #     data = file.read(100)
-        #     if len(data) > 0:
-        #         file.write('\n')
-        #     for location in selected_locations:
-        #         row = location_indexes[location][0]
-        #         column = location_indexes[location][1]
-        #         xpr = x[row]
-        #         ypr = y[column]
-        #         probability = probabilities[location]
-        #         print("at x", xpr, "at y", ypr, "Randomly selected probability - ", probability)
-        #         file.write('{0:7.1f}'.format(xpr))
-        #         file.write(",")
-        #         file.write('{0:7.1f}'.format(ypr))
-        #         file.write(",")
-        #         file.write('0.0') #elevation above ground
-        #         file.write(",")
-        #         file.write(str(probability))
-        #         file.write(",")
-        #         file.write("nan")
-        #         file.write('\n')
 
     def fluxes():
         import numpy as np
@@ -270,11 +248,6 @@ def pre_process():
         if random_sources == 'on':
             n_random_sources = sample(Nsources, 1)[0]
             random_eastings, random_northings, random_elevations, random_probabilities, random_elevations, random_fluxes = sample_random_sources(n_random_sources, 'probability_map.txt', bottom_left_easting, top_right_easting, bottom_left_northing, top_right_northing)
-        # else:
-        #     with open('sources.txt','r',encoding="utf-8", errors="surrogateescape") as locations_file:
-        #         n_sources = 0
-        #         for line in locations_file:
-        #             n_sources += 1
         easting = random_eastings
         northing = random_northings
         elevations = random_elevations

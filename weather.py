@@ -154,11 +154,10 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
         wt_output = open(prof_file, 'w', encoding="utf-8", errors="surrogateescape")
         wt_output.write('HGT[m abg] U[m/s]     V[m/s]  WIND[m/s]  WIND_DIR[deg]      T[K]\n')
         for i in range(j-1, -1, -1):
-            wt_output.write('%8.2f %8.2f %10.2f %10.2f %10.2f %10.2f\n' % (
-                hgt[i],  u[i], v[i], wind[i], direction[i], t[i]))
+            wt_output.write('%8.2f %8.2f %10.2f %10.2f %10.2f %10.2f\n' % (hgt[i],  u[i], v[i], wind[i], direction[i], t[i]))
         wt_output.close()
-        gamma = -(t[-1]-t[0])/((hgt[-1]-hgt[0])/1000)
-        return wind, direction, hgt, gamma
+        gamma_pl = -(t[-1]-t[0])/((hgt[-1]-hgt[0])/1000)
+        return wind, direction, hgt, gamma_pl
 
     def extract_data_sl(folder,validity, wtfile_sl_location_step):
         from math import atan2,pi
@@ -178,6 +177,8 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
                 v = float(records2[i][1])
             elif records1[i][3] == 'TMP':
                 t2m = float(records2[i][1])
+            else:
+                tz0 = float(records2[i][1])
             i += 1
 
         wind = (u ** 2 + v ** 2) ** 0.5
@@ -185,11 +186,11 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
         direction = wind_dir_degrees + 180
         prof_file = os.path.join(folder,'data_location_data_' + validity + '.txt')
         wt_output = open(prof_file, 'w', encoding="utf-8", errors="surrogateescape")
-        wt_output.write('    U[m/s]     V[m/s]  WIND[m/s]  WIND_DIR[deg]    T2m[K]\n')
-        wt_output.write('%10.2f %10.2f %10.2f %10.2f %10.2f\n' % (
-                u, v, wind, direction,t2m))
+        wt_output.write('    U[m/s]     V[m/s]  WIND[m/s]  WIND_DIR[deg]    T2m[K]    Tz0[K]\n')
+        wt_output.write('%10.2f %10.2f %10.2f %10.2f %10.2f %10.2f\n' % (u, v, wind, direction,t2m, tz0))
         wt_output.close()
-        return u, v, t2m, wind, direction
+        gamma_sl = (t2m - tz0) / 2.0
+        return u, v, t2m, wind, direction, tz0, gamma_sl
 
     def era5_request_pressure(folder,year,month,day):
         import cdsapi
@@ -255,7 +256,7 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
             c.retrieve(
              'reanalysis-era5-single-levels',
              {
-                 'variable': ['10m_u_component_of_wind','10m_v_component_of_wind', '2m_temperature'],
+                 'variable': ['10m_u_component_of_wind','10m_v_component_of_wind', '2m_temperature', 'soil_temperature_level_1'],
                  'time': [
                      '00:00', '01:00', '02:00',
                      '03:00', '04:00', '05:00',
@@ -362,7 +363,7 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
             hour = validity[8:10]
             wtfile_prof_step = os.path.join(data_folder,'profile_' + validity + '.txt')
             # Extract and elaborate weather data
-            wind, direction, height, gamma = extract_data(data_folder,validity, wtfile_prof_step)
+            wind, direction, height, gamma_pl = extract_data(data_folder,validity, wtfile_prof_step)
             for i in range (0, len(wind)-1):
                 try:
                     heights_string += '{:>5}'.format(str(int(round(height[i]))))
@@ -385,19 +386,19 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
             wind_direction_string = ''
             wind_speed_string = ''
             heights_string = ''
-            if len(gamma_string_1) < 56:
-                gamma_string_1 += '{:<7.1f}'.format(gamma)
-            else:
-                if len(gamma_string_2) < 56:
-                    gamma_string_2 += '{:<7.1f}'.format(gamma)
-                else:
-                    gamma_string_3 += '{:<7.1f}'.format(gamma)
-        gamma_string_1 += '         GAMMA (K/km)\n'
-        gamma_string_2 += '         GAMMA (K/km)\n'
-        gamma_string_3 += '         GAMMA (K/km)\n'
+#            if len(gamma_string_1) < 56:
+#                gamma_string_1 += '{:<7.1f}'.format(gamma)
+#            else:
+#                if len(gamma_string_2) < 56:
+#                    gamma_string_2 += '{:<7.1f}'.format(gamma)
+#                else:
+#                    gamma_string_3 += '{:<7.1f}'.format(gamma)
+#        gamma_string_1 += '         GAMMA (K/km)\n'
+#        gamma_string_2 += '         GAMMA (K/km)\n'
+#        gamma_string_3 += '         GAMMA (K/km)\n'
 
         # Split data_location into multiple file, each one for a specific time step
-        splitLen = 3
+        splitLen = 4
         outputBase = os.path.join(data_folder, 'data_location_')
         input = open(wtfile_sl_location, 'r',encoding="utf-8", errors="surrogateescape")
         count = 0
@@ -429,8 +430,8 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
             day = validity[6:8]
             hour = validity[8:10]
             wtfile_sl_location_step = os.path.join(data_folder, 'data_location_' + validity + '.txt')
-            u, v, t2m, wind_sl, direction_sl = extract_data_sl(data_folder,validity, wtfile_sl_location_step)
-            tinf += t2m
+            u, v, t2m, wind_sl, direction_sl, tz0, gamma_sl = extract_data_sl(data_folder,validity, wtfile_sl_location_step)
+            tinf += 0.5 * (tz0 + t2m)
             # Extract and elaborate weather data
             try:
                 wind_speed_sl_string += '{:>3}'.format(str(int(round(wind_sl * 10))))
@@ -454,6 +455,13 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
                     vm_string_2 += '{:<6.1f}'.format(v)
                 else:
                     vm_string_3 += '{:<6.1f}'.format(v)
+            if len(gamma_string_1) < 56:
+                gamma_string_1 += '{:<7.1f}'.format(gamma_sl)
+            else:
+                if len(gamma_string_2) < 56:
+                    gamma_string_2 += '{:<7.1f}'.format(gamma_sl)
+                else:
+                    gamma_string_3 += '{:<7.1f}'.format(gamma_sl)
         tinf = tinf/float(len(steps))
         str_tinf = '{:<4.1f}'.format(tinf)
         str_tinf += '       TINF\n'
@@ -463,6 +471,9 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
         vm_string_1 += '     VM\n'
         vm_string_2 += '     VM\n'
         vm_string_3 += '     VM\n'
+        gamma_string_1 += '         GAMMA (K/km)\n'
+        gamma_string_2 += '         GAMMA (K/km)\n'
+        gamma_string_3 += '         GAMMA (K/km)\n'
         #Memorize the needed records in the original presfc.dat
         try:
             presfc_file_records = []

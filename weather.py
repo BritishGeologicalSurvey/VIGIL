@@ -177,17 +177,18 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
                 v = float(records2[i][1])
             elif records1[i][3] == 'TMP':
                 t2m = float(records2[i][1])
+            elif records1[i][3] == 'PRES':
+                pz0 = float(records2[i][1])
             else:
                 tz0 = float(records2[i][1])
             i += 1
-
         wind = (u ** 2 + v ** 2) ** 0.5
         wind_dir_degrees = atan2(u,v) * 180/pi
         direction = wind_dir_degrees + 180
         prof_file = os.path.join(folder,'data_location_data_' + validity + '.txt')
         wt_output = open(prof_file, 'w', encoding="utf-8", errors="surrogateescape")
-        wt_output.write('    U[m/s]     V[m/s]  WIND[m/s]  WIND_DIR[deg]    T2m[K]    Tz0[K]\n')
-        wt_output.write('%10.2f %10.2f %10.2f %10.2f %10.2f %10.2f\n' % (u, v, wind, direction,t2m, tz0))
+        wt_output.write('    U[m/s]     V[m/s]  WIND[m/s]  WIND_DIR[deg]    T2m[K]    Tz0[K]   Pz0[Pa]\n')
+        wt_output.write('%10.2f %10.2f %10.2f %10.2f %10.2f %10.2f %10.2f\n' % (u, v, wind, direction,t2m, tz0, pz0))
         wt_output.close()
         gamma_sl = (t2m - tz0) / 2.0
         return u, v, t2m, wind, direction, tz0, gamma_sl
@@ -256,7 +257,7 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
             c.retrieve(
              'reanalysis-era5-single-levels',
              {
-                 'variable': ['10m_u_component_of_wind','10m_v_component_of_wind', '2m_temperature', 'soil_temperature_level_1'],
+                 'variable': ['10m_u_component_of_wind','10m_v_component_of_wind', '2m_temperature', 'soil_temperature_level_1', 'surface_pressure'],
                  'time': [
                      '00:00', '01:00', '02:00',
                      '03:00', '04:00', '05:00',
@@ -398,7 +399,7 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
 #        gamma_string_3 += '         GAMMA (K/km)\n'
 
         # Split data_location into multiple file, each one for a specific time step
-        splitLen = 4
+        splitLen = 5
         outputBase = os.path.join(data_folder, 'data_location_')
         input = open(wtfile_sl_location, 'r',encoding="utf-8", errors="surrogateescape")
         count = 0
@@ -533,9 +534,10 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
         with open('log.txt','a+', encoding="utf-8", errors="surrogateescape") as logger:
             logger.write(retrieved_day_s+'\n')
 
-def extract_station_data(station_data_files, n_weather_stations, eastings, northings, data_folder):
+def extract_station_data(station_data_files,  eastings, northings, zst, data_folder):
     global n_stations
     import math
+    n_weather_stations = len(station_data_files)
     wind_direction_station_strings = []
     wind_speed_station_strings = []
     stations_id = []
@@ -545,68 +547,95 @@ def extract_station_data(station_data_files, n_weather_stations, eastings, north
     vm_string_1 = ''
     vm_string_2 = ''
     vm_string_3 = ''
+    gamma_string_1 = ''
+    gamma_string_2 = ''
+    gamma_string_3 = ''
     um_avg = []
     vm_avg = []
+    gamma_avg = []
     um = [[0 for x in range(24)] for y in range(n_weather_stations)]
     vm = [[0 for x in range(24)] for y in range(n_weather_stations)]
+    gamma = [[0 for x in range(24)] for y in range(n_weather_stations)]
     year_start = str(time_start)[0:4]
     month_start = str(int(str(time_start)[5:7]))
     day_start = str(int(str(time_start)[8:10]))
     ii = 0
+    tinf = 0
+    n_tinf = 0
     for station_data_file in station_data_files:
         file = open(station_data_file, encoding="utf-8", errors="surrogateescape")
         records = []
         wind_direction_station_string = ''
         wind_speed_station_string = ''
+        n_line = 1
         for line in file:
-            try:
-                records.append(line.split(' '))
-            except:
-                # Skip line
-                continue
+            if n_line != 1: #Skip header line
+                records.append(line.split(','))
+            n_line += 1
         jj = 0
-        for i in range(0,len(records)-1):
+        for i in range(0, n_line):
+        #for i in range(0,len(records)-1):
             try:
-                datetime.datetime(int(records[i][0]),int(records[i][1]),int(records[i][2]))
+                time_record = records[i][0][0:7]
+                day_record = datetime.datetime.strptime(time_record,'%Y%m%d')
+                #datetime.datetime(int(records[i][0]),int(records[i][1]),int(records[i][2]))
             except:
                 continue
-            if datetime.datetime(int(records[i][0]),int(records[i][1]),int(records[i][2])) == time_start or datetime.datetime(int(records[i][0]),int(records[i][1]),int(records[i][2])) == time_stop:
+            if day_record == time_start or day_record == time_stop:
+            #if datetime.datetime(int(records[i][0]),int(records[i][1]),int(records[i][2])) == time_start or datetime.datetime(int(records[i][0]),int(records[i][1]),int(records[i][2])) == time_stop:
                 try:
-                    wind_speed = float(records[i][10]) * 0.28
-                    wind_station = int(round(float(records[i][10]) * 0.28 * 10))
+                    wind_speed = float(records[i][3]) * 0.28
+                    wind_station = int(round(float(records[i][3]) * 0.28 * 10))
                     wind_speed_station_string += '{:>3}'.format(str(wind_station))
                 except:
                     wind_speed_station_string += ' -1'
                 try:
-                    wind_direction = math.radians(float(records[i][9]))
-                    wind_direction_station = int(round(float(records[i][9])))
+                    wind_direction = math.radians(float(records[i][2]))
+                    wind_direction_station = int(round(float(records[i][2])))
                     wind_direction_station_string += '{:>3}'.format(str(wind_direction_station))
                 except:
                     wind_direction_station_string += ' -1'
                 try:
+                    tref = float(records[i][1]) + 273.15
+                except:
+                    tref = 273.15
+                try:
+                    tsoil = float(records[i][5]) + 273.15
+                except:
+                    tsoil = tref
+                if math.isnan(tsoil):
+                    tsoil = tref
+                try:
                     um[ii][jj] = wind_speed * math.cos(wind_direction)
                     vm[ii][jj] = wind_speed * math.sin(wind_direction)
+                    gamma[ii][jj] = (tref - tsoil) / zst[ii]
                 except:
                     um[ii][jj] = 0
                     vm[ii][jj] = 0
+                    gamma[ii][jj] = 0
                 jj += 1
+                tinf += 0.5 * (tref + tsoil)
+                n_tinf += 1
             else:
                 # Skip line
                 continue
         wind_direction_station_strings.append(wind_direction_station_string)
         wind_speed_station_strings.append(wind_speed_station_string)
         ii += 1
-
     for j in range(0, 24):
         um_average = 0
         vm_average = 0
+        gamma_average = 0
         for i in range(0, n_weather_stations):
             um_average += um[i][j]
             vm_average += vm[i][j]
+            gamma_average += gamma[i][j]
         um_average = um_average / n_weather_stations
         vm_average = vm_average / n_weather_stations
+        gamma_average = gamma_average / n_weather_stations
         um_avg.append(um_average)
         vm_avg.append(vm_average)
+        gamma_avg.append(gamma_average)
     for j in range(0, 24):
         if len(um_string_1) < 48:
             um_string_1 += '{:<6.1f}'.format(um_avg[j])
@@ -622,12 +651,25 @@ def extract_station_data(station_data_files, n_weather_stations, eastings, north
                 vm_string_2 += '{:<6.1f}'.format(vm_avg[j])
             else:
                 vm_string_3 += '{:<6.1f}'.format(vm_avg[j])
+        if len(gamma_string_1) < 56:
+            gamma_string_1 += '{:<7.1f}'.format(gamma_avg[j])
+        else:
+            if len(gamma_string_2) < 56:
+                gamma_string_2 += '{:<7.1f}'.format(gamma_avg[j])
+            else:
+                gamma_string_3 += '{:<7.1f}'.format(gamma_avg[j])
     um_string_1 += '     UM\n'
     um_string_2 += '     UM\n'
     um_string_3 += '     UM\n'
     vm_string_1 += '     VM\n'
     vm_string_2 += '     VM\n'
     vm_string_3 += '     VM\n'
+    gamma_string_1 += '         GAMMA (K/km)\n'
+    gamma_string_2 += '         GAMMA (K/km)\n'
+    gamma_string_3 += '         GAMMA (K/km)\n'
+    tinf = tinf / n_tinf
+    str_tinf = '{:<4.1f}'.format(tinf)
+    str_tinf += '       TINF\n'
     n_stations = n_weather_stations
     for n_station in range(0,n_stations):
         stations_id.append('ST' + "{:02d}".format(n_station + 1))
@@ -656,6 +698,10 @@ def extract_station_data(station_data_files, n_weather_stations, eastings, north
         diagno = open(os.path.join(data_folder,'diagno.inp'), 'r', encoding="utf-8", errors="surrogateescape")
         for line in diagno:
             diagno_records.append(line)
+        diagno_records[42] = gamma_string_1
+        diagno_records[43] = gamma_string_2
+        diagno_records[44] = gamma_string_3
+        diagno_records[47] = str_tinf
         diagno_records[51] = um_string_1
         diagno_records[52] = um_string_2
         diagno_records[53] = um_string_3
@@ -686,7 +732,7 @@ def automatic_weather(analysis_start):
         print('Retrieving ERA5 data for day ' + str(analysis_start)[0:10])
         era5_retrieve(volc_lon, volc_lat, analysis_start)
     if weather_station_on:
-        stations_input = open('weather_stations.txt','r', encoding="utf-8-sig", errors="surrogateescape")
+        stations_input = open('weather_stations_list.txt','r', encoding="utf-8-sig", errors="surrogateescape")
         print('Analysing weather station data for day ' + str(analysis_start)[0:10])
         records = []
         for line in stations_input:
@@ -696,16 +742,24 @@ def automatic_weather(analysis_start):
         eastings = []
         northings = []
         station_data_files = []
+        zst = []
         while i <= n_weather_stations:
             station_lat = float(records[i].split('\t')[0])
             station_lon = float(records[i].split('\t')[1])
             out_utm = utm.from_latlon(station_lat, station_lon)
             eastings.append(out_utm[0] / 1000)
             northings.append(out_utm[1] / 1000)
+            zst.append(float(records[i].split('\t')[2]))
             station_data_file = records[i].split('\t')[3]
-            station_data_files.append(os.path.join(root,'weather_stations',station_data_file))
-            i += 1
-        extract_station_data(station_data_files, n_weather_stations, eastings, northings, data_folder)
+            try:
+                test = open(os.path.join(root,'weather_stations',station_data_file),'r')
+                test.close()
+                station_data_files.append(os.path.join(root,'weather_stations',station_data_file))
+                i += 1
+            except:
+                i += 1
+                continue
+        extract_station_data(station_data_files, eastings, northings, zst, data_folder)
 
 delta = time_stop - time_start
 days_list = []
@@ -761,7 +815,7 @@ while n_elaborated_days <= nsamples:
         pools[n_pool] = ThreadingPool(max_number_processes)
         pools[n_pool].map(automatic_weather, sampled_period_days[start:end])
     except:
-        print('Unable to process reanalysis weather data')
+        print('Unable to process weather data')
         exit()
     n_elaborated_days = end
     n_pool += 1
@@ -808,7 +862,7 @@ while attempt < 5:
             pools[n_pool] = ThreadingPool(max_number_processes)
             pools[n_pool].map(automatic_weather, days_to_reelaborate[start:end])
         except:
-            print('Unable to process reanalysis weather data')
+            print('Unable to process weather data')
             exit()
         n_elaborated_days = end
         n_pool += 1

@@ -22,6 +22,7 @@ parser.add_argument('-NS','--samples',default=1,help='Number of days to sample')
 parser.add_argument('-ERA5','--ERA5',default='False',help='True: Use ERA5 reanalysis. False: Do not use ERA5 reanalysis')
 parser.add_argument('-WST','--station',default='False',help='True: Use weather station data. False: Do not use weather station data')
 parser.add_argument('-N', '--nproc', default=1, help='Maximum number of allowed simultaneous processes')
+parser.add_argument('-TD', '--twodee', default='off', help='on or off, to prepare additional weather data files for Twodee.')
 args = parser.parse_args()
 start_date = args.start_date
 end_date = args.end_date
@@ -34,6 +35,7 @@ ERA5_on = args.ERA5
 weather_station_on = args.station
 args = parser.parse_args()
 nproc = args.nproc
+twodee = args.twodee
 if ERA5_on == 'True':
     ERA5_on = True
 elif ERA5_on == 'False':
@@ -99,6 +101,13 @@ try:
 except:
     print('Unable to process start and end date')
     print('Please ensure the dates are provided in the format DD/MM/YYYY (e.g. 23/06/2018)')
+    exit()
+if twodee.lower() == 'on':
+    twodee_on = True
+elif twodee.lower == 'off':
+    twodee_on = False
+else:
+    print('Please provide a valid entry for the variable -TD --twodee')
     exit()
 
 def era5_retrieve(lon_source,lat_source,retrieved_day):
@@ -713,6 +722,9 @@ def extract_station_data(station_data_files,  eastings, northings, zst, data_fol
     except:
         print('Unable to process diagno.inp')
 
+def twodee_data():
+    print('Ciao')
+
 def automatic_weather(analysis_start):
     analysis_start_s = str(analysis_start)
     year = analysis_start_s[0:4]
@@ -760,6 +772,8 @@ def automatic_weather(analysis_start):
                 i += 1
                 continue
         extract_station_data(station_data_files, eastings, northings, zst, data_folder)
+    if twodee_on:
+        twodee_data()
 
 delta = time_stop - time_start
 days_list = []

@@ -200,7 +200,7 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
         wt_output.write('%10.2f %10.2f %10.2f %10.2f %10.2f %10.2f %10.2f\n' % (u, v, wind, direction,t2m, tz0, pz0))
         wt_output.close()
         gamma_sl = (t2m - tz0) / 2.0
-        return u, v, t2m, wind, direction, tz0, gamma_sl
+        return u, v, t2m, wind, direction, tz0, gamma_sl, pz0
 
     def era5_request_pressure(folder,year,month,day):
         import cdsapi
@@ -414,6 +414,9 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
         count = 0
         dest = None
         steps = []
+        tref_vector = []
+        tsoil_vector = []
+        press_vector = []
         for line in input:
             if count % splitLen == 0:
                 if dest: dest.close()
@@ -440,8 +443,11 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
             day = validity[6:8]
             hour = validity[8:10]
             wtfile_sl_location_step = os.path.join(data_folder, 'data_location_' + validity + '.txt')
-            u, v, t2m, wind_sl, direction_sl, tz0, gamma_sl = extract_data_sl(data_folder,validity, wtfile_sl_location_step)
+            u, v, t2m, wind_sl, direction_sl, tz0, gamma_sl, pz0 = extract_data_sl(data_folder,validity, wtfile_sl_location_step)
             tinf += 0.5 * (tz0 + t2m)
+            tref_vector.append(t2m)
+            tsoil_vector.append(tz0)
+            press_vector.append(pz0)
             # Extract and elaborate weather data
             try:
                 wind_speed_sl_string += '{:>3}'.format(str(int(round(wind_sl * 10))))
@@ -542,6 +548,7 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
     except:
         with open('log.txt','a+', encoding="utf-8", errors="surrogateescape") as logger:
             logger.write(retrieved_day_s+'\n')
+    return tref_vector,tsoil_vector,press_vector
 
 def extract_station_data(station_data_files,  eastings, northings, zst, data_folder):
     global n_stations
@@ -562,6 +569,9 @@ def extract_station_data(station_data_files,  eastings, northings, zst, data_fol
     um_avg = []
     vm_avg = []
     gamma_avg = []
+    tref_vector = []
+    tsoil_vector = []
+    press_vector = []
     um = [[0 for x in range(24)] for y in range(n_weather_stations)]
     vm = [[0 for x in range(24)] for y in range(n_weather_stations)]
     gamma = [[0 for x in range(24)] for y in range(n_weather_stations)]
@@ -605,15 +615,22 @@ def extract_station_data(station_data_files,  eastings, northings, zst, data_fol
                 except:
                     wind_direction_station_string += ' -1'
                 try:
+                    pressure = float(records[i][4]) * 100
+                except:
+                    pressure = 101300
+                press_vector.append(pressure)
+                try:
                     tref = float(records[i][1]) + 273.15
                 except:
                     tref = 273.15
+                tref_vector.append(tref)
                 try:
                     tsoil = float(records[i][5]) + 273.15
                 except:
                     tsoil = tref
                 if math.isnan(tsoil):
                     tsoil = tref
+                tsoil_vector.append(tsoil)
                 try:
                     um[ii][jj] = wind_speed * math.cos(wind_direction)
                     vm[ii][jj] = wind_speed * math.sin(wind_direction)
@@ -721,8 +738,9 @@ def extract_station_data(station_data_files,  eastings, northings, zst, data_fol
             diagno.writelines(diagno_records)
     except:
         print('Unable to process diagno.inp')
+    return tref_vector,tsoil_vector,press_vector
 
-def twodee_data():
+def twodee_data(tref, tsoil, press):
     print('Ciao')
 
 def automatic_weather(analysis_start):
@@ -742,7 +760,8 @@ def automatic_weather(analysis_start):
 
     if ERA5_on:
         print('Retrieving ERA5 data for day ' + str(analysis_start)[0:10])
-        era5_retrieve(volc_lon, volc_lat, analysis_start)
+
+        tref, tsoil, press = era5_retrieve(volc_lon, volc_lat, analysis_start)
     if weather_station_on:
         stations_input = open('weather_stations_list.txt','r', encoding="utf-8-sig", errors="surrogateescape")
         print('Analysing weather station data for day ' + str(analysis_start)[0:10])
@@ -771,9 +790,9 @@ def automatic_weather(analysis_start):
             except:
                 i += 1
                 continue
-        extract_station_data(station_data_files, eastings, northings, zst, data_folder)
+        tref, tsoil, press = extract_station_data(station_data_files, eastings, northings, zst, data_folder)
     if twodee_on:
-        twodee_data()
+        twodee_data(tref, tsoil, press)
 
 delta = time_stop - time_start
 days_list = []

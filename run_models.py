@@ -289,9 +289,9 @@ def pre_process():
                         gas_flux = fluxes_input[i]
                 source_file.write('{0:7.3f}'.format(easting[i]) + ' ' + '{0:7.3f}'.format(northing[i]) + ' ' + '{0:7.2f}'.format(elevations[i]) + ' ' + '{0:7.3f}'.format(gas_flux) + '\n')
         try:
-            shutil.move('sources.txt',os.path.join(rawdata,'sources.txt'))
-            shutil.move('sources_input.txt', os.path.join(rawdata, 'sources_input.txt'))
-            shutil.move('source.dat',os.path.join(infiles,'source.dat'))
+            shutil.copy('sources.txt',os.path.join(rawdata,'sources.txt'))
+            shutil.copy('sources_input.txt', os.path.join(rawdata, 'sources_input.txt'))
+            shutil.copy('source.dat',os.path.join(infiles,'source.dat'))
             shutil.move(presfc,os.path.join(infiles,'presfc.dat'))
             shutil.move(preupr, os.path.join(infiles, 'preupr.dat'))
             shutil.move(diagno, os.path.join(infiles, 'diagno.inp'))

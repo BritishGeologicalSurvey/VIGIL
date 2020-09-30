@@ -342,19 +342,19 @@ def run_diagno():
                 infiles = os.path.join(root, 'simulations', day, 'infiles')
                 os.chdir(infiles)
                 try:
-                    p = subprocess.Popen(['srun', '-n', '1', 'presfc'])
+                    p = subprocess.Popen(['srun', '-n', '1', 'presfc','&'])
                 except:
                     p = subprocess.Popen(['presfc'])
                 p.wait()
                 ps.append(p)
                 try:
-                    p = subprocess.Popen(['srun', '-n', '1', 'preupr'])
+                    p = subprocess.Popen(['srun', '-n', '1', 'preupr','&'])
                 except:
                     p = subprocess.Popen(['preupr'])
                 p.wait()
                 ps.append(p)
                 try:
-                    p = subprocess.Popen(['srun', '-n', '1', 'diagno'])
+                    p = subprocess.Popen(['srun', '-n', '1', 'diagno','&'])
                 except:
                     p = subprocess.Popen(['diagno'])
                 ps.append(p)
@@ -383,7 +383,7 @@ def run_disgas():
                 infiles = os.path.join(root, 'simulations', day, 'infiles')
                 disgas_input_file = os.path.join(infiles, 'disgas.inp')
                 try:
-                    p = subprocess.Popen(['srun', '-n', '1', 'disgas', disgas_input_file])
+                    p = subprocess.Popen(['srun', '-n', '1', 'disgas', disgas_input_file,'&'])
                 except:
                     p = subprocess.Popen(['disgas', disgas_input_file])
                 ps.append(p)

@@ -105,10 +105,10 @@ def read_arguments():
             sys.exit()
         else:
             try:
-                sources_file =  open('sources.txt','r')
+                sources_file =  open('sources_input.txt','r')
                 sources_file.close()
             except:
-                print('File sources.txt not found. Using one source from input data')
+                print('File sources_input.txt not found. Using one source from input data')
                 if len(source_location) == 0 or len(source_location) > 4:
                     print('ERROR. Please provide valid entries for -SLOC --sources_location')
                     sys.exit()
@@ -195,10 +195,11 @@ def pre_process():
         sampled_flux = (sample(list_x, 1))
         return sampled_flux
 
-    if nsources == 'random':
-        Nsources = [*range(sources_interval[0],sources_interval[1] + 1)]
-    else:
-        Nsources = [nsources]
+    if random_sources == 'on':
+        if nsources == 'random':
+            Nsources = [*range(sources_interval[0],sources_interval[1] + 1)]
+        else:
+            Nsources = [nsources]
     raw_days = [] # store the days as originally formatted
     days = [] #store days in format YYYYMMDD as per folder name
     # read days_list file
@@ -257,13 +258,16 @@ def pre_process():
         try:
             with open('sources_input.txt','r',encoding="utf-8", errors="surrogateescape") as locations_file:
                 for line in locations_file:
-                    n_sources += 1
-                    records = line.split(',')
-                    easting.append(float(records[0]))
-                    northing.append(float(records[1]))
-                    elevations.append(float(records[2]))
-                    probabilities.append(float(records[3]))
-                    fluxes_input.append(float(records[4]))
+                    try:
+                        records = line.split('\t')
+                        easting.append(float(records[0]))
+                        northing.append(float(records[1]))
+                        elevations.append(float(records[2]))
+                        probabilities.append(float(records[3]))
+                        fluxes_input.append(float(records[4]))
+                        n_sources += 1
+                    except:
+                        continue
         except:
             easting.append(source_easting)
             northing.append(source_northing)
@@ -403,3 +407,4 @@ days = pre_process()
 run_diagno()
 
 run_disgas()
+

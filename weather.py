@@ -55,10 +55,10 @@ if weather_station_on and ERA5_on:
     exit()
 try:
     try:
-        database = pd.read_excel('http://www.bgs.ac.uk/research/volcanoes/esp/volcanoExport.xlsx',
+        database = pd.read_excel('https://webapps.bgs.ac.uk/research/volcanoes/esp/volcanoExport.xlsx',
                                  sheetname='volcanoes')
     except:
-        database = pd.read_excel('http://www.bgs.ac.uk/research/volcanoes/esp/volcanoExport.xlsx',
+        database = pd.read_excel('https://webapps.bgs.ac.uk/research/volcanoes/esp/volcanoExport.xlsx',
                                  sheet_name='volcanoes')
     nrows = database.shape[0]
     row = 0

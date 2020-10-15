@@ -104,7 +104,7 @@ except:
     exit()
 if twodee.lower() == 'on':
     twodee_on = True
-elif twodee.lower == 'off':
+elif twodee.lower() == 'off':
     twodee_on = False
 else:
     print('Please provide a valid entry for the variable -TD --twodee')
@@ -740,8 +740,11 @@ def extract_station_data(station_data_files,  eastings, northings, zst, data_fol
         print('Unable to process diagno.inp')
     return tref_vector,tsoil_vector,press_vector
 
-def twodee_data(tref, tsoil, press):
-    print('Ciao')
+def twodee_data(tref, tsoil, press, data_folder):
+    with open(os.path.join(data_folder,'surface_data.txt'),'w',encoding='UTF-8') as surface_data:
+        surface_data.write('Time [HHMM] Tref[K]  Tz0[K]   P[Pa]\n')
+        for i in range(0,len(tref)):
+            surface_data.write("{:02d}".format(i) + '00' + '\t' + str(tref[i]) + '\t' + str(tsoil[i]) + '\t' + str(press[i]) + '\n')
 
 def automatic_weather(analysis_start):
     analysis_start_s = str(analysis_start)
@@ -792,7 +795,7 @@ def automatic_weather(analysis_start):
                 continue
         tref, tsoil, press = extract_station_data(station_data_files, eastings, northings, zst, data_folder)
     if twodee_on:
-        twodee_data(tref, tsoil, press)
+        twodee_data(tref, tsoil, press, data_folder)
 
 delta = time_stop - time_start
 days_list = []

@@ -818,7 +818,7 @@ def automatic_weather(analysis_start):
 nsamples, time_start, time_stop, analysis_start, analysis_stop, ERA5_on, weather_station_on, elevation, \
 volc_lat, volc_lon, easting, northing, max_number_processes, twodee_on, disgas_on = read_arguments()
 
-if disgas_on == 'off' and twodee_on == 'off':
+if disgas_on == False and twodee_on == False:
     print('Both DISGAS and TWODEE are turned off')
     sys.exit()
 

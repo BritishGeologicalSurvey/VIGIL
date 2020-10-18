@@ -47,7 +47,8 @@ def read_arguments():
             bottom_left_2 = float(domain[2])
             top_right_1 = float(domain[3])
             top_right_2 = float(domain[4])
-            if (-90 <= bottom_left_1 <= 90 and -180 <= bottom_left_2 <= 180) and (-90 <= top_right_1 <= 90 and -180 <= top_right_2 <= 180):  # identify valid geographic coordinates
+            if (-90 <= bottom_left_1 <= 90 and -180 <= bottom_left_2 <= 180) and (
+                    -90 <= top_right_1 <= 90 and -180 <= top_right_2 <= 180):  # identify valid geographic coordinates
                 try:
                     out_utm = utm.from_latlon(bottom_left_1, bottom_left_2)
                     bottom_left_easting = float(out_utm[0])
@@ -164,7 +165,9 @@ def read_arguments():
     else:
         print('Please provide a valid entry for the variable -DG --disgas')
         sys.exit()
-    return max_number_processes, random_sources, nsources, sources_interval, source_easting, source_northing, source_el, source_emission, random_emission, bottom_left_northing, bottom_left_easting, top_right_northing, top_right_easting, twodee_on, disgas_on
+    return max_number_processes, random_sources, nsources, sources_interval, source_easting, source_northing, source_el, \
+           source_emission, random_emission, bottom_left_northing, bottom_left_easting, top_right_northing, top_right_easting, \
+           twodee_on, disgas_on
 
 def pre_process():
     def sample_random_sources(n_fumaroles, input_file, xmin, xmax, ymin, ymax):
@@ -212,11 +215,77 @@ def pre_process():
         sampled_flux = (sample(list_x, 1))
         return sampled_flux
 
+    def topography_converter(original_topography_file):
+        # To convert the DIAGNO-DISGAS topography file into a Twodee-readable topography file
+        with open(original_topography_file, 'r', encoding='utf-8') as diagno_grid:
+            line_number = 1
+            lines = []
+            for line in diagno_grid:
+                lines.append(line)
+        NX = int(lines[1].split(' ')[0])
+        NY = int(lines[1].split(' ')[1].split('\n')[0])
+        X0 = float(lines[2].split(' ')[0])
+        XF = float(lines[2].split(' ')[1].split('\n')[0])
+        Y0 = float(lines[3].split(' ')[0])
+        DX = round(((XF - X0) / NX), 1)
+        with open(os.path.join(infiles_twodee,'topography.grd'), 'w', encoding='utf-8') as twodee_grid:
+            twodee_grid.write('nx ' + str(NX) + '\n')
+            twodee_grid.write('ny ' + str(NY) + '\n')
+            twodee_grid.write('xllcorner ' + str(X0) + '\n')
+            twodee_grid.write('yllcorner ' + str(Y0) + '\n')
+            twodee_grid.write('dx ' + str(DX) + '\n')
+            twodee_grid.write('no 123\n')
+            for line in range(5, len(lines)):
+                twodee_grid.write(lines[line])
+
+    # Set source files for DISGAS and TWODEE. TWODEE also needs source start and stop time, to be generalized
+    random_eastings = []
+    random_northings = []
+    random_elevations = []
+    random_probabilities = []
+    random_fluxes = []
     if random_sources == 'on':
         if nsources == 'random':
             Nsources = [*range(sources_interval[0],sources_interval[1] + 1)]
         else:
             Nsources = [nsources]
+        n_random_sources = sample(Nsources, 1)[0]
+        random_eastings, random_northings, random_elevations, random_probabilities, random_elevations, random_fluxes = \
+            sample_random_sources(n_random_sources, 'probability_map.txt', bottom_left_easting, top_right_easting,
+                                  bottom_left_northing, top_right_northing)
+    easting = random_eastings
+    northing = random_northings
+    elevations = random_elevations
+    probabilities = random_probabilities
+    fluxes_input = random_fluxes
+    n_sources = 0
+    try:
+        with open('sources_input.txt', 'r', encoding="utf-8", errors="surrogateescape") as locations_file:
+            for line in locations_file:
+                try:
+                    records = line.split('\t')
+                    easting.append(float(records[0]))
+                    northing.append(float(records[1]))
+                    elevations.append(float(records[2]))
+                    probabilities.append(float(records[3]))
+                    fluxes_input.append(float(records[4]))
+                    n_sources += 1
+                except:
+                    continue
+    except:
+        easting.append(source_easting)
+        northing.append(source_northing)
+        elevations.append(source_el)
+        probabilities.append(1.0)
+        fluxes_input.append(source_emission)
+    n_sources = len(easting)
+    with open('sources.txt', 'w', encoding="utf-8", errors="surrogateescape") as locations_file_final:
+        for i in range(0, n_sources):
+            locations_file_final.write('{0:7.3f}'.format(easting[i]) + ',' + '{0:7.3f}'.format(northing[i]) + ','
+                                       + '{0:7.2f}'.format(elevations[i]) + ',' + '{0:8.6f}'.format(probabilities[i])
+                                       + ',' + '{0:7.3f}'.format(fluxes_input[i]) + '\n')
+
+
     raw_days = [] # store the days as originally formatted
     days = [] #store days in format YYYYMMDD as per folder name
     # read days_list file
@@ -231,131 +300,121 @@ def pre_process():
         i+=1
     for day in days:
         path = os.path.join(root,'simulations',str(day))  # To modify accordingly
-        # Set diagno folder
+        # Set DIAGNO folder
         diagno = os.path.join(path,'diagno')
         try:
             os.mkdir(diagno)
         except:
             print('Folder diagno already exists in '+str(path))
-        presfc = os.path.join(diagno, 'presfc.dat')
-        preupr = os.path.join(diagno, 'preupr.dat')
-        diagno_input = os.path.join(diagno, 'diagno.inp')
-        try:
-            shutil.move(presfc,os.path.join(diagno,'presfc.dat'))
-            shutil.move(preupr, os.path.join(diagno, 'preupr.dat'))
-            shutil.move(diagno_input, os.path.join(diagno, 'diagno.inp'))
-        except:
-             print('Files already there')
-
-
-
-
-
-        infiles = os.path.join(path, 'infiles')
-        outfiles = os.path.join(path, 'outfiles')
-        if not outfiles.endswith(os.path.sep):
-            outfiles += os.path.sep
-
-        disgas_input = os.path.join(path,'infiles','disgas.inp')
         files = os.listdir(path)
         for f in files:
             path_f = os.path.join(path,f)
-            if f != 'raw_data' and f != 'infiles' and f != 'outfiles':
+            try:
                 shutil.move(path_f,diagno)
-        try:
-            os.mkdir(infiles)
-        except:
-            print('Folder infiles already exists in ' + str(path))
-        try:
-            os.mkdir(outfiles)
-        except:
-            print('Folder outfiles already exists in ' + str(path))
-        random_eastings = []
-        random_northings = []
-        random_elevations = []
-        random_probabilities = []
-        random_fluxes = []
-        if random_sources == 'on':
-            n_random_sources = sample(Nsources, 1)[0]
-            random_eastings, random_northings, random_elevations, random_probabilities, random_elevations, random_fluxes = sample_random_sources(n_random_sources, 'probability_map.txt', bottom_left_easting, top_right_easting, bottom_left_northing, top_right_northing)
-        easting = random_eastings
-        northing = random_northings
-        elevations = random_elevations
-        probabilities = random_probabilities
-        fluxes_input = random_fluxes
-        n_sources = 0
-        try:
-            with open('sources_input.txt','r',encoding="utf-8", errors="surrogateescape") as locations_file:
-                for line in locations_file:
-                    try:
-                        records = line.split('\t')
-                        easting.append(float(records[0]))
-                        northing.append(float(records[1]))
-                        elevations.append(float(records[2]))
-                        probabilities.append(float(records[3]))
-                        fluxes_input.append(float(records[4]))
-                        n_sources += 1
-                    except:
-                        continue
-        except:
-            easting.append(source_easting)
-            northing.append(source_northing)
-            elevations.append(source_el)
-            probabilities.append(1.0)
-            fluxes_input.append(source_emission)
-        n_sources = len(easting)
-        with open('sources.txt','w', encoding="utf-8", errors="surrogateescape") as locations_file_final:
-            for i in range(0,n_sources):
-                locations_file_final.write('{0:7.3f}'.format(easting[i]) + ',' + '{0:7.3f}'.format(northing[i]) + ','  + '{0:7.2f}'.format(elevations[i]) + ',' + '{0:8.6f}'.format(probabilities[i]) + ',' + '{0:7.3f}'.format(fluxes_input[i]) + '\n')
-        with open('source.dat','w', encoding="utf-8", errors="surrogateescape") as source_file:
-            for i in range(0,n_sources):
-                if source_emission != 999:
-                    gas_flux = source_emission
-                else:
-                    if fluxes_input[i] == 99999999:
-                        gas_flux = fluxes()[0]
+            except:
+                print('File ' + f + ' already present in ' + diagno)
+        shutil.copy(topography_original, os.path.join(diagno, 'topography.grd'))
+        # Set DISGAS folder
+        if disgas_on:
+            disgas = os.path.join(path, 'disgas')
+            infiles = os.path.join(disgas, 'infiles')
+            outfiles = os.path.join(disgas, 'outfiles')
+            try:
+                os.mkdir(disgas)
+            except:
+                print('Folder diagno already exists in ' + str(path))
+            try:
+                os.mkdir(infiles)
+            except:
+                print('Folder infiles already exists in ' + str(disgas))
+            try:
+                os.mkdir(outfiles)
+                if not outfiles.endswith(os.path.sep):
+                    outfiles += os.path.sep
+            except:
+                print('Folder outfiles already exists in ' + str(disgas))
+            disgas_input = os.path.join(disgas,'infiles','disgas.inp')
+            with open(os.path.join(infiles,'source.dat'), 'w', encoding="utf-8", errors="surrogateescape") as source_file:
+                for i in range(0, n_sources):
+                    if source_emission != 999:
+                        gas_flux = source_emission
                     else:
-                        gas_flux = fluxes_input[i]
-                source_file.write('{0:7.3f}'.format(easting[i]) + ' ' + '{0:7.3f}'.format(northing[i]) + ' ' + '{0:7.2f}'.format(elevations[i]) + ' ' + '{0:7.3f}'.format(gas_flux) + '\n')
-        try:
-            shutil.copy('sources.txt',os.path.join(diagno,'sources.txt'))
-            shutil.copy('sources_input.txt', os.path.join(diagno, 'sources_input.txt'))
-            shutil.copy('source.dat',os.path.join(infiles,'source.dat'))
-            shutil.move(presfc,os.path.join(infiles,'presfc.dat'))
-            shutil.move(preupr, os.path.join(infiles, 'preupr.dat'))
-            shutil.move(diagno, os.path.join(infiles, 'diagno.inp'))
-        except:
-             print('Files already there')
-        shutil.copy('topography.grd',os.path.join(infiles,'topography.grd'))
-        # read and memorize disgas.inp file
-        disgas_input_records = []
-        with open(disgas_original, 'r', encoding="utf-8", errors="surrogateescape") as disgas_or_input:
-            for line in disgas_or_input:
-                disgas_input_records.append(line)
-        with open(disgas_input,'w', encoding="utf-8", errors="surrogateescape") as disgas:
-            for i in range(0,len(disgas_input_records)):
-                if i == 3:
-                    disgas.write('  YEAR   = ' + day[0:4] + '\n')
-                elif i == 4:
-                    disgas.write('  MONTH  = ' + day[4:6] + '\n')
-                elif i == 5:
-                    disgas.write('  DAY    = ' + day[6:8] + '\n')
-                elif i == 45:
-                    disgas.write('   TOPOGRAPHY_FILE_PATH   = ' + os.path.join(infiles, 'topography.grd') + ' \n')
-                elif i == 46:
-                    disgas.write('   ROUGHNESS_FILE_PATH   = ' + os.path.join(infiles, 'roughness.grd') + ' \n')
-                elif i == 47:
-                    disgas.write('   RESTART_FILE_PATH   = ' + os.path.join(infiles, 'restart.dat') + ' \n')
-                elif i == 48:
-                    disgas.write('   SOURCE_FILE_PATH   = ' + os.path.join(infiles, 'source.dat') + ' \n')
-                elif i == 49:
-                    disgas.write('   WIND_FILE_PATH   = ' + os.path.join(infiles, 'winds.dat') + ' \n')
-                elif i == 50:
-                    disgas.write('   DIAGNO_FILE_PATH   = ' + os.path.join(infiles, 'diagno.out') + ' \n')
-                elif i == 51:
-                    disgas.write('   OUTPUT_DIRECTORY    = ' + outfiles + ' \n')
-                else:
-                    disgas.write(disgas_input_records[i])
+                        if fluxes_input[i] == 99999999:
+                            gas_flux = fluxes()[0]
+                        else:
+                            gas_flux = fluxes_input[i]
+                    source_file.write('{0:7.3f}'.format(easting[i]) + ' ' + '{0:7.3f}'.format(northing[i]) + ' '
+                                      + '{0:7.2f}'.format(elevations[i]) + ' ' + '{0:7.3f}'.format(gas_flux) + '\n')
+            # read and memorize disgas.inp file
+            disgas_input_records = []
+            with open(disgas_original, 'r', encoding="utf-8", errors="surrogateescape") as disgas_or_input:
+                for line in disgas_or_input:
+                    disgas_input_records.append(line)
+            with open(disgas_input,'w', encoding="utf-8", errors="surrogateescape") as disgas:
+                for record in disgas_input_records:
+                    if 'YEAR' in record:
+                        disgas.write('  YEAR   = ' + day[0:4] + '\n')
+                    elif 'MONTH' in record:
+                        disgas.write('  MONTH  = ' + day[4:6] + '\n')
+                    elif 'DAY' in record:
+                        disgas.write('  DAY    = ' + day[6:8] + '\n')
+                    elif 'TOPOGRAPHY_FILE_PATH' in record:
+                        disgas.write('   TOPOGRAPHY_FILE_PATH   = ' + os.path.join(diagno, 'topography.grd') + ' \n')
+                    elif 'ROUGHNESS_FILE_PATH' in record:
+                        disgas.write('   ROUGHNESS_FILE_PATH   = ' + os.path.join(infiles, 'roughness.grd') + ' \n')
+                    elif 'RESTART_FILE_PATH' in record:
+                        disgas.write('   RESTART_FILE_PATH   = ' + os.path.join(infiles, 'restart.dat') + ' \n')
+                    elif 'SOURCE_FILE_PATH' in record:
+                        disgas.write('   SOURCE_FILE_PATH   = ' + os.path.join(infiles, 'source.dat') + ' \n')
+                    elif 'WIND_FILE_PATH' in record:
+                        disgas.write('   WIND_FILE_PATH   = ' + os.path.join(infiles, 'winds.dat') + ' \n')
+                    elif 'DIAGNO_FILE_PATH' in record:
+                        disgas.write('   DIAGNO_FILE_PATH   = ' + os.path.join(infiles, 'diagno.out') + ' \n')
+                    elif 'OUTPUT_DIRECTORY' in record:
+                        disgas.write('   OUTPUT_DIRECTORY    = ' + outfiles + ' \n')
+                    else:
+                        disgas.write(record)
+
+        if twodee_on:
+            twodee = os.path.join(path, 'twodee')
+            infiles_twodee = os.path.join(twodee, 'infiles')
+            outfiles_twodee = os.path.join(twodee, 'outfiles')
+            try:
+                os.mkdir(twodee)
+            except:
+                print('Folder diagno already exists in ' + str(path))
+            try:
+                os.mkdir(infiles_twodee)
+            except:
+                print('Folder infiles already exists in ' + str(twodee))
+            try:
+                os.mkdir(outfiles_twodee)
+                if not outfiles_twodee.endswith(os.path.sep):
+                    outfiles_twodee += os.path.sep
+            except:
+                print('Folder outfiles already exists in ' + str(twodee))
+            twodee_input = os.path.join(twodee, 'twodee.inp')
+            topography_converter(topography_original)
+            shutil.move(os.path.join(diagno,'surface_data.txt'),os.path.join(infiles_twodee,'surface_data.txt'))
+            # read and memorize twodee.inp file
+            twodee_input_records = []
+            with open(twodee_original, 'r', encoding="utf-8", errors="surrogateescape") as twodee_or_input:
+                for line in twodee_or_input:
+                    twodee_input_records.append(line)
+            with open(twodee_input, 'w', encoding="utf-8", errors="surrogateescape") as twodee:
+                for record in twodee_input_records:
+                    if 'YEAR' in record:
+                        twodee.write('  YEAR   = ' + day[0:4] + '\n')
+                    elif 'MONTH' in record:
+                        twodee.write('  MONTH  = ' + day[4:6] + '\n')
+                    elif 'DAY' in record:
+                        twodee.write('  DAY    = ' + day[6:8] + '\n')
+                    elif 'INPUT_DIRECTORY' in record:
+                        twodee.write('   INPUT_DIRECTORY   = ' + infiles_twodee + ' \n')
+                    elif 'OUTPUT_DIRECTORY' in record:
+                        twodee.write('   INPUT_DIRECTORY   = ' + outfiles_twodee + ' \n')
+                    else:
+                        twodee.write(record)
     return days
 
 def run_diagno():
@@ -428,6 +487,8 @@ def run_disgas():
 
 root = os.getcwd()
 disgas_original = os.path.join(root,'disgas.inp')
+twodee_original = os.path.join(root,'twodee.inp')
+topography_original = os.path.join(root,'topography.grd')
 
 max_number_processes, random_sources, nsources, sources_interval, source_easting, source_northing, source_el, \
 source_emission, random_emission, bottom_left_northing, bottom_left_easting, top_right_northing, top_right_easting, \

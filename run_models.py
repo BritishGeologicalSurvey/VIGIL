@@ -17,7 +17,8 @@ def read_arguments():
     parser.add_argument('-D','--domain',nargs='+', default=[], help='Coordinates type (UTM/GEO), coordinates (latitude/northing, longitude/easting) of the bottom left corner and top right corner of the domain')
     parser.add_argument('-SEM','--source_emission',default='999',help='Source emission rate [kg/s]. If specified, it is assigned to all the sources in the domain')
     parser.add_argument('-RER','--random_emission',default='off',help='on: randomly assign emission rate for each source in the domain sampled from a flux.csv file. off: use specified emission rate')
-
+    parser.add_argument('-TD', '--twodee', default='off',help='on or off, to run Twodee')
+    parser.add_argument('-DG', '--disgas', default='off', help='on or off, to run Disgas')
     args = parser.parse_args()
     nproc = args.nproc
     random_sources = args.random_sources
@@ -28,6 +29,8 @@ def read_arguments():
     source_emission = args.source_emission
     random_emission = args.random_emission
     max_number_processes = int(nproc)
+    twodee = args.twodee
+    disgas = args.disgas
     source_easting = source_northing = source_el = 0
     try:
         source_emission = float(source_emission)
@@ -147,7 +150,21 @@ def read_arguments():
     elif random_emission != 'off':
         print('Valid options for -RER --random_sources are on and off')
         sys.exit()
-    return max_number_processes, random_sources, nsources, sources_interval, source_easting, source_northing, source_el, source_emission, random_emission, bottom_left_northing, bottom_left_easting, top_right_northing, top_right_easting
+    if twodee.lower() == 'on':
+        twodee_on = True
+    elif twodee.lower() == 'off':
+        twodee_on = False
+    else:
+        print('Please provide a valid entry for the variable -TD --twodee')
+        sys.exit()
+    if disgas.lower() == 'on':
+        disgas_on = True
+    elif disgas.lower() == 'off':
+        disgas_on = False
+    else:
+        print('Please provide a valid entry for the variable -DG --disgas')
+        sys.exit()
+    return max_number_processes, random_sources, nsources, sources_interval, source_easting, source_northing, source_el, source_emission, random_emission, bottom_left_northing, bottom_left_easting, top_right_northing, top_right_easting, twodee_on, disgas_on
 
 def pre_process():
     def sample_random_sources(n_fumaroles, input_file, xmin, xmax, ymin, ymax):
@@ -362,7 +379,7 @@ def run_diagno():
                 p.wait()
         except:
             print('Unable to process weather data with Diagno')
-            exit()
+            sys.exit()
         print('Successfully processed days ' + str(days[start:end]))
         n_elaborated_days = end
         if n_elaborated_days == len(days):
@@ -391,7 +408,7 @@ def run_disgas():
                 p.wait()
         except:
             print('Unable to run DISGAS')
-            exit()
+            sys.exit()
         print('Successfully processed days ' + str(days[start:end]))
         n_elaborated_days = end
         if n_elaborated_days == len(days):
@@ -400,7 +417,10 @@ def run_disgas():
 root = os.getcwd()
 disgas_original = os.path.join(root,'disgas.inp')
 
-max_number_processes, random_sources, nsources, sources_interval, source_easting, source_northing, source_el, source_emission, random_emission, bottom_left_northing, bottom_left_easting, top_right_northing, top_right_easting = read_arguments()
+max_number_processes, random_sources, nsources, sources_interval, source_easting, source_northing, source_el, source_emission, random_emission, bottom_left_northing, bottom_left_easting, top_right_northing, top_right_easting, twodee_on, disgas_on = read_arguments()
+if disgas_on == 'off' and twodee_on == 'off':
+    print('Both DISGAS and TWODEE are turned off')
+    sys.exit()
 
 days = pre_process()
 

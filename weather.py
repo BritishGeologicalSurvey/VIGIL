@@ -6,109 +6,127 @@ import os
 import utm
 import argparse
 import pandas as pd
+import sys
 
 root = os.getcwd()
 simulations = os.path.join(root,'simulations')
 n_stations = 1
 
-parser = argparse.ArgumentParser(description='Input data')
-parser.add_argument('-S','--start_date',default=999,help='Start date of the sampling period. Format: DD/MM/YYYY')
-parser.add_argument('-E','--end_date',default=999,help='Start date of the sampling period. Format: DD/MM/YYYY')
-parser.add_argument('-V','--volc',default=999,help='This is the volcano ID based on the Smithsonian Institute IDs')
-parser.add_argument('-LAT','--lat',default=999,help='Volcano latitude')
-parser.add_argument('-LON','--lon',default=999,help='Volcano longitude')
-parser.add_argument('-EL','--elev',default=999,help='Volcano elevation')
-parser.add_argument('-NS','--samples',default=1,help='Number of days to sample')
-parser.add_argument('-ERA5','--ERA5',default='False',help='True: Use ERA5 reanalysis. False: Do not use ERA5 reanalysis')
-parser.add_argument('-WST','--station',default='False',help='True: Use weather station data. False: Do not use weather station data')
-parser.add_argument('-N', '--nproc', default=1, help='Maximum number of allowed simultaneous processes')
-parser.add_argument('-TD', '--twodee', default='off', help='on or off, to prepare additional weather data files for Twodee.')
-args = parser.parse_args()
-start_date = args.start_date
-end_date = args.end_date
-volc_id = int(args.volc)
-volc_lat = float(args.lat)
-volc_lon = float(args.lon)
-elevation = float(args.elev)
-nsamples = int(args.samples)
-ERA5_on = args.ERA5
-weather_station_on = args.station
-args = parser.parse_args()
-nproc = args.nproc
-twodee = args.twodee
-if ERA5_on == 'True':
-    ERA5_on = True
-elif ERA5_on == 'False':
-    ERA5_on = False
-else:
-    print('ERROR. Wrong value for variable --ERA5')
-    exit()
-if weather_station_on == 'True':
-    weather_station_on = True
-elif weather_station_on == 'False':
-    weather_station_on = False
-else:
-    print('ERROR. Wrong value for variable --station')
-    exit()
-if weather_station_on and ERA5_on:
-    print('ERROR. It is currently not possible to use both reanalysis and weather station data')
-    exit()
-try:
+def read_arguments():
+    parser = argparse.ArgumentParser(description='Input data')
+    parser.add_argument('-S', '--start_date', default=999, help='Start date of the sampling period. Format: DD/MM/YYYY')
+    parser.add_argument('-E', '--end_date', default=999, help='Start date of the sampling period. Format: DD/MM/YYYY')
+    parser.add_argument('-V', '--volc', default=999,
+                        help='This is the volcano ID based on the Smithsonian Institute IDs')
+    parser.add_argument('-LAT', '--lat', default=999, help='Volcano latitude')
+    parser.add_argument('-LON', '--lon', default=999, help='Volcano longitude')
+    parser.add_argument('-EL', '--elev', default=999, help='Volcano elevation')
+    parser.add_argument('-NS', '--samples', default=1, help='Number of days to sample')
+    parser.add_argument('-ERA5', '--ERA5', default='False',
+                        help='True: Use ERA5 reanalysis. False: Do not use ERA5 reanalysis')
+    parser.add_argument('-WST', '--station', default='False',
+                        help='True: Use weather station data. False: Do not use weather station data')
+    parser.add_argument('-N', '--nproc', default=1, help='Maximum number of allowed simultaneous processes')
+    parser.add_argument('-TD', '--twodee', default='off',
+                        help='on or off, to prepare additional weather data files for Twodee.')
+    parser.add_argument('-DG', '--disgas', default='off', help='on or off, to run Disgas')
+    args = parser.parse_args()
+    start_date = args.start_date
+    end_date = args.end_date
+    volc_id = int(args.volc)
+    volc_lat = float(args.lat)
+    volc_lon = float(args.lon)
+    elevation = float(args.elev)
+    nsamples = int(args.samples)
+    ERA5_on = args.ERA5
+    weather_station_on = args.station
+    args = parser.parse_args()
+    nproc = args.nproc
+    twodee = args.twodee
+    disgas = args.disgas
+    if ERA5_on == 'True':
+        ERA5_on = True
+    elif ERA5_on == 'False':
+        ERA5_on = False
+    else:
+        print('ERROR. Wrong value for variable --ERA5')
+        sys.exit()
+    if weather_station_on == 'True':
+        weather_station_on = True
+    elif weather_station_on == 'False':
+        weather_station_on = False
+    else:
+        print('ERROR. Wrong value for variable --station')
+        sys.exit()
+    if weather_station_on and ERA5_on:
+        print('ERROR. It is currently not possible to use both reanalysis and weather station data')
+        sys.exit()
     try:
-        database = pd.read_excel('https://webapps.bgs.ac.uk/research/volcanoes/esp/volcanoExport.xlsx',
-                                 sheetname='volcanoes')
-    except:
-        database = pd.read_excel('https://webapps.bgs.ac.uk/research/volcanoes/esp/volcanoExport.xlsx',
-                                 sheet_name='volcanoes')
-    nrows = database.shape[0]
-    row = 0
-    while True:
-        if database['SMITHSONIAN_ID'][row] == volc_id:
-            elevation = database['ELEVATION_m'][row]
-            volc_lat = database['LATITUDE'][row]
-            volc_lon = database['LONGITUDE'][row]
-            break
-        else:
-            row += 1
-            if row >= nrows:
-                print('Volcano ID not found')
+        try:
+            database = pd.read_excel('https://webapps.bgs.ac.uk/research/volcanoes/esp/volcanoExport.xlsx',
+                                     sheetname='volcanoes')
+        except:
+            database = pd.read_excel('https://webapps.bgs.ac.uk/research/volcanoes/esp/volcanoExport.xlsx',
+                                     sheet_name='volcanoes')
+        nrows = database.shape[0]
+        row = 0
+        while True:
+            if database['SMITHSONIAN_ID'][row] == volc_id:
+                elevation = database['ELEVATION_m'][row]
+                volc_lat = database['LATITUDE'][row]
+                volc_lon = database['LONGITUDE'][row]
                 break
-except:
-    print('Unable to retrieve volcano information from the ESPs database')
-    if volc_lat == 999 or volc_lon == 999 or elevation == 999:
-        print('Some information on the volcano are missing')
-        exit()
-try:
-    max_number_processes = int(nproc)
-except:
-    print('Please provide a valid number for the maximum number of process')
-out_utm = utm.from_latlon(volc_lat, volc_lon)
-easting = int(round(out_utm[0] / 1000))
-northing = int(round(out_utm[1] / 1000))
-try:
-    start = start_date.split('/')
-    stop = end_date.split('/')
-    D_start_s = start[0]
-    MO_start_s = start[1]
-    Y_start_s = start[2]
-    D_stop_s = stop[0]
-    MO_stop_s = stop[1]
-    Y_stop_s = stop[2]
-    analysis_start = Y_start_s + MO_start_s + D_start_s
-    analysis_stop = Y_stop_s + MO_stop_s + D_stop_s
-    time_start = datetime.datetime(int(Y_start_s), int(MO_start_s), int(D_start_s))
-    time_stop = datetime.datetime(int(Y_stop_s), int(MO_stop_s), int(D_stop_s))
-except:
-    print('Unable to process start and end date')
-    print('Please ensure the dates are provided in the format DD/MM/YYYY (e.g. 23/06/2018)')
-    exit()
-if twodee.lower() == 'on':
-    twodee_on = True
-elif twodee.lower() == 'off':
-    twodee_on = False
-else:
-    print('Please provide a valid entry for the variable -TD --twodee')
-    exit()
+            else:
+                row += 1
+                if row >= nrows:
+                    print('Volcano ID not found')
+                    break
+    except:
+        print('Unable to retrieve volcano information from the ESPs database')
+        if volc_lat == 999 or volc_lon == 999 or elevation == 999:
+            print('Some information on the volcano are missing')
+            sys.exit()
+    try:
+        max_number_processes = int(nproc)
+    except:
+        print('Please provide a valid number for the maximum number of process')
+        sys.exit()
+    out_utm = utm.from_latlon(volc_lat, volc_lon)
+    easting = int(round(out_utm[0] / 1000))
+    northing = int(round(out_utm[1] / 1000))
+    try:
+        start = start_date.split('/')
+        stop = end_date.split('/')
+        D_start_s = start[0]
+        MO_start_s = start[1]
+        Y_start_s = start[2]
+        D_stop_s = stop[0]
+        MO_stop_s = stop[1]
+        Y_stop_s = stop[2]
+        analysis_start = Y_start_s + MO_start_s + D_start_s
+        analysis_stop = Y_stop_s + MO_stop_s + D_stop_s
+        time_start = datetime.datetime(int(Y_start_s), int(MO_start_s), int(D_start_s))
+        time_stop = datetime.datetime(int(Y_stop_s), int(MO_stop_s), int(D_stop_s))
+    except:
+        print('Unable to process start and end date')
+        print('Please ensure the dates are provided in the format DD/MM/YYYY (e.g. 23/06/2018)')
+        sys.exit()
+    if twodee.lower() == 'on':
+        twodee_on = True
+    elif twodee.lower() == 'off':
+        twodee_on = False
+    else:
+        print('Please provide a valid entry for the variable -TD --twodee')
+        sys.exit()
+    if disgas.lower() == 'on':
+        disgas_on = True
+    elif disgas.lower() == 'off':
+        disgas_on = False
+    else:
+        print('Please provide a valid entry for the variable -DG --disgas')
+        sys.exit()
+    return nsamples, time_start, time_stop, analysis_start, analysis_stop, ERA5_on, weather_station_on, \
+           elevation, volc_lat, volc_lon, easting, northing, max_number_processes, twodee_on, disgas_on
 
 def era5_retrieve(lon_source,lat_source,retrieved_day):
     from datetime import timedelta as td, datetime
@@ -797,6 +815,13 @@ def automatic_weather(analysis_start):
     if twodee_on:
         twodee_data(tref, tsoil, press, data_folder)
 
+nsamples, time_start, time_stop, analysis_start, analysis_stop, ERA5_on, weather_station_on, elevation, \
+volc_lat, volc_lon, easting, northing, max_number_processes, twodee_on, disgas_on = read_arguments()
+
+if disgas_on == 'off' and twodee_on == 'off':
+    print('Both DISGAS and TWODEE are turned off')
+    sys.exit()
+
 delta = time_stop - time_start
 days_list = []
 sampled_periods_end = []
@@ -852,7 +877,7 @@ while n_elaborated_days <= nsamples:
         pools[n_pool].map(automatic_weather, sampled_period_days[start:end])
     except:
         print('Unable to process weather data')
-        exit()
+        sys.exit()
     n_elaborated_days = end
     n_pool += 1
     if n_elaborated_days == nsamples:
@@ -899,7 +924,7 @@ while attempt < 5:
             pools[n_pool].map(automatic_weather, days_to_reelaborate[start:end])
         except:
             print('Unable to process weather data')
-            exit()
+            sys.exit()
         n_elaborated_days = end
         n_pool += 1
         if n_elaborated_days == len(days_to_reelaborate):

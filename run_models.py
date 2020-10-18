@@ -231,25 +231,37 @@ def pre_process():
         i+=1
     for day in days:
         path = os.path.join(root,'simulations',str(day))  # To modify accordingly
-        rawdata = os.path.join(path,'raw_data')
+        # Set diagno folder
+        diagno = os.path.join(path,'diagno')
+        try:
+            os.mkdir(diagno)
+        except:
+            print('Folder diagno already exists in '+str(path))
+        presfc = os.path.join(diagno, 'presfc.dat')
+        preupr = os.path.join(diagno, 'preupr.dat')
+        diagno_input = os.path.join(diagno, 'diagno.inp')
+        try:
+            shutil.move(presfc,os.path.join(diagno,'presfc.dat'))
+            shutil.move(preupr, os.path.join(diagno, 'preupr.dat'))
+            shutil.move(diagno_input, os.path.join(diagno, 'diagno.inp'))
+        except:
+             print('Files already there')
+
+
+
+
+
         infiles = os.path.join(path, 'infiles')
         outfiles = os.path.join(path, 'outfiles')
         if not outfiles.endswith(os.path.sep):
             outfiles += os.path.sep
-        presfc = os.path.join(rawdata, 'presfc.dat')
-        preupr = os.path.join(rawdata, 'preupr.dat')
-        diagno = os.path.join(rawdata, 'diagno.inp')
+
         disgas_input = os.path.join(path,'infiles','disgas.inp')
-        try:
-            os.mkdir(rawdata)
-        except:
-            print('Folder raw_data already exists in '+str(path))
         files = os.listdir(path)
         for f in files:
             path_f = os.path.join(path,f)
             if f != 'raw_data' and f != 'infiles' and f != 'outfiles':
-                shutil.move(path_f,rawdata)
-                #shutil.copy(path_f, raw_data)
+                shutil.move(path_f,diagno)
         try:
             os.mkdir(infiles)
         except:
@@ -306,8 +318,8 @@ def pre_process():
                         gas_flux = fluxes_input[i]
                 source_file.write('{0:7.3f}'.format(easting[i]) + ' ' + '{0:7.3f}'.format(northing[i]) + ' ' + '{0:7.2f}'.format(elevations[i]) + ' ' + '{0:7.3f}'.format(gas_flux) + '\n')
         try:
-            shutil.copy('sources.txt',os.path.join(rawdata,'sources.txt'))
-            shutil.copy('sources_input.txt', os.path.join(rawdata, 'sources_input.txt'))
+            shutil.copy('sources.txt',os.path.join(diagno,'sources.txt'))
+            shutil.copy('sources_input.txt', os.path.join(diagno, 'sources_input.txt'))
             shutil.copy('source.dat',os.path.join(infiles,'source.dat'))
             shutil.move(presfc,os.path.join(infiles,'presfc.dat'))
             shutil.move(preupr, os.path.join(infiles, 'preupr.dat'))
@@ -417,7 +429,10 @@ def run_disgas():
 root = os.getcwd()
 disgas_original = os.path.join(root,'disgas.inp')
 
-max_number_processes, random_sources, nsources, sources_interval, source_easting, source_northing, source_el, source_emission, random_emission, bottom_left_northing, bottom_left_easting, top_right_northing, top_right_easting, twodee_on, disgas_on = read_arguments()
+max_number_processes, random_sources, nsources, sources_interval, source_easting, source_northing, source_el, \
+source_emission, random_emission, bottom_left_northing, bottom_left_easting, top_right_northing, top_right_easting, \
+twodee_on, disgas_on = read_arguments()
+
 if disgas_on == 'off' and twodee_on == 'off':
     print('Both DISGAS and TWODEE are turned off')
     sys.exit()

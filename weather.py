@@ -61,31 +61,32 @@ def read_arguments():
     if weather_station_on and ERA5_on:
         print('ERROR. It is currently not possible to use both reanalysis and weather station data')
         sys.exit()
-    try:
+    if volc_lat == 999 and volc_lon == 999 and elevation == 999:
         try:
-            database = pd.read_excel('https://webapps.bgs.ac.uk/research/volcanoes/esp/volcanoExport.xlsx',
-                                     sheetname='volcanoes')
-        except:
-            database = pd.read_excel('https://webapps.bgs.ac.uk/research/volcanoes/esp/volcanoExport.xlsx',
-                                     sheet_name='volcanoes')
-        nrows = database.shape[0]
-        row = 0
-        while True:
-            if database['SMITHSONIAN_ID'][row] == volc_id:
-                elevation = database['ELEVATION_m'][row]
-                volc_lat = database['LATITUDE'][row]
-                volc_lon = database['LONGITUDE'][row]
-                break
-            else:
-                row += 1
-                if row >= nrows:
-                    print('Volcano ID not found')
+            try:
+                database = pd.read_excel('https://webapps.bgs.ac.uk/research/volcanoes/esp/volcanoExport.xlsx',
+                                         sheetname='volcanoes')
+            except:
+                database = pd.read_excel('https://webapps.bgs.ac.uk/research/volcanoes/esp/volcanoExport.xlsx',
+                                         sheet_name='volcanoes')
+            nrows = database.shape[0]
+            row = 0
+            while True:
+                if database['SMITHSONIAN_ID'][row] == volc_id:
+                    elevation = database['ELEVATION_m'][row]
+                    volc_lat = database['LATITUDE'][row]
+                    volc_lon = database['LONGITUDE'][row]
                     break
-    except:
-        print('Unable to retrieve volcano information from the ESPs database')
-        if volc_lat == 999 or volc_lon == 999 or elevation == 999:
-            print('Some information on the volcano are missing')
-            sys.exit()
+                else:
+                    row += 1
+                    if row >= nrows:
+                        print('Volcano ID not found')
+                        break
+        except:
+            print('Unable to retrieve volcano information from the ESPs database')
+            if volc_lat == 999 or volc_lon == 999 or elevation == 999:
+                print('Some information on the volcano are missing')
+                sys.exit()
     try:
         max_number_processes = int(nproc)
     except:

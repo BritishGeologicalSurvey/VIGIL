@@ -279,12 +279,6 @@ def pre_process():
         probabilities.append(1.0)
         fluxes_input.append(source_emission)
     n_sources = len(easting)
-    with open('sources.txt', 'w', encoding="utf-8", errors="surrogateescape") as locations_file_final:
-        for i in range(0, n_sources):
-            locations_file_final.write('{0:7.3f}'.format(easting[i]) + ',' + '{0:7.3f}'.format(northing[i]) + ','
-                                       + '{0:7.2f}'.format(elevations[i]) + ',' + '{0:8.6f}'.format(probabilities[i])
-                                       + ',' + '{0:7.3f}'.format(fluxes_input[i]) + '\n')
-
 
     raw_days = [] # store the days as originally formatted
     days = [] #store days in format YYYYMMDD as per folder name
@@ -299,7 +293,7 @@ def pre_process():
         days.append(temp[0]+temp[1]+temp[2])
         i+=1
     for day in days:
-        path = os.path.join(root,'simulations',str(day))  # To modify accordingly
+        path = os.path.join(root,'simulations',str(day))
         # Set DIAGNO folder
         diagno = os.path.join(path,'diagno')
         try:
@@ -333,7 +327,7 @@ def pre_process():
                     outfiles += os.path.sep
             except:
                 print('Folder outfiles already exists in ' + str(disgas))
-            disgas_input = os.path.join(disgas,'infiles','disgas.inp')
+            disgas_input = os.path.join(infiles,'disgas.inp')
             with open(os.path.join(infiles,'source.dat'), 'w', encoding="utf-8", errors="surrogateescape") as source_file:
                 for i in range(0, n_sources):
                     if source_emission != 999:
@@ -345,6 +339,11 @@ def pre_process():
                             gas_flux = fluxes_input[i]
                     source_file.write('{0:7.3f}'.format(easting[i]) + ' ' + '{0:7.3f}'.format(northing[i]) + ' '
                                       + '{0:7.2f}'.format(elevations[i]) + ' ' + '{0:7.3f}'.format(gas_flux) + '\n')
+            roughness_file_exist = True
+            try:
+                shutil.copyfile(os.path.join(root,'roughness_disgas.grd'),os.path.join(infiles,'roughness.grd'))
+            except:
+                roughness_file_exist = False
             # read and memorize disgas.inp file
             disgas_input_records = []
             with open(disgas_original, 'r', encoding="utf-8", errors="surrogateescape") as disgas_or_input:
@@ -352,6 +351,13 @@ def pre_process():
                     disgas_input_records.append(line)
             with open(disgas_input,'w', encoding="utf-8", errors="surrogateescape") as disgas:
                 for record in disgas_input_records:
+                    if 'ROUGHNESS_MODEL' in record:
+                        roughness_command = record.split('=')[1]
+                        roughness_command = roughness_command.split('(')[0]
+                        if 'MATRIX' in roughness_command:
+                            if not roughness_file_exist:
+                                print('Warning! ROUGHNESS_MODEL set to MATRIX in disgas.inp and roughness file does not exist')
+                                print('Setting ROUGHNESS_MODEL to UNIFORM')
                     if 'YEAR' in record:
                         disgas.write('  YEAR   = ' + day[0:4] + '\n')
                     elif 'MONTH' in record:
@@ -369,7 +375,7 @@ def pre_process():
                     elif 'WIND_FILE_PATH' in record:
                         disgas.write('   WIND_FILE_PATH   = ' + os.path.join(infiles, 'winds.dat') + ' \n')
                     elif 'DIAGNO_FILE_PATH' in record:
-                        disgas.write('   DIAGNO_FILE_PATH   = ' + os.path.join(infiles, 'diagno.out') + ' \n')
+                        disgas.write('   DIAGNO_FILE_PATH   = ' + os.path.join(diagno, 'diagno.out') + ' \n')
                     elif 'OUTPUT_DIRECTORY' in record:
                         disgas.write('   OUTPUT_DIRECTORY    = ' + outfiles + ' \n')
                     else:
@@ -396,6 +402,8 @@ def pre_process():
             twodee_input = os.path.join(twodee, 'twodee.inp')
             topography_converter(topography_original)
             shutil.move(os.path.join(diagno,'surface_data.txt'),os.path.join(infiles_twodee,'surface_data.txt'))
+            shutil.copyfile(os.path.join(root,'roughness_twodee.grd'),os.path.join(infiles_twodee,'roughness.grd'))
+            shutil.copyfile('source.dat',os.path.join(infiles_twodee,'source.dat'))
             # read and memorize twodee.inp file
             twodee_input_records = []
             with open(twodee_original, 'r', encoding="utf-8", errors="surrogateescape") as twodee_or_input:
@@ -412,7 +420,7 @@ def pre_process():
                     elif 'INPUT_DIRECTORY' in record:
                         twodee.write('   INPUT_DIRECTORY   = ' + infiles_twodee + ' \n')
                     elif 'OUTPUT_DIRECTORY' in record:
-                        twodee.write('   INPUT_DIRECTORY   = ' + outfiles_twodee + ' \n')
+                        twodee.write('   OUTPUT_DIRECTORY   = ' + outfiles_twodee + ' \n')
                     else:
                         twodee.write(record)
     return days
@@ -427,8 +435,8 @@ def run_diagno():
             end = len(days)
         try:
             for day in days[start:end]:
-                infiles = os.path.join(root, 'simulations', day, 'infiles')
-                os.chdir(infiles)
+                diagno_folder = os.path.join(root, 'simulations', day, 'diagno')
+                os.chdir(diagno_folder)
                 try:
                     p = subprocess.Popen(['srun', '-n', '1', 'presfc','&'])
                 except:
@@ -468,8 +476,8 @@ def run_disgas():
             end = len(days)
         try:
             for day in days[start:end]:
-                infiles = os.path.join(root, 'simulations', day, 'infiles')
-                disgas_input_file = os.path.join(infiles, 'disgas.inp')
+                disgas_folder = os.path.join(root, 'simulations', day, 'disgas', 'infiles')
+                disgas_input_file = os.path.join(disgas_folder, 'disgas.inp')
                 try:
                     p = subprocess.Popen(['srun', '-n', '1', 'disgas', disgas_input_file,'&'])
                 except:
@@ -479,6 +487,36 @@ def run_disgas():
                 p.wait()
         except:
             print('Unable to run DISGAS')
+            sys.exit()
+        print('Successfully processed days ' + str(days[start:end]))
+        n_elaborated_days = end
+        if n_elaborated_days == len(days):
+            break
+
+def run_twodee():
+    n_elaborated_days = 0
+    while n_elaborated_days <= len(days):
+        ps = []
+        start = n_elaborated_days
+        end = n_elaborated_days + max_number_processes
+        if end > len(days):
+            end = len(days)
+        try:
+            for day in days[start:end]:
+                diagno = os.path.join(root, 'simulations', day, 'diagno')
+                twodee_folder = os.path.join(root, 'simulations', day, 'twodee', 'infiles')
+                shutil.copyfile(os.path.join(diagno,'diagno.out'),os.path.join(twodee_folder,'infiles','diagno.out'))
+                twodee_input_file = os.path.join(twodee_folder, 'twodee.inp')
+                twodee_log_file = os.path.join(twodee_folder, 'twodee.log')
+                try:
+                    p = subprocess.Popen(['srun', '-n', '1', 'Twodee.2.2.x', twodee_input_file, twodee_log_file,'&'])
+                except:
+                    p = subprocess.Popen(['Twodee.2.2.x', twodee_input_file, twodee_log_file])
+                ps.append(p)
+            for p in ps:
+                p.wait()
+        except:
+            print('Unable to run TWODEE')
             sys.exit()
         print('Successfully processed days ' + str(days[start:end]))
         n_elaborated_days = end
@@ -502,5 +540,9 @@ days = pre_process()
 
 run_diagno()
 
-run_disgas()
+if disgas_on == 'on':
+    run_disgas()
+
+if twodee_on == 'on':
+    run_twodee()
 

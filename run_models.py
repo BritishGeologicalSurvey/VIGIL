@@ -14,6 +14,9 @@ def read_arguments():
     parser.add_argument('-NS','--nsources',default='random', help='Specify a number for a fixed number of sources. If random, then randomly select the number of sources from an interval')
     parser.add_argument('-SINT','--sources_interval', nargs='+', default=[], help='Type the minimum and maximum number of sources')
     parser.add_argument('-SLOC','--source_location',nargs='+', default=[], help='Coordinate type (UTM/GEO), latitude/northing, longitude/easting, elevation (above ground in m) of 1 fixed source')
+    parser.add_argument('-SDX','--source_dx', default=999999, help = 'Extension [m] along the X direction of 1 single source. Option valid for Twodee only')
+    parser.add_argument('-SDY', '--source_dy', default=999999, help='Extension [m] along the Y direction of 1 single source. Option valid for Twodee only')
+    parser.add_argument('-SDUR', '--source_dur', default=0, help='Emission duration [s] of 1 single source. Option valid for Twodee only')
     parser.add_argument('-D','--domain',nargs='+', default=[], help='Coordinates type (UTM/GEO), coordinates (latitude/northing, longitude/easting) of the bottom left corner and top right corner of the domain')
     parser.add_argument('-SEM','--source_emission',default='999',help='Source emission rate [kg/s]. If specified, it is assigned to all the sources in the domain')
     parser.add_argument('-RER','--random_emission',default='off',help='on: randomly assign emission rate for each source in the domain sampled from a flux.csv file. off: use specified emission rate')
@@ -31,6 +34,9 @@ def read_arguments():
     max_number_processes = int(nproc)
     twodee = args.twodee
     disgas = args.disgas
+    source_dx = args.source_dx
+    source_dy = args.source_dy
+    source_dur = args.source_dur
     source_easting = source_northing = source_el = 0
     try:
         source_emission = float(source_emission)
@@ -165,12 +171,30 @@ def read_arguments():
     else:
         print('Please provide a valid entry for the variable -DG --disgas')
         sys.exit()
+    if source_dx != 999999:
+        try:
+            source_dx = float(source_dx)
+        except:
+            print('Please provide a valid number for the variable -SDX --source_dx')
+            sys.exit()
+    if source_dy != 999999:
+        try:
+            source_dy = float(source_dy)
+        except:
+            print('Please provide a valid number for the variable -SDY --source_dy')
+            sys.exit()
+    if source_dur != 0:
+        try:
+            source_dur = float(source_dur)
+        except:
+            print('Please provide a valid number for the variable -SDUR --source_dur')
+            sys.exit()
     return max_number_processes, random_sources, nsources, sources_interval, source_easting, source_northing, source_el, \
            source_emission, random_emission, bottom_left_northing, bottom_left_easting, top_right_northing, top_right_easting, \
-           twodee_on, disgas_on
+           source_dx, source_dy, source_dur, twodee_on, disgas_on
 
 def pre_process():
-    def sample_random_sources(n_fumaroles, input_file, xmin, xmax, ymin, ymax):
+    def sample_random_sources(n_sources, input_file, xmin, xmax, ymin, ymax, dur_min, dur_max, source_size_min, source_size_max):
         from random import choices
 
         probabilities_input = np.loadtxt(input_file)
@@ -179,6 +203,9 @@ def pre_process():
         location_cum_indexes = []
         location_indexes = []
         probabilities = []
+        dxs = []
+        dys = []
+        durs = []
         k = 0
         for i in range(0, nx):
             for j in range(0, ny):
@@ -190,7 +217,16 @@ def pre_process():
         for i in range(0, nx):
             for j in range(0, ny):
                 probabilities.append(probabilities_input[i, j])
-        selected_locations = choices(location_cum_indexes, probabilities, k=n_fumaroles)
+        selected_locations = choices(location_cum_indexes, probabilities, k=n_sources)
+        source_size = source_size_min
+        while source_size <= source_size_max:
+            dxs.append(source_size)
+            dys.append(source_size)
+            source_size += 0.1
+        source_duration = dur_min
+        while source_duration <= dur_max:
+            durs.append(source_duration)
+            source_duration += 60
         for location in selected_locations:
             row = location_indexes[location][0]
             column = location_indexes[location][1]
@@ -202,7 +238,11 @@ def pre_process():
             random_elevations.append(0.0)
             random_probabilities.append(probability)
             random_fluxes.append(99999999)
-        return random_eastings, random_northings, random_elevations, random_probabilities, random_elevations, random_fluxes
+            random_dx.append(choices(dxs, k = 1)[0])
+            random_dy.append(choices(dys, k = 1)[0])
+            random_dur.append(choices(durs, k = 1)[0])
+
+        return random_eastings, random_northings, random_elevations, random_probabilities, random_elevations, random_fluxes, random_dx, random_dy, random_dur
 
     def fluxes():
         import numpy as np
@@ -244,20 +284,30 @@ def pre_process():
     random_elevations = []
     random_probabilities = []
     random_fluxes = []
+    random_dx = []
+    random_dy = []
+    random_dur = []
+    dur_min = 1
+    dur_max = 86400
+    source_size_min = 0.1
+    source_size_max = 100
     if random_sources == 'on':
         if nsources == 'random':
             Nsources = [*range(sources_interval[0],sources_interval[1] + 1)]
         else:
             Nsources = [nsources]
         n_random_sources = sample(Nsources, 1)[0]
-        random_eastings, random_northings, random_elevations, random_probabilities, random_elevations, random_fluxes = \
-            sample_random_sources(n_random_sources, 'probability_map.txt', bottom_left_easting, top_right_easting,
-                                  bottom_left_northing, top_right_northing)
+        random_eastings, random_northings, random_elevations, random_probabilities, random_elevations, random_fluxes, \
+        random_dx, random_dy, random_dur = sample_random_sources(n_random_sources, 'probability_map.txt', bottom_left_easting, top_right_easting,
+                                                                 bottom_left_northing, top_right_northing, dur_min, dur_max, source_size_min, source_size_max)
     easting = random_eastings
     northing = random_northings
     elevations = random_elevations
     probabilities = random_probabilities
     fluxes_input = random_fluxes
+    dx = random_dx
+    dy = random_dy
+    dur = random_dur
     n_sources = 0
     try:
         with open('sources_input.txt', 'r', encoding="utf-8", errors="surrogateescape") as locations_file:
@@ -269,6 +319,9 @@ def pre_process():
                     elevations.append(float(records[2]))
                     probabilities.append(float(records[3]))
                     fluxes_input.append(float(records[4]))
+                    dx.append(float(records[5]))
+                    dy.append(float(records[6]))
+                    dur.append(float(records[7]))
                     n_sources += 1
                 except:
                     continue
@@ -278,6 +331,9 @@ def pre_process():
         elevations.append(source_el)
         probabilities.append(1.0)
         fluxes_input.append(source_emission)
+        dx.append(source_dx)
+        dy.append(source_dy)
+        dur.append(source_dur)
     n_sources = len(easting)
 
     raw_days = [] # store the days as originally formatted
@@ -333,7 +389,7 @@ def pre_process():
                     if source_emission != 999:
                         gas_flux = source_emission
                     else:
-                        if fluxes_input[i] == 99999999:
+                        if fluxes_input[i] == 99999999 and random_emission == 'on':
                             gas_flux = fluxes()[0]
                         else:
                             gas_flux = fluxes_input[i]
@@ -403,7 +459,17 @@ def pre_process():
             topography_converter(topography_original)
             shutil.move(os.path.join(diagno,'surface_data.txt'),os.path.join(infiles_twodee,'surface_data.txt'))
             shutil.copyfile(os.path.join(root,'roughness_twodee.grd'),os.path.join(infiles_twodee,'roughness.grd'))
-            shutil.copyfile('source.dat',os.path.join(infiles_twodee,'source.dat'))
+            with open(os.path.join(infiles_twodee,'source.dat'), 'w', encoding="utf-8", errors="surrogateescape") as source_file:
+                for i in range(0, n_sources):
+                    if source_emission != 999:
+                        gas_flux = source_emission
+                    else:
+                        if fluxes_input[i] == 99999999 and random_emission == 'on':
+                            gas_flux = fluxes()[0]
+                        else:
+                            gas_flux = fluxes_input[i]
+                    source_file.write('{0:7.3f}'.format(easting[i]) + ' ' + '{0:7.3f}'.format(northing[i]) + ' ' + '{0:7.3f}'.format(gas_flux) + ' '
+                                      + '{0:7.2f}'.format(dx[i]) + ' ' + '{0:7.2f}'.format(dy[i]) + ' KG_SEC 0 ' + '{0:7.3f}'.format(dur[i]) + '\n')
             # read and memorize twodee.inp file
             twodee_input_records = []
             with open(twodee_original, 'r', encoding="utf-8", errors="surrogateescape") as twodee_or_input:
@@ -504,7 +570,7 @@ def run_twodee():
         try:
             for day in days[start:end]:
                 diagno = os.path.join(root, 'simulations', day, 'diagno')
-                twodee_folder = os.path.join(root, 'simulations', day, 'twodee', 'infiles')
+                twodee_folder = os.path.join(root, 'simulations', day, 'twodee')
                 shutil.copyfile(os.path.join(diagno,'diagno.out'),os.path.join(twodee_folder,'infiles','diagno.out'))
                 twodee_input_file = os.path.join(twodee_folder, 'twodee.inp')
                 twodee_log_file = os.path.join(twodee_folder, 'twodee.log')
@@ -530,7 +596,7 @@ topography_original = os.path.join(root,'topography.grd')
 
 max_number_processes, random_sources, nsources, sources_interval, source_easting, source_northing, source_el, \
 source_emission, random_emission, bottom_left_northing, bottom_left_easting, top_right_northing, top_right_easting, \
-twodee_on, disgas_on = read_arguments()
+source_dx, source_dy, source_dur, twodee_on, disgas_on = read_arguments()
 
 if disgas_on == 'off' and twodee_on == 'off':
     print('Both DISGAS and TWODEE are turned off')
@@ -540,9 +606,9 @@ days = pre_process()
 
 run_diagno()
 
-if disgas_on == 'on':
+if disgas_on:
     run_disgas()
 
-if twodee_on == 'on':
+if twodee_on:
     run_twodee()
 

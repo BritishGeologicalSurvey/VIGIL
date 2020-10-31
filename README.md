@@ -16,7 +16,7 @@ The weather data can be either retrieved from ECMWF ERA5 database or from time s
 The following flags control the execution of weather.py:
 usage: weather.py [-h] [-S START_DATE] [-E END_DATE] [-V VOLC] [-LAT LAT]
                   [-LON LON] [-EL ELEV] [-NS SAMPLES] [-ERA5 ERA5]
-                  [-WST STATION] [-N NPROC]
+                  [-WST STATION] [-N NPROC]  [-TD TWODEE] [-DG DISGAS]
   -h, --help            show this help message and exit
   -S START_DATE, --start_date START_DATE
                         Start date of the sampling period. Format: DD/MM/YYYY
@@ -38,15 +38,18 @@ usage: weather.py [-h] [-S START_DATE] [-E END_DATE] [-V VOLC] [-LAT LAT]
                         weather station data
   -N NPROC, --nproc NPROC
                         Maximum number of allowed simultaneous processes
+  -TD TWODEE, --twodee TWODEE
+                        on or off, to prepare additional weather data files for Twodee.
+  -DG DISGAS, --disgas DISGAS
+                        on or off, to run Disgas
 
 - run_models.py
 Python script to run Diagno and DISGAS for the days sampled with weather.py. 
 The following flags control the execution of hazard_fumaroles.py:
-usage: hazard_fumaroles.py [-h] [-N NPROC] [-RS RANDOM_SOURCES] [-NS NSOURCES]
-                           [-SINT SOURCES_INTERVAL [SOURCES_INTERVAL ...]]
-                           [-SLOC SOURCE_LOCATION [SOURCE_LOCATION ...]]
-                           [-D DOMAIN [DOMAIN ...]] [-SEM SOURCE_EMISSION]
-                           [-RER RANDOM_EMISSION]
+usage: run_models.py [-h] [-N NPROC] [-RS RANDOM_SOURCES] [-NS NSOURCES]
+                     [-SINT SOURCES_INTERVAL [SOURCES_INTERVAL ...]] [-SLOC SOURCE_LOCATION [SOURCE_LOCATION ...]]
+                     [-SDX SOURCE_DX] [-SDY SOURCE_DY] [-SDUR SOURCE_DUR] [-D DOMAIN [DOMAIN ...]]
+                     [-SEM SOURCE_EMISSION] [-RER RANDOM_EMISSION] [-TD TWODEE] [-DG DISGAS]
   -h, --help            show this help message and exit
   -N NPROC, --nproc NPROC
                         Maximum number of allowed simultaneous processes
@@ -63,6 +66,12 @@ usage: hazard_fumaroles.py [-h] [-N NPROC] [-RS RANDOM_SOURCES] [-NS NSOURCES]
                         Coordinate type (UTM/GEO), latitude/northing,
                         longitude/easting, elevation (above ground in m) of 1
                         fixed source
+  -SDX SOURCE_DX, --source_dx SOURCE_DX
+                        Extension [m] along the X direction of 1 single source. Option valid for Twodee only
+  -SDY SOURCE_DY, --source_dy SOURCE_DY
+                        Extension [m] along the Y direction of 1 single source. Option valid for Twodee only
+  -SDUR SOURCE_DUR, --source_dur SOURCE_DUR
+                        Emission duration [s] of 1 single source. Option valid for Twodee on
   -D DOMAIN [DOMAIN ...], --domain DOMAIN [DOMAIN ...]
                         Coordinates type (UTM/GEO), coordinates
                         (latitude/northing, longitude/easting) of the bottom
@@ -74,6 +83,10 @@ usage: hazard_fumaroles.py [-h] [-N NPROC] [-RS RANDOM_SOURCES] [-NS NSOURCES]
                         on: randomly assign emission rate for each source in
                         the domain sampled from a flux.csv file. off: use
                         specified emission rate
+  -TD TWODEE, --twodee TWODEE
+                        on or off, to run Twodee
+  -DG DISGAS, --disgas DISGAS
+                        on or off, to run Disgas
 
 - post_process.py
 Python script that:
@@ -130,7 +143,7 @@ With Conda, it is possible to set a virtual environmnent with all the required d
 installation of the different packages and the management of the Python installation in the system.
 Instructions for setting the Conda environment:
 1) create the environment with all the needed additional packages:
-	conda create --name name_of_environment python=3.8 utm cdsapi pandas xlrd pathos matplotlib
+	conda create --name name_of_environment python=3.7 utm cdsapi pandas xlrd
 2) activate the environment with:
 	conda activate name_of_environment
 3) to exit from the environment:

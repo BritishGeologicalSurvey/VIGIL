@@ -30,6 +30,8 @@ def read_arguments():
     parser.add_argument('-C', '--convert', default='False', help='If True, convert output concentration into other species listed with the command -S (--species)')
     parser.add_argument('-S', '--species', nargs='+', default=[], help='List of gas species (e.g. CO2)')
     parser.add_argument('-N', '--nproc', default=1, help='Maximum number of allowed simultaneous processes')
+    parser.add_argument('-M', '--models', default='all', help='Model outputs to post-process. Options: disgas, twodee, all')
+    parser.add_argument('-MO', '--merge_outputs', default='False', help='Merge Twodee and Disgas outputs (true or false)')
     args = parser.parse_args()
     plot = args.plot
     plot_ex_prob = args.plot_ex_prob
@@ -40,22 +42,24 @@ def read_arguments():
     species = args.species
     nproc = args.nproc
     convert = args.convert
-    if plot == 'True':
+    models = args.models
+    merge_outputs = args.merge_outputs
+    if plot.lower() == 'true':
         plot = True
         if len(days_plot) == 0:
             print('ERROR. Please specify at least one day to plot when --plot==True')
             sys.exit()
-    elif plot == 'False':
+    elif plot.lower() == 'false':
         plot = False
     else:
         print('ERROR. Wrong value for variable -P --plot')
         sys.exit()
-    if plot_ex_prob == 'True':
+    if plot_ex_prob.lower() == 'true':
         plot_ex_prob = True
         if len(ex_prob) == 0:
             print('ERROR. Please specify at least one exceedance probability to plot when --plot_ex_prob==True')
             sys.exit()
-    elif plot_ex_prob == 'False':
+    elif plot_ex_prob.lower() == 'false':
         plot_ex_prob = False
     else:
         print('ERROR. Wrong value for variable -PE --plot_ex_prob')
@@ -67,12 +71,12 @@ def read_arguments():
         if len(levels) == 0:
             print('ERROR. Please specify at least one level to plot')
             sys.exit()
-    if convert == 'True':
+    if convert.lower() == 'true':
         convert = True
         if len(species) == 0:
             print('ERROR. Please specify at least one gas specie name when --convert=True')
             sys.exit()
-    elif convert == 'False':
+    elif convert.lower() == 'false':
         convert = False
         if len(species) != 0:
             del species[:]
@@ -83,42 +87,92 @@ def read_arguments():
     exceedance_probabilities = []
     for prob in ex_prob:
         exceedance_probabilities.append(float(prob))
-    return plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert
+    if models.lower() != 'disgas' and models.lower() != 'twodee' and models.lower() != 'all':
+        print('ERROR. Wrong value for variable -M --models')
+        sys.exit()
+    if merge_outputs.lower() == 'true':
+        merge_outputs = True
+    elif merge_outputs.lower() == 'false':
+        merge_outputs = False
+    else:
+        print('ERROR. Wrong value for variable -MO --merge_outputs')
+        sys.exit()
+
+    return plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert, models, merge_outputs
 
 def folder_structure():
     original_output_folder_name = 'simulations'
     post_processing = 'post_processing'
     processed_output_folder_name = original_output_folder_name + '_processed'
     ecdf_folder_name = 'output_ecdf'
-    disgas_outputs = os.path.join(root, post_processing)
-    disgas_original_output_folder = os.path.join(root, original_output_folder_name)
+    disgas_outputs = os.path.join(root, post_processing, 'disgas')
+    twodee_outputs = os.path.join(root, post_processing, 'twodee')
+    disgas_original_output_folder = os.path.join(root, original_output_folder_name, 'disgas')
+    twodee_original_output_folder = os.path.join(root, original_output_folder_name, 'twodee')
     disgas_processed_output_folder = os.path.join(disgas_outputs, processed_output_folder_name)
     disgas_ecdf = os.path.join(disgas_outputs, ecdf_folder_name)
-    try:
-        os.mkdir(disgas_outputs)
-    except FileExistsError:
-        print('Folder ' + disgas_outputs + ' already exists')
-    try:
-        os.mkdir(disgas_processed_output_folder)
-    except:
-        print('Folder ' + disgas_processed_output_folder + ' already exists')
-        list_temp = os.listdir(disgas_processed_output_folder)
-        for item in list_temp:
-            try:
-                rmtree(os.path.join(disgas_processed_output_folder, item), ignore_errors=True)
-            except:
-                print('Unable to remove ' + item + ' in ' + disgas_processed_output_folder)
-    try:
-        os.mkdir(disgas_ecdf)
-    except:
-        print('Folder ' + disgas_ecdf + ' already exists')
-        list_temp = os.listdir(disgas_ecdf)
-        for item in list_temp:
-            try:
-                rmtree(os.path.join(disgas_ecdf, item), ignore_errors=True)
-            except:
-                print('Unable to remove ' + item + ' in ' + disgas_ecdf)
-    return disgas_outputs, disgas_original_output_folder, disgas_processed_output_folder, ecdf_folder_name, disgas_ecdf
+    twodee_processed_output_folder = os.path.join(twodee_outputs, processed_output_folder_name)
+    twodee_ecdf = os.path.join(twodee_outputs, ecdf_folder_name)
+    if models == 'disgas' or models == 'all':
+        try:
+            os.mkdir(disgas_outputs)
+        except FileExistsError:
+            print('Folder ' + disgas_outputs + ' already exists')
+        try:
+            os.mkdir(disgas_processed_output_folder)
+        except:
+            print('Folder ' + disgas_processed_output_folder + ' already exists')
+            list_temp = os.listdir(disgas_processed_output_folder)
+            for item in list_temp:
+                try:
+                    rmtree(os.path.join(disgas_processed_output_folder, item), ignore_errors=True)
+                except:
+                    print('Unable to remove ' + item + ' in ' + disgas_processed_output_folder)
+        try:
+            os.mkdir(disgas_ecdf)
+        except:
+            print('Folder ' + disgas_ecdf + ' already exists')
+            list_temp = os.listdir(disgas_ecdf)
+            for item in list_temp:
+                try:
+                    rmtree(os.path.join(disgas_ecdf, item), ignore_errors=True)
+                except:
+                    print('Unable to remove ' + item + ' in ' + disgas_ecdf)
+    if models == 'twodee' or models == 'all':
+        try:
+            os.mkdir(twodee_outputs)
+        except FileExistsError:
+            print('Folder ' + twodee_outputs + ' already exists')
+        try:
+            os.mkdir(twodee_processed_output_folder)
+        except:
+            print('Folder ' + twodee_processed_output_folder + ' already exists')
+            list_temp = os.listdir(twodee_processed_output_folder)
+            for item in list_temp:
+                try:
+                    rmtree(os.path.join(twodee_processed_output_folder, item), ignore_errors=True)
+                except:
+                    print('Unable to remove ' + item + ' in ' + twodee_processed_output_folder)
+        try:
+            os.mkdir(twodee_ecdf)
+        except:
+            print('Folder ' + twodee_ecdf + ' already exists')
+            list_temp = os.listdir(twodee_ecdf)
+            for item in list_temp:
+                try:
+                    rmtree(os.path.join(twodee_ecdf, item), ignore_errors=True)
+                except:
+                    print('Unable to remove ' + item + ' in ' + twodee_ecdf)
+    if models == 'all':
+        models_to_elaborate = ['disgas','twodee']
+    elif models == 'disgas':
+        models_to_elaborate = ['disgas']
+    else:
+        models_to_elaborate = ['twodee']
+
+
+    return disgas_outputs, disgas_original_output_folder, disgas_processed_output_folder, ecdf_folder_name, disgas_ecdf, \
+           twodee_outputs, twodee_original_output_folder, twodee_processed_output_folder, twodee_ecdf, models_to_elaborate
 
 def gas_properties():
     def extract_gas_properties(specie):
@@ -244,32 +298,36 @@ def cmap_map(function, cmap):
 
     return matplotlib.colors.LinearSegmentedColormap('colormap', cdict, 1024)
 
-def elaborate_day(day_input):
-    disgas_output_folder = os.path.join(disgas_original_output_folder, day_input, 'outfiles')
-    disgas_processed_output_folder_daily = os.path.join(disgas_processed_output_folder, day_input)
+def elaborate_day(day_input, model):
+    if model == 'disgas':
+        model_output_folder = os.path.join(disgas_original_output_folder, day_input, 'outfiles')
+        model_processed_output_folder_daily = os.path.join(disgas_processed_output_folder, day_input)
+    else:
+        model_output_folder = os.path.join(twodee_original_output_folder, day_input, 'outfiles')
+        model_processed_output_folder_daily = os.path.join(twodee_processed_output_folder, day_input)
     try:
-        os.mkdir(disgas_processed_output_folder_daily)
+        os.mkdir(model_processed_output_folder_daily)
     except:
-        print('Folder ' + disgas_processed_output_folder_daily + ' already exists')
+        print('Folder ' + model_processed_output_folder_daily + ' already exists')
     for specie in species:
-        disgas_processed_output_folder_specie = os.path.join(disgas_processed_output_folder_daily, specie)
+        model_processed_output_folder_specie = os.path.join(model_processed_output_folder_daily, specie)
         try:
-            os.mkdir(disgas_processed_output_folder_specie)
+            os.mkdir(model_processed_output_folder_specie)
         except FileExistsError:
-            print('Folder ' + disgas_processed_output_folder_specie + ' already exists')
+            print('Folder ' + model_processed_output_folder_specie + ' already exists')
         except PermissionError: #retry
             try:
-                os.mkdir(disgas_processed_output_folder_specie)
+                os.mkdir(model_processed_output_folder_specie)
             except FileExistsError:
-                print('Folder ' + disgas_processed_output_folder_specie + ' already exists')
-    files_list_temp = os.listdir(disgas_output_folder)
+                print('Folder ' + model_processed_output_folder_specie + ' already exists')
+    files_list_temp = os.listdir(model_output_folder)
     files_list_path = []
     files_list = []
     for file in files_list_temp:
         if file[0:2] == 'c_':
             files_list.append(file)
             for specie in species:
-                files_list_path.append(os.path.join(disgas_output_folder, file))
+                files_list_path.append(os.path.join(model_output_folder, file))
     converted_files = []
     outnames = []
     species_list = []
@@ -278,7 +336,7 @@ def elaborate_day(day_input):
             species_list.append(specie)
             converted_file = file
             converted_files.append(converted_file)
-            outnames.append(os.path.join(os.path.join(disgas_processed_output_folder_daily, specie), converted_file))
+            outnames.append(os.path.join(os.path.join(model_processed_output_folder_daily, specie), converted_file))
     n_elaborated_files = 0
     while n_elaborated_files < len(files_list_path):
         start = n_elaborated_files
@@ -295,7 +353,7 @@ def elaborate_day(day_input):
         if n_elaborated_files == len(files_list_path):
             break
 
-def probabilistic_output():
+def probabilistic_output(model):
     def ecdf(index):
         specie = index[1]
         level = index[2]
@@ -304,7 +362,7 @@ def probabilistic_output():
         output_files = []
         for day in days:
             file_name = 'c_' + "{:03d}".format(int(level)) + '_' + "{:06d}".format(int(time_step)) + '.grd'
-            output_folder = os.path.join(disgas_processed_output_folder, day, specie)
+            output_folder = os.path.join(model_processed_output_folder, day, specie)
             output_files.append(os.path.join(output_folder, file_name))
         ecdf_output_file = os.path.join(disgas_ecdf, str(quantile), specie, 'c_' + "{:03d}".format(int(level)) + '_' + "{:06d}".format(int(time_step)) + '.grd')
         quantile = 1 - quantile
@@ -332,14 +390,20 @@ def probabilistic_output():
                 output_quantile[i, j] = np.quantile(c_list, q=quantile)
         np.savetxt(ecdf_output_file, output_quantile, fmt='%.2e')
 
+    if model == 'disgas':
+        ecdf_folder = disgas_ecdf
+        model_processed_output_folder = disgas_processed_output_folder
+    else:
+        ecdf_folder = twodee_ecdf
+        model_processed_output_folder = twodee_processed_output_folder
     for probability in exceedance_probabilities:
-        prob_folder = os.path.join(disgas_ecdf, str(probability))
+        prob_folder = os.path.join(ecdf_folder, str(probability))
         try:
             os.mkdir(prob_folder)
         except:
             print('Folder ' + prob_folder + ' already exists')
         for specie in species:
-            specie_folder = os.path.join(disgas_ecdf, prob_folder, specie)
+            specie_folder = os.path.join(ecdf_folder, prob_folder, specie)
             try:
                 os.mkdir(specie_folder)
             except:
@@ -387,10 +451,16 @@ def probabilistic_output():
                     break
             n_pool += 1
 
-def save_plots():
+def save_plots(model):
     import re
+    if model == 'disgas':
+        model_outputs = disgas_outputs
+        model_processed_output_folder = disgas_processed_output_folder
+    else:
+        model_outputs = twodee_outputs
+        model_processed_output_folder = twodee_processed_output_folder
     dark_jet = cmap_map(lambda x: x * 0.75, matplotlib.cm.jet)
-    graphical_outputs = (os.path.join(disgas_outputs, 'graphical_outputs'))
+    graphical_outputs = (os.path.join(model_outputs, 'graphical_outputs'))
     graphical_outputs_simulations = (os.path.join(graphical_outputs, 'simulations'))
     graphical_outputs_ecdf = (os.path.join(graphical_outputs, 'ecdf'))
     try:
@@ -445,11 +515,11 @@ def save_plots():
                 os.mkdir(graphical_outputs_daily)
             except FileExistsError:
                 print('Folder ' + graphical_outputs_daily + ' already exists')
-            disgas_processed_output_folder_daily = os.path.join(disgas_processed_output_folder, day)
-            disgas_processed_output_folder_species = []
+            model_processed_output_folder_daily = os.path.join(model_processed_output_folder, day) # DA QUI
+            model_processed_output_folder_species = []
             for specie in species:
-                disgas_processed_output_folder_species.append(
-                    os.path.join(disgas_processed_output_folder_daily, specie))
+                model_processed_output_folder_species.append(
+                    os.path.join(model_processed_output_folder_daily, specie))
             for specie in species:
                 try:
                     os.mkdir(os.path.join(graphical_outputs_daily, specie))
@@ -457,14 +527,14 @@ def save_plots():
                     print('Folder ' + os.path.join(graphical_outputs_daily, specie) + ' already exists')
             files_list_path = []
             files_list = []
-            for folder in disgas_processed_output_folder_species:
+            for folder in model_processed_output_folder_species:
                 files_list_temp = os.listdir(folder)
                 for file in files_list_temp:
                     files_list.append(file)
                     files_list_path.append(os.path.join(folder, file))
             i = 0
             for file in files_list_path:
-                file_specie = file.split(disgas_processed_output_folder_daily)
+                file_specie = file.split(model_processed_output_folder_daily)
                 file_specie = file_specie[1].split(files_list[i])
                 file_specie = re.sub('\W+', '', file_specie[0])
                 file_name_splitted = files_list[i].split('_')
@@ -553,14 +623,15 @@ def save_plots():
 
 root = os.getcwd()
 
-plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert = read_arguments()
+plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert, models, merge_outputs = read_arguments()
 
 try:
     max_number_processes = int(os.environ["SLURM_NPROCS"])
 except:
     max_number_processes = int(nproc)
 
-disgas_outputs, disgas_original_output_folder, disgas_processed_output_folder, ecdf_folder_name, disgas_ecdf = folder_structure()
+disgas_outputs, disgas_original_output_folder, disgas_processed_output_folder, ecdf_folder_name, disgas_ecdf, twodee_outputs, \
+twodee_original_output_folder, twodee_processed_output_folder, twodee_ecdf, models_to_elaborate= folder_structure()
 
 x0, xf, y0, yf, nx, ny, nz, n_time_steps = domain()
 
@@ -568,9 +639,8 @@ days, days_to_plot = extract_days()
 
 if convert:
     species_properties = gas_properties()
-for day in days:
-    elaborate_day(day)
-
-probabilistic_output()
-
-save_plots()
+for model in models_to_elaborate:
+    for day in days:
+        elaborate_day(day, model)
+    probabilistic_output(model)
+    save_plots(model)

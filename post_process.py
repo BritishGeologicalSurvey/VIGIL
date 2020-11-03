@@ -169,10 +169,19 @@ def folder_structure():
         models_to_elaborate = ['disgas']
     else:
         models_to_elaborate = ['twodee']
-
+    # Read the output time interval from the twodee input file
+    twodee_input_file = os.path.join(root,'twodee.inp')
+    twodee_output_time_step = 0
+    with open(twodee_input_file, 'r') as twodee_file:
+        for line in twodee_file:
+            if 'OUTPUT_INTERVAL_(SEC)' in line:
+                twodee_output_time_step = float(line.split('=')[1])
+    if twodee_output_time_step == 0:
+        print('Unable to read the Twodee output time step')
+        sys.exit()
 
     return disgas_outputs, disgas_original_output_folder, disgas_processed_output_folder, ecdf_folder_name, disgas_ecdf, \
-           twodee_outputs, twodee_original_output_folder, twodee_processed_output_folder, twodee_ecdf, models_to_elaborate
+           twodee_outputs, twodee_original_output_folder, twodee_processed_output_folder, twodee_ecdf, models_to_elaborate, twodee_output_time_step
 
 def gas_properties():
     def extract_gas_properties(specie):
@@ -531,6 +540,10 @@ def save_plots(model):
                 file_level = file_name_splitted[1]
                 file_time_step = file_name_splitted[2].split('.')[0]
                 output_file_name = files_list[i].split('.')[0]
+                if model == 'twodee':
+                    file_level = "{:03d}".format(int(int(file_level.split('cm')[0]) / 100))
+                    file_time_step = "{:06d}".format(int((int(file_time_step) / twodee_output_time_step)))
+                    output_file_name = 'c_' + file_level + '_' + file_time_step
                 output_file_name += '.png'
                 if levels[0] == 'all':
                     if time_steps[0] == 'all':
@@ -540,15 +553,13 @@ def save_plots(model):
                         for time_step in time_steps:
                             if file_time_step == "{:06d}".format(int(time_step)):
                                 files_to_plot.append(file)
-                                output_files.append(
-                                    os.path.join(graphical_outputs_daily, file_specie, output_file_name))
+                                output_files.append(os.path.join(graphical_outputs_daily, file_specie, output_file_name))
                 else:
                     if time_steps[0] == 'all':
                         for level in levels:
                             if file_level == "{:03d}".format(int(level)):
                                 files_to_plot.append(file)
-                                output_files.append(
-                                    os.path.join(graphical_outputs_daily, file_specie, output_file_name))
+                                output_files.append(os.path.join(graphical_outputs_daily, file_specie, output_file_name))
                     else:
                         for level in levels:
                             for time_step in time_steps:
@@ -574,6 +585,10 @@ def save_plots(model):
                     file_level = file_name_splitted[1]
                     file_time_step = file_name_splitted[2].split('.')[0]
                     output_file_name = file.split('.')[0]
+                    if model == 'twodee':
+                        file_level = "{:03d}".format(int(int(file_level.split('cm')[0]) / 100))
+                        file_time_step = "{:06d}".format(int((int(file_time_step) / 3600)))
+                        output_file_name = 'c_' + file_level + '_' + file_time_step
                     output_file_name += '.png'
                     if levels[0] == 'all':
                         if time_steps[0] == 'all':
@@ -621,7 +636,7 @@ except:
     max_number_processes = int(nproc)
 
 disgas_outputs, disgas_original_output_folder, disgas_processed_output_folder, ecdf_folder_name, disgas_ecdf, twodee_outputs, \
-twodee_original_output_folder, twodee_processed_output_folder, twodee_ecdf, models_to_elaborate= folder_structure()
+twodee_original_output_folder, twodee_processed_output_folder, twodee_ecdf, models_to_elaborate, twodee_output_time_step = folder_structure()
 
 x0, xf, y0, yf, nx, ny, nz, n_time_steps = domain()
 

@@ -453,6 +453,19 @@ def probabilistic_output(model):
 
 def save_plots(model):
     import re
+
+    def plot_file(input,output):
+        with open(input) as input_file:
+            Z = [[float(record) for record in line.split(' ')] for line in input_file]
+            fig = plt.figure(figsize=(8, 8))
+            ax1 = fig.add_subplot(111)
+            ax1.imshow(Z, extent=[x0, xf, y0, yf], cmap=dark_jet,aspect='auto')
+            image_buffer = StringIO()
+            fig.savefig(output)
+            image_buffer.close()
+            plt.close(fig)
+        input_file.close()
+
     if model == 'disgas':
         model_outputs = disgas_outputs
         model_processed_output_folder = disgas_processed_output_folder
@@ -484,28 +497,6 @@ def save_plots(model):
     except FileExistsError:
         print('Folder ' + graphical_outputs_ecdf + ' already exists')
 
-    def plot_file(input,output):
-        with open(input) as input_file:
-            Z = [[float(record) for record in line.split(' ')] for line in input_file]
-            # try:
-            #     Z = [[float(record) for record in line.split(' ')] for line in input_file]
-            # except:
-            #     Z_temp = np.loadtxt(input, encoding='utf8', skiprows=5)
-            #     Z_temp = np.reshape(Z_temp, [nx, ny])
-            #     np.savetxt('temp.txt',  Z_temp, encoding='utf8', fmt='%.2e')
-            #     with open('temp.txt', encoding="utf-8", errors='ignore') as temp_input_file:
-            #         Z = [[float(record) for record in line.split(' ')] for line in temp_input_file]
-            #         temp_input_file.close()
-            #     os.remove('temp.txt')
-            fig = plt.figure(figsize=(8, 8))
-            ax1 = fig.add_subplot(111)
-            ax1.imshow(Z, extent=[x0, xf, y0, yf], cmap=dark_jet,aspect='auto')
-            image_buffer = StringIO()
-            fig.savefig(output)
-            image_buffer.close()
-            plt.close(fig)
-        input_file.close()
-
     files_to_plot = []
     output_files = []
     if plot:
@@ -515,11 +506,10 @@ def save_plots(model):
                 os.mkdir(graphical_outputs_daily)
             except FileExistsError:
                 print('Folder ' + graphical_outputs_daily + ' already exists')
-            model_processed_output_folder_daily = os.path.join(model_processed_output_folder, day) # DA QUI
+            model_processed_output_folder_daily = os.path.join(model_processed_output_folder, day)
             model_processed_output_folder_species = []
             for specie in species:
-                model_processed_output_folder_species.append(
-                    os.path.join(model_processed_output_folder_daily, specie))
+                model_processed_output_folder_species.append(os.path.join(model_processed_output_folder_daily, specie))
             for specie in species:
                 try:
                     os.mkdir(os.path.join(graphical_outputs_daily, specie))

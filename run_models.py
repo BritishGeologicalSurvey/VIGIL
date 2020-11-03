@@ -338,10 +338,31 @@ def pre_process():
 
     raw_days = [] # store the days as originally formatted
     days = [] #store days in format YYYYMMDD as per folder name
+    # Set DIAGNO folder
+    diagno = os.path.join(root, 'simulations', 'diagno')
+    try:
+        os.mkdir(diagno)
+    except:
+        print('Folder ' + diagno + ' already exists')
+    if disgas_on:
+        # Set DISGAS folder
+        disgas = os.path.join(root, 'simulations', 'disgas')
+        try:
+            os.mkdir(disgas)
+        except:
+            print('Folder ' + disgas + ' already exists')
+    if twodee_on:
+        # Set DISGAS folder
+        twodee = os.path.join(root, 'simulations', 'twodee')
+        try:
+            os.mkdir(twodee)
+        except:
+            print('Folder ' + twodee + ' already exists')
     # read days_list file
     with open('days_list.txt','r',encoding="utf-8", errors="surrogateescape") as days_list_file:
         for line in days_list_file:
             raw_days.append(line)
+    days_list_file.close()
     i=0
     for day in raw_days:
         temp = raw_days[i].split(' ')
@@ -349,40 +370,39 @@ def pre_process():
         days.append(temp[0]+temp[1]+temp[2])
         i+=1
     for day in days:
-        path = os.path.join(root,'simulations',str(day))
-        # Set DIAGNO folder
-        diagno = os.path.join(path,'diagno')
-        try:
-            os.mkdir(diagno)
-        except:
-            print('Folder diagno already exists in '+str(path))
+        path = os.path.join(root,'simulations', str(day))
         files = os.listdir(path)
+        diagno_daily = os.path.join(diagno, str(day))
+        try:
+            os.mkdir(diagno_daily)
+        except:
+            print('Folder ' + diagno_daily + ' already exists')
         for f in files:
             path_f = os.path.join(path,f)
             try:
-                shutil.move(path_f,diagno)
+                shutil.move(path_f, diagno_daily)
             except:
                 print('File ' + f + ' already present in ' + diagno)
-        shutil.copy(topography_original, os.path.join(diagno, 'topography.grd'))
+        shutil.copy(topography_original, os.path.join(diagno_daily, 'topography.grd'))
         # Set DISGAS folder
         if disgas_on:
-            disgas = os.path.join(path, 'disgas')
-            infiles = os.path.join(disgas, 'infiles')
-            outfiles = os.path.join(disgas, 'outfiles')
+            disgas_daily = os.path.join(disgas, str(day))
+            infiles = os.path.join(disgas_daily, 'infiles')
+            outfiles = os.path.join(disgas_daily, 'outfiles')
             try:
-                os.mkdir(disgas)
+                os.mkdir(disgas_daily)
             except:
-                print('Folder diagno already exists in ' + str(path))
+                print('Folder ' + disgas_daily + ' already exists')
             try:
                 os.mkdir(infiles)
             except:
-                print('Folder infiles already exists in ' + str(disgas))
+                print('Folder infiles already exists in ' + str(disgas_daily))
             try:
                 os.mkdir(outfiles)
                 if not outfiles.endswith(os.path.sep):
                     outfiles += os.path.sep
             except:
-                print('Folder outfiles already exists in ' + str(disgas))
+                print('Folder outfiles already exists in ' + str(disgas_daily))
             disgas_input = os.path.join(infiles,'disgas.inp')
             with open(os.path.join(infiles,'source.dat'), 'w', encoding="utf-8", errors="surrogateescape") as source_file:
                 for i in range(0, n_sources):
@@ -395,6 +415,7 @@ def pre_process():
                             gas_flux = fluxes_input[i]
                     source_file.write('{0:7.3f}'.format(easting[i]) + ' ' + '{0:7.3f}'.format(northing[i]) + ' '
                                       + '{0:7.2f}'.format(elevations[i]) + ' ' + '{0:7.3f}'.format(gas_flux) + '\n')
+            source_file.close()
             roughness_file_exist = True
             try:
                 shutil.copyfile(os.path.join(root,'roughness_disgas.grd'),os.path.join(infiles,'roughness.grd'))
@@ -405,7 +426,8 @@ def pre_process():
             with open(disgas_original, 'r', encoding="utf-8", errors="surrogateescape") as disgas_or_input:
                 for line in disgas_or_input:
                     disgas_input_records.append(line)
-            with open(disgas_input,'w', encoding="utf-8", errors="surrogateescape") as disgas:
+            disgas_or_input.close()
+            with open(disgas_input,'w', encoding="utf-8", errors="surrogateescape") as disgas_input:
                 for record in disgas_input_records:
                     if 'ROUGHNESS_MODEL' in record:
                         roughness_command = record.split('=')[1]
@@ -415,49 +437,49 @@ def pre_process():
                                 print('Warning! ROUGHNESS_MODEL set to MATRIX in disgas.inp and roughness file does not exist')
                                 print('Setting ROUGHNESS_MODEL to UNIFORM')
                     if 'YEAR' in record:
-                        disgas.write('  YEAR   = ' + day[0:4] + '\n')
+                        disgas_input.write('  YEAR   = ' + day[0:4] + '\n')
                     elif 'MONTH' in record:
-                        disgas.write('  MONTH  = ' + day[4:6] + '\n')
+                        disgas_input.write('  MONTH  = ' + day[4:6] + '\n')
                     elif 'DAY' in record:
-                        disgas.write('  DAY    = ' + day[6:8] + '\n')
+                        disgas_input.write('  DAY    = ' + day[6:8] + '\n')
                     elif 'TOPOGRAPHY_FILE_PATH' in record:
-                        disgas.write('   TOPOGRAPHY_FILE_PATH   = ' + os.path.join(diagno, 'topography.grd') + ' \n')
+                        disgas_input.write('   TOPOGRAPHY_FILE_PATH   = ' + os.path.join(diagno_daily, 'topography.grd') + ' \n')
                     elif 'ROUGHNESS_FILE_PATH' in record:
-                        disgas.write('   ROUGHNESS_FILE_PATH   = ' + os.path.join(infiles, 'roughness.grd') + ' \n')
+                        disgas_input.write('   ROUGHNESS_FILE_PATH   = ' + os.path.join(infiles, 'roughness.grd') + ' \n')
                     elif 'RESTART_FILE_PATH' in record:
-                        disgas.write('   RESTART_FILE_PATH   = ' + os.path.join(infiles, 'restart.dat') + ' \n')
+                        disgas_input.write('   RESTART_FILE_PATH   = ' + os.path.join(infiles, 'restart.dat') + ' \n')
                     elif 'SOURCE_FILE_PATH' in record:
-                        disgas.write('   SOURCE_FILE_PATH   = ' + os.path.join(infiles, 'source.dat') + ' \n')
+                        disgas_input.write('   SOURCE_FILE_PATH   = ' + os.path.join(infiles, 'source.dat') + ' \n')
                     elif 'WIND_FILE_PATH' in record:
-                        disgas.write('   WIND_FILE_PATH   = ' + os.path.join(infiles, 'winds.dat') + ' \n')
+                        disgas_input.write('   WIND_FILE_PATH   = ' + os.path.join(infiles, 'winds.dat') + ' \n')
                     elif 'DIAGNO_FILE_PATH' in record:
-                        disgas.write('   DIAGNO_FILE_PATH   = ' + os.path.join(diagno, 'diagno.out') + ' \n')
+                        disgas_input.write('   DIAGNO_FILE_PATH   = ' + os.path.join(diagno_daily, 'diagno.out') + ' \n')
                     elif 'OUTPUT_DIRECTORY' in record:
-                        disgas.write('   OUTPUT_DIRECTORY    = ' + outfiles + ' \n')
+                        disgas_input.write('   OUTPUT_DIRECTORY    = ' + outfiles + ' \n')
                     else:
-                        disgas.write(record)
-
+                        disgas_input.write(record)
+            disgas_input.close()
         if twodee_on:
-            twodee = os.path.join(path, 'twodee')
-            infiles_twodee = os.path.join(twodee, 'infiles')
-            outfiles_twodee = os.path.join(twodee, 'outfiles')
+            twodee_daily = os.path.join(twodee, str(day))
+            infiles_twodee = os.path.join(twodee_daily, 'infiles')
+            outfiles_twodee = os.path.join(twodee_daily, 'outfiles')
             try:
-                os.mkdir(twodee)
+                os.mkdir(twodee_daily)
             except:
-                print('Folder diagno already exists in ' + str(path))
+                print('Folder ' + twodee_daily + ' already exists')
             try:
                 os.mkdir(infiles_twodee)
             except:
-                print('Folder infiles already exists in ' + str(twodee))
+                print('Folder infiles already exists in ' + str(twodee_daily))
             try:
                 os.mkdir(outfiles_twodee)
                 if not outfiles_twodee.endswith(os.path.sep):
                     outfiles_twodee += os.path.sep
             except:
-                print('Folder outfiles already exists in ' + str(twodee))
-            twodee_input = os.path.join(twodee, 'twodee.inp')
+                print('Folder outfiles already exists in ' + str(twodee_daily))
+            twodee_input = os.path.join(twodee_daily, 'twodee.inp')
             topography_converter(topography_original)
-            shutil.move(os.path.join(diagno,'surface_data.txt'),os.path.join(infiles_twodee,'surface_data.txt'))
+            shutil.move(os.path.join(diagno_daily,'surface_data.txt'),os.path.join(infiles_twodee,'surface_data.txt'))
             shutil.copyfile(os.path.join(root,'roughness_twodee.grd'),os.path.join(infiles_twodee,'roughness.grd'))
             with open(os.path.join(infiles_twodee,'source.dat'), 'w', encoding="utf-8", errors="surrogateescape") as source_file:
                 for i in range(0, n_sources):
@@ -470,25 +492,29 @@ def pre_process():
                             gas_flux = fluxes_input[i]
                     source_file.write('{0:7.3f}'.format(easting[i]) + ' ' + '{0:7.3f}'.format(northing[i]) + ' ' + '{0:7.3f}'.format(gas_flux) + ' '
                                       + '{0:7.2f}'.format(dx[i]) + ' ' + '{0:7.2f}'.format(dy[i]) + ' KG_SEC 0 ' + '{0:7.3f}'.format(dur[i]) + '\n')
+            source_file.close()
             # read and memorize twodee.inp file
             twodee_input_records = []
             with open(twodee_original, 'r', encoding="utf-8", errors="surrogateescape") as twodee_or_input:
                 for line in twodee_or_input:
                     twodee_input_records.append(line)
-            with open(twodee_input, 'w', encoding="utf-8", errors="surrogateescape") as twodee:
+            twodee_or_input.close()
+            with open(twodee_input, 'w', encoding="utf-8", errors="surrogateescape") as twodee_input:
                 for record in twodee_input_records:
                     if 'YEAR' in record:
-                        twodee.write('  YEAR   = ' + day[0:4] + '\n')
+                        twodee_input.write('  YEAR   = ' + day[0:4] + '\n')
                     elif 'MONTH' in record:
-                        twodee.write('  MONTH  = ' + day[4:6] + '\n')
+                        twodee_input.write('  MONTH  = ' + day[4:6] + '\n')
                     elif 'DAY' in record:
-                        twodee.write('  DAY    = ' + day[6:8] + '\n')
+                        twodee_input.write('  DAY    = ' + day[6:8] + '\n')
                     elif 'INPUT_DIRECTORY' in record:
-                        twodee.write('   INPUT_DIRECTORY   = ' + infiles_twodee + ' \n')
+                        twodee_input.write('   INPUT_DIRECTORY   = ' + infiles_twodee + ' \n')
                     elif 'OUTPUT_DIRECTORY' in record:
-                        twodee.write('   OUTPUT_DIRECTORY   = ' + outfiles_twodee + ' \n')
+                        twodee_input.write('   OUTPUT_DIRECTORY   = ' + outfiles_twodee + ' \n')
                     else:
-                        twodee.write(record)
+                        twodee_input.write(record)
+            twodee_input.close()
+        shutil.rmtree(path)
     return days
 
 def run_diagno():
@@ -501,7 +527,7 @@ def run_diagno():
             end = len(days)
         try:
             for day in days[start:end]:
-                diagno_folder = os.path.join(root, 'simulations', day, 'diagno')
+                diagno_folder = os.path.join(root, 'simulations', 'diagno', day)
                 os.chdir(diagno_folder)
                 try:
                     p = subprocess.Popen(['srun', '-n', '1', 'presfc','&'])
@@ -525,7 +551,7 @@ def run_diagno():
         except:
             print('Unable to process weather data with Diagno')
             sys.exit()
-        print('Successfully processed days ' + str(days[start:end]))
+        print('DIAGNO successfully processed days ' + str(days[start:end]))
         n_elaborated_days = end
         if n_elaborated_days == len(days):
             break
@@ -542,7 +568,7 @@ def run_disgas():
             end = len(days)
         try:
             for day in days[start:end]:
-                disgas_folder = os.path.join(root, 'simulations', day, 'disgas', 'infiles')
+                disgas_folder = os.path.join(root, 'simulations', 'disgas', day, 'infiles')
                 disgas_input_file = os.path.join(disgas_folder, 'disgas.inp')
                 try:
                     p = subprocess.Popen(['srun', '-n', '1', 'disgas', disgas_input_file,'&'])
@@ -554,7 +580,7 @@ def run_disgas():
         except:
             print('Unable to run DISGAS')
             sys.exit()
-        print('Successfully processed days ' + str(days[start:end]))
+        print('DISGAS successfully processed days ' + str(days[start:end]))
         n_elaborated_days = end
         if n_elaborated_days == len(days):
             break
@@ -569,8 +595,8 @@ def run_twodee():
             end = len(days)
         try:
             for day in days[start:end]:
-                diagno = os.path.join(root, 'simulations', day, 'diagno')
-                twodee_folder = os.path.join(root, 'simulations', day, 'twodee')
+                diagno = os.path.join(root, 'simulations', 'diagno', day)
+                twodee_folder = os.path.join(root, 'simulations', 'twodee', day)
                 shutil.copyfile(os.path.join(diagno,'diagno.out'),os.path.join(twodee_folder,'infiles','diagno.out'))
                 twodee_input_file = os.path.join(twodee_folder, 'twodee.inp')
                 twodee_log_file = os.path.join(twodee_folder, 'twodee.log')
@@ -584,7 +610,7 @@ def run_twodee():
         except:
             print('Unable to run TWODEE')
             sys.exit()
-        print('Successfully processed days ' + str(days[start:end]))
+        print('TWODEE successfully processed days ' + str(days[start:end]))
         n_elaborated_days = end
         if n_elaborated_days == len(days):
             break

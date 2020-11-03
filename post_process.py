@@ -113,6 +113,7 @@ def folder_structure():
     disgas_ecdf = os.path.join(disgas_outputs, ecdf_folder_name)
     twodee_processed_output_folder = os.path.join(twodee_outputs, processed_output_folder_name)
     twodee_ecdf = os.path.join(twodee_outputs, ecdf_folder_name)
+    os.mkdir(post_processing)
     if models == 'disgas' or models == 'all':
         try:
             os.mkdir(disgas_outputs)
@@ -262,8 +263,10 @@ def extract_days():
                         days_to_plot.append(day_to_plot)
     return days, days_to_plot
 
-def converter(input_file, outname, specie_input):
+def converter(input_file, outname, specie_input, model):
     Z = np.loadtxt(input_file, skiprows=5)
+    if model == 'twodee':
+        Z = np.divide(Z, 1000) #convert ppm to kg/s
     if specie_input == 'original_specie':
         Z_converted = np.reshape(Z, [nx, ny])
         np.savetxt(outname, Z_converted, fmt='%.2e')
@@ -332,11 +335,13 @@ def elaborate_day(day_input, model):
     files_list_temp = os.listdir(model_output_folder)
     files_list_path = []
     files_list = []
+    models = []
     for file in files_list_temp:
         if file[0:2] == 'c_':
             files_list.append(file)
             for specie in species:
-                files_list_path.append(os.path.join(model_output_folder, file))
+                files_list_path.append(os.path.join(model_output_folder, file))#
+                models.append(model)
     converted_files = []
     outnames = []
     species_list = []
@@ -354,7 +359,7 @@ def elaborate_day(day_input, model):
             end = len(files_list_path)
         try:
             pool_files = ThreadingPool(max_number_processes)
-            pool_files.map(converter,files_list_path[start:end], outnames[start:end], species_list[start:end])
+            pool_files.map(converter,files_list_path[start:end], outnames[start:end], species_list[start:end], models[start:end])
         except:
             print('Unable to convert files')
             sys.exit()

@@ -217,29 +217,62 @@ def gas_properties():
         species_properties.append(gas_specie)
     return species_properties
 
-def domain():
-    with open(file='disgas.inp') as input_file:
-        for record in input_file:
-            command = record.split(' = ')
-            if command[0] == '  SIMULATION_INTERVAL_(SEC)':
-                tot_time = int(command[1])
-            elif command[0] == '  NX    ':
-                nx = int(command[1])
-            elif command[0] == '  NY    ':
-                ny = int(command[1])
-            elif command[0] == '  NZ    ':
-                nz = int(command[1])
-            elif command[0] == '  OUTPUT_INTERVAL_(SEC)':
-                dt = command[1]
-                dt = int(dt.split(' ')[0])
-            elif command[0] == '  DX_(M)':
-                dx = float(command[1])
-            elif command[0] == '  DY_(M)':
-                dy = float(command[1])
-            elif command[0] == '  X_ORIGIN_(UTM_M)':
-                x0 = float(command[1])
-            elif command[0] == '  Y_ORIGIN_(UTM_M)':
-                y0 = float(command[1])
+def domain(model):
+    import re
+    if model == 'disgas':
+        with open(file='disgas.inp') as input_file:
+            for record in input_file:
+                try:
+                    record_splitted = record.split('=')
+                    temp = record_splitted[1].split('(')
+                    if 'SIMULATION_INTERVAL_(SEC)' in record_splitted[0]:
+                        tot_time = int(temp[0])
+                    elif 'NX' in record_splitted[0]:
+                        nx = int(temp[0])
+                    elif 'NY' in record_splitted[0]:
+                        ny = int(temp[0])
+                    elif 'NZ' in record_splitted[0]:
+                        nz = int(temp[0])
+                    elif 'OUTPUT_INTERVAL_(SEC)' in record_splitted[0]:
+                        dt = int(temp[0])
+                    elif 'DX_(M)' in record_splitted[0]:
+                        dx = float(temp[0])
+                    elif 'DY_(M)' in record_splitted[0]:
+                        dy = float(temp[0])
+                    elif 'X_ORIGIN_(UTM_M)' in record_splitted[0]:
+                        x0 = float(temp[0])
+                    elif 'Y_ORIGIN_(UTM_M)' in record_splitted[0]:
+                        y0 = float(temp[0])
+                except:
+                    continue
+    else:
+        with open(file='twodee.inp') as input_file:
+            for record in input_file:
+                try:
+                    record_splitted = record.split('=')
+                    temp = record_splitted[1].split('(')
+                    if 'SIMULATION_INTERVAL_(SEC)' in record_splitted[0]:
+                        tot_time = int(temp[0])
+                    elif 'NX' in record_splitted[0]:
+                        nx = int(temp[0])
+                    elif 'NY' in record_splitted[0]:
+                        ny = int(temp[0])
+                    elif 'OUTPUT_INTERVAL_(SEC)' in record_splitted[0]:
+                        dt = int(temp[0])
+                    elif 'DX_(M)' in record_splitted[0]:
+                        dx = float(temp[0])
+                    elif 'DY_(M)' in record_splitted[0]:
+                        dy = float(temp[0])
+                    elif 'X_ORIGIN_(UTM_M)' in record_splitted[0]:
+                        x0 = float(temp[0])
+                    elif 'Y_ORIGIN_(UTM_M)' in record_splitted[0]:
+                        y0 = float(temp[0])
+                    elif 'HEIGHTS_(M)' in record_splitted[0]:
+                        heights = temp[0]
+                        extracted_heights = re.findall('\d+\.\d+', heights) # This extracts decimal numbers only!
+                        nz = len(extracted_heights)
+                except:
+                    continue
     yf = y0 + (ny - 1) * dy
     xf = x0 + (nx - 1) * dx
     n_time_steps = int(tot_time / dt)
@@ -348,6 +381,13 @@ def elaborate_day(day_input, model):
     for file in files_list:
         for specie in species:
             species_list.append(specie)
+            if model == 'twodee':
+                file_name_splitted = file.split('_')
+                file_level = file_name_splitted[1]
+                file_time_step = file_name_splitted[2].split('.')[0]
+                file_level = "{:03d}".format(int(int(file_level.split('cm')[0]) / 100))
+                file_time_step = "{:06d}".format(int((int(file_time_step) / twodee_output_time_step)))
+                file = 'c_' + file_level + '_' + file_time_step + '.grd'
             converted_file = file
             converted_files.append(converted_file)
             outnames.append(os.path.join(os.path.join(model_processed_output_folder_daily, specie), converted_file))
@@ -378,7 +418,7 @@ def probabilistic_output(model):
             file_name = 'c_' + "{:03d}".format(int(level)) + '_' + "{:06d}".format(int(time_step)) + '.grd'
             output_folder = os.path.join(model_processed_output_folder, day, specie)
             output_files.append(os.path.join(output_folder, file_name))
-        ecdf_output_file = os.path.join(disgas_ecdf, str(quantile), specie, 'c_' + "{:03d}".format(int(level)) + '_' + "{:06d}".format(int(time_step)) + '.grd')
+        ecdf_output_file = os.path.join(ecdf_folder, str(quantile), specie, 'c_' + "{:03d}".format(int(level)) + '_' + "{:06d}".format(int(time_step)) + '.grd')
         quantile = 1 - quantile
         output_quantile = np.zeros((nx, ny))
         c_arrays = []
@@ -431,7 +471,7 @@ def probabilistic_output(model):
             if levels[0] == 'all':
                 for i in range(1, nz + 1):
                     if time_steps[0] == 'all':
-                        for j in range(1, n_time_steps):
+                        for j in range(0, n_time_steps + 1):  #for j in range(1, n_time_steps):
                             indexes.append([probability, specie, i, j])
                     else:
                         for time_step in time_steps:
@@ -439,7 +479,7 @@ def probabilistic_output(model):
             else:
                 for level in levels:
                     if time_steps[0] == 'all':
-                        for j in range(1, n_time_steps):
+                        for j in range(0, n_time_steps + 1):  #for j in range(1, n_time_steps):
                             indexes.append([probability, specie, level, j])
                     else:
                         for time_step in time_steps:
@@ -483,9 +523,11 @@ def save_plots(model):
     if model == 'disgas':
         model_outputs = disgas_outputs
         model_processed_output_folder = disgas_processed_output_folder
+        ecdf_outputs = disgas_ecdf
     else:
         model_outputs = twodee_outputs
         model_processed_output_folder = twodee_processed_output_folder
+        ecdf_outputs = twodee_ecdf
     dark_jet = cmap_map(lambda x: x * 0.75, matplotlib.cm.jet)
     graphical_outputs = (os.path.join(model_outputs, 'graphical_outputs'))
     graphical_outputs_simulations = (os.path.join(graphical_outputs, 'simulations'))
@@ -545,10 +587,6 @@ def save_plots(model):
                 file_level = file_name_splitted[1]
                 file_time_step = file_name_splitted[2].split('.')[0]
                 output_file_name = files_list[i].split('.')[0]
-                if model == 'twodee':
-                    file_level = "{:03d}".format(int(int(file_level.split('cm')[0]) / 100))
-                    file_time_step = "{:06d}".format(int((int(file_time_step) / twodee_output_time_step)))
-                    output_file_name = 'c_' + file_level + '_' + file_time_step
                 output_file_name += '.png'
                 if levels[0] == 'all':
                     if time_steps[0] == 'all':
@@ -568,60 +606,51 @@ def save_plots(model):
                     else:
                         for level in levels:
                             for time_step in time_steps:
-                                if file_time_step == "{:06d}".format(int(time_step)) and file_level == "{:03d}".format(
-                                        int(level)):
+                                if file_time_step == "{:06d}".format(int(time_step)) and file_level == "{:03d}".format(int(level)):
                                     files_to_plot.append(file)
+                                    output_files.append(os.path.join(graphical_outputs_daily, file_specie, output_file_name))
+                i += 1
     if plot_ex_prob:
         for probability in exceedance_probabilities:
             try:
                 os.mkdir(os.path.join(graphical_outputs_ecdf,str(probability)))
             except FileExistsError:
-                print('Folder ' + os.path.join(disgas_ecdf, str(probability)) + ' already exists')
+                print('Folder ' + os.path.join(graphical_outputs_ecdf, str(probability)) + ' already exists')
             for specie in species:
                 try:
                     os.mkdir(os.path.join(graphical_outputs_ecdf, str(probability), specie))
                 except FileExistsError:
                     print(
                         'Folder ' + os.path.join(graphical_outputs_ecdf, str(probability), specie) + ' already exists')
-                files_list = os.listdir(os.path.join(disgas_ecdf, str(probability), specie))
+                files_list = os.listdir(os.path.join(ecdf_outputs, str(probability), specie))
                 for file in files_list:
-                    file_path = os.path.join(disgas_ecdf, str(probability), specie, file)
+                    file_path = os.path.join(ecdf_outputs, str(probability), specie, file)
                     file_name_splitted = file.split('_')
                     file_level = file_name_splitted[1]
                     file_time_step = file_name_splitted[2].split('.')[0]
                     output_file_name = file.split('.')[0]
-                    if model == 'twodee':
-                        file_level = "{:03d}".format(int(int(file_level.split('cm')[0]) / 100))
-                        file_time_step = "{:06d}".format(int((int(file_time_step) / 3600)))
-                        output_file_name = 'c_' + file_level + '_' + file_time_step
                     output_file_name += '.png'
                     if levels[0] == 'all':
                         if time_steps[0] == 'all':
                             files_to_plot.append(file_path)
-                            output_files.append(
-                                os.path.join(graphical_outputs_ecdf, str(probability), specie, output_file_name))
+                            output_files.append(os.path.join(graphical_outputs_ecdf, str(probability), specie, output_file_name))
                         else:
                             for time_step in time_steps:
                                 if file_time_step == "{:06d}".format(int(time_step)):
                                     files_to_plot.append(file_path)
-                                    output_files.append(os.path.join(graphical_outputs_ecdf, str(probability), specie,
-                                                                     output_file_name))
+                                    output_files.append(os.path.join(graphical_outputs_ecdf, str(probability), specie, output_file_name))
                     else:
                         if time_steps[0] == 'all':
                             for level in levels:
                                 if file_level == "{:03d}".format(int(level)):
                                     files_to_plot.append(file_path)
-                                    output_files.append(os.path.join(graphical_outputs_ecdf, str(probability), specie,
-                                                                     output_file_name))
+                                    output_files.append(os.path.join(graphical_outputs_ecdf, str(probability), specie, output_file_name))
                         else:
                             for level in levels:
                                 for time_step in time_steps:
-                                    if file_time_step == "{:06d}".format(
-                                            int(time_step)) and file_level == "{:03d}".format(int(level)):
+                                    if file_time_step == "{:06d}".format(int(time_step)) and file_level == "{:03d}".format(int(level)):
                                         files_to_plot.append(file_path)
-                                        output_files.append(
-                                            os.path.join(graphical_outputs_ecdf, str(probability), specie,
-                                                         output_file_name))
+                                        output_files.append(os.path.join(graphical_outputs_ecdf, str(probability), specie, output_file_name))
     if len(files_to_plot) == 0:
         print('No files to plot')
     else:
@@ -643,13 +672,12 @@ except:
 disgas_outputs, disgas_original_output_folder, disgas_processed_output_folder, ecdf_folder_name, disgas_ecdf, twodee_outputs, \
 twodee_original_output_folder, twodee_processed_output_folder, twodee_ecdf, models_to_elaborate, twodee_output_time_step = folder_structure()
 
-x0, xf, y0, yf, nx, ny, nz, n_time_steps = domain()
-
 days, days_to_plot = extract_days()
 
 if convert:
     species_properties = gas_properties()
 for model in models_to_elaborate:
+    x0, xf, y0, yf, nx, ny, nz, n_time_steps = domain(model)
     for day in days:
         elaborate_day(day, model)
     probabilistic_output(model)

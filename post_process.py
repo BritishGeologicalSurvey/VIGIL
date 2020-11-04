@@ -340,7 +340,6 @@ def cmap_map(function, cmap):
         colorvector = list(map(lambda x: x + (x[1],), this_cdict.items()))
         colorvector.sort()
         cdict[key] = colorvector
-
     return matplotlib.colors.LinearSegmentedColormap('colormap', cdict, 1024)
 
 def elaborate_day(day_input, model):
@@ -513,7 +512,7 @@ def save_plots(model):
             Z = [[float(record) for record in line.split(' ')] for line in input_file]
             fig = plt.figure(figsize=(8, 8))
             ax1 = fig.add_subplot(111)
-            ax1.imshow(Z, extent=[x0, xf, y0, yf], cmap=dark_jet,aspect='auto')
+            ax1.imshow(Z, extent=[x0, xf, y0, yf], cmap=dark_jet, aspect='auto')
             image_buffer = StringIO()
             fig.savefig(output)
             image_buffer.close()

@@ -273,10 +273,10 @@ def domain(model):
                         nz = len(extracted_heights)
                 except:
                     continue
-    yf = y0 + (ny - 1) * dy
-    xf = x0 + (nx - 1) * dx
+    yf = y0 + ny * dy
+    xf = x0 + nx * dx
     n_time_steps = int(tot_time / dt)
-    return x0, xf, y0, yf, nx, ny, nz, n_time_steps
+    return x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps
 
 def extract_days():
     days = []
@@ -508,13 +508,22 @@ def save_plots(model):
     import re
 
     def plot_file(input,output):
+        from matplotlib.ticker import FormatStrFormatter
         with open(input) as input_file:
             Z = [[float(record) for record in line.split(' ')] for line in input_file]
             fig = plt.figure(figsize=(8, 8))
-            ax1 = fig.add_subplot(111)
-            ax1.imshow(Z, extent=[x0, xf, y0, yf], cmap=dark_jet, aspect='auto')
+            plt.title('Gas concentration [kg m$\mathregular{^{-3}}$]')
+            X = np.arange(x0, xf, dx)
+            Y = np.arange(y0, yf, dy)
+            plt.contourf(X, Y, Z)
+            plt.xlabel('X_UTM [m]')
+            plt.ylabel('Y_UTM [m]')
+            plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+            plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+            cax = fig.add_axes([0.1, 0.03, 0.8, 0.01])
+            plt.colorbar(cax = cax, cmap = dark_jet, orientation='horizontal', format='%.1e')
             image_buffer = StringIO()
-            fig.savefig(output)
+            plt.savefig(output)
             image_buffer.close()
             plt.close(fig)
         input_file.close()
@@ -676,7 +685,7 @@ days, days_to_plot = extract_days()
 if convert:
     species_properties = gas_properties()
 for model in models_to_elaborate:
-    x0, xf, y0, yf, nx, ny, nz, n_time_steps = domain(model)
+    x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps = domain(model)
     for day in days:
         elaborate_day(day, model)
     probabilistic_output(model)

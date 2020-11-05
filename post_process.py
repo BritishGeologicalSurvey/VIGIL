@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import matplotlib
-matplotlib.use('Agg') 
-from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 import random
@@ -32,6 +29,7 @@ def read_arguments():
     parser.add_argument('-N', '--nproc', default=1, help='Maximum number of allowed simultaneous processes')
     parser.add_argument('-M', '--models', default='all', help='Model outputs to post-process. Options: disgas, twodee, all')
     parser.add_argument('-MO', '--merge_outputs', default='False', help='Merge Twodee and Disgas outputs (true or false)')
+    parser.add_argument('-U', '--units', default = None, help='Gas concentration units. Possible options are: ppm, kg/m3')
     args = parser.parse_args()
     plot = args.plot
     plot_ex_prob = args.plot_ex_prob
@@ -44,6 +42,7 @@ def read_arguments():
     convert = args.convert
     models = args.models
     merge_outputs = args.merge_outputs
+    units = args.units
     if plot.lower() == 'true':
         plot = True
         if len(days_plot) == 0:
@@ -97,8 +96,11 @@ def read_arguments():
     else:
         print('ERROR. Wrong value for variable -MO --merge_outputs')
         sys.exit()
-
-    return plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert, models, merge_outputs
+    units = units.lower()
+    if units != 'ppm' and units != 'kg/m3':
+        print('ERROR. Wrong value for variable -U --units')
+        sys.exit()
+    return plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert, models, merge_outputs, units
 
 def folder_structure():
     original_output_folder_name = 'simulations'
@@ -298,8 +300,12 @@ def extract_days():
 
 def converter(input_file, outname, specie_input, model):
     Z = np.loadtxt(input_file, skiprows=5)
-    if model == 'twodee':
-        Z = np.divide(Z, 1000) #convert ppm to kg/s
+    if units == 'ppm':
+        if model == 'disgas':
+            Z = np.multiply(Z, 1000)  # convert kg/m3 to ppm
+    else:
+        if model == 'twodee':
+            Z = np.divide(Z, 1000) # convert ppm to kg/m3
     if specie_input == 'original_specie':
         Z_converted = np.reshape(Z, [nx, ny])
         np.savetxt(outname, Z_converted, fmt='%.2e')
@@ -312,35 +318,6 @@ def converter(input_file, outname, specie_input, model):
         Z_converted = [(Z_converted / molar_weight) / (44.64 * 1000000000)]
         Z_converted = np.reshape(Z_converted, [nx, ny])
         np.savetxt(outname, Z_converted, fmt='%.2e')
-
-def cmap_map(function, cmap):
-    """ Applies function (which should operate on vectors of shape 3: [r, g, b]), on colormap cmap.
-    This routine will break any discontinuous points in a colormap.
-    """
-    cdict = cmap._segmentdata
-    step_dict = {}
-    # Firt get the list of points where the segments start or end
-    for key in ('red', 'green', 'blue'):
-        step_dict[key] = list(map(lambda x: x[0], cdict[key]))
-    step_list = sum(step_dict.values(), [])
-    step_list = np.array(list(set(step_list)))
-    # Then compute the LUT, and apply the function to the LUT
-    reduced_cmap = lambda step: np.array(cmap(step)[0:3])
-    old_LUT = np.array(list(map(reduced_cmap, step_list)))
-    new_LUT = np.array(list(map(function, old_LUT)))
-    # Now try to make a minimal segment definition of the new LUT
-    cdict = {}
-    for i, key in enumerate(['red', 'green', 'blue']):
-        this_cdict = {}
-        for j, step in enumerate(step_list):
-            if step in step_dict[key]:
-                this_cdict[step] = new_LUT[j, i]
-            elif new_LUT[j, i] != old_LUT[j, i]:
-                this_cdict[step] = new_LUT[j, i]
-        colorvector = list(map(lambda x: x + (x[1],), this_cdict.items()))
-        colorvector.sort()
-        cdict[key] = colorvector
-    return matplotlib.colors.LinearSegmentedColormap('colormap', cdict, 1024)
 
 def elaborate_day(day_input, model):
     if model == 'disgas':
@@ -508,20 +485,26 @@ def save_plots(model):
     import re
 
     def plot_file(input,output):
+        import matplotlib
+        matplotlib.use('Agg')
+        from matplotlib import pyplot as plt
         from matplotlib.ticker import FormatStrFormatter
         with open(input) as input_file:
             Z = [[float(record) for record in line.split(' ')] for line in input_file]
             fig = plt.figure(figsize=(8, 8))
-            plt.title('Gas concentration [kg m$\mathregular{^{-3}}$]')
+            if units == 'ppm':
+                plt.title('Gas concentration [ppm]')
+            else:
+                plt.title('Gas concentration [kg m$\mathregular{^{-3}}$]')
             X = np.arange(x0, xf, dx)
             Y = np.arange(y0, yf, dy)
-            plt.contourf(X, Y, Z)
+            plt.contourf(X, Y, Z, cmap = 'Reds')
             plt.xlabel('X_UTM [m]')
             plt.ylabel('Y_UTM [m]')
             plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
             plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%.0f'))
             cax = fig.add_axes([0.1, 0.03, 0.8, 0.01])
-            plt.colorbar(cax = cax, cmap = dark_jet, orientation='horizontal', format='%.1e')
+            plt.colorbar(cax = cax, orientation='horizontal', format='%.1e')
             image_buffer = StringIO()
             plt.savefig(output)
             image_buffer.close()
@@ -536,7 +519,6 @@ def save_plots(model):
         model_outputs = twodee_outputs
         model_processed_output_folder = twodee_processed_output_folder
         ecdf_outputs = twodee_ecdf
-    dark_jet = cmap_map(lambda x: x * 0.75, matplotlib.cm.jet)
     graphical_outputs = (os.path.join(model_outputs, 'graphical_outputs'))
     graphical_outputs_simulations = (os.path.join(graphical_outputs, 'simulations'))
     graphical_outputs_ecdf = (os.path.join(graphical_outputs, 'ecdf'))
@@ -670,7 +652,7 @@ def save_plots(model):
 
 root = os.getcwd()
 
-plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert, models, merge_outputs = read_arguments()
+plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert, models, merge_outputs, units = read_arguments()
 
 try:
     max_number_processes = int(os.environ["SLURM_NPROCS"])

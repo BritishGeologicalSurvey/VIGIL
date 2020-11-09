@@ -166,6 +166,8 @@ def folder_structure():
                     rmtree(os.path.join(twodee_ecdf, item), ignore_errors=True)
                 except:
                     print('Unable to remove ' + item + ' in ' + twodee_ecdf)
+    twodee_input_file = os.path.join(root,'twodee.inp')
+    twodee_output_time_step = 0
     if models == 'all':
         models_to_elaborate = ['disgas','twodee']
     elif models == 'disgas':
@@ -173,8 +175,6 @@ def folder_structure():
     else:
         models_to_elaborate = ['twodee']
     # Read the output time interval from the twodee input file
-        twodee_input_file = os.path.join(root,'twodee.inp')
-        twodee_output_time_step = 0
         with open(twodee_input_file, 'r') as twodee_file:
             for line in twodee_file:
                 if 'OUTPUT_INTERVAL_(SEC)' in line:

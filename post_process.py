@@ -173,15 +173,15 @@ def folder_structure():
     else:
         models_to_elaborate = ['twodee']
     # Read the output time interval from the twodee input file
-    twodee_input_file = os.path.join(root,'twodee.inp')
-    twodee_output_time_step = 0
-    with open(twodee_input_file, 'r') as twodee_file:
-        for line in twodee_file:
-            if 'OUTPUT_INTERVAL_(SEC)' in line:
-                twodee_output_time_step = float(line.split('=')[1])
-    if twodee_output_time_step == 0:
-        print('Unable to read the Twodee output time step')
-        sys.exit()
+        twodee_input_file = os.path.join(root,'twodee.inp')
+        twodee_output_time_step = 0
+        with open(twodee_input_file, 'r') as twodee_file:
+            for line in twodee_file:
+                if 'OUTPUT_INTERVAL_(SEC)' in line:
+                    twodee_output_time_step = float(line.split('=')[1])
+        if twodee_output_time_step == 0:
+            print('Unable to read the Twodee output time step')
+            sys.exit()
 
     return disgas_outputs, disgas_original_output_folder, disgas_processed_output_folder, ecdf_folder_name, disgas_ecdf, \
            twodee_outputs, twodee_original_output_folder, twodee_processed_output_folder, twodee_ecdf, models_to_elaborate, twodee_output_time_step

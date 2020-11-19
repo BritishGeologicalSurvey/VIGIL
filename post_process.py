@@ -664,6 +664,11 @@ def save_plots(model):
                             if file_time_step == "{:06d}".format(int(time_step)):
                                 files_to_plot.append(file)
                                 output_files.append(os.path.join(graphical_outputs_daily, file_specie, output_file_name))
+                    if 'tavg' in file_time_step:
+                        files_to_plot.append(file)
+                        tavg_output_file_name = file.split(os.sep)[-1].split('.')[0]
+                        tavg_output_file_name = tavg_output_file_name + '.png'
+                        output_files.append(os.path.join(graphical_outputs_daily, file_specie, tavg_output_file_name))
                 else:
                     if time_steps[0] == 'all':
                         for level in levels:
@@ -676,6 +681,12 @@ def save_plots(model):
                                 if file_time_step == "{:06d}".format(int(time_step)) and file_level == "{:03d}".format(int(level)):
                                     files_to_plot.append(file)
                                     output_files.append(os.path.join(graphical_outputs_daily, file_specie, output_file_name))
+                    for level in levels:
+                        if 'tavg' in file_time_step and file_level == "{:03d}".format(int(level)):
+                            files_to_plot.append(file)
+                            tavg_output_file_name = file.split(os.sep)[-1].split('.')[0]
+                            tavg_output_file_name = tavg_output_file_name + '.png'
+                            output_files.append(os.path.join(graphical_outputs_daily, file_specie, tavg_output_file_name))
                 i += 1
     if plot_ex_prob:
         for probability in exceedance_probabilities:

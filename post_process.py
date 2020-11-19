@@ -373,6 +373,7 @@ def elaborate_day(day_input, model):
     processed_files_species = []
     levels = []
     time_steps = []
+    tavg_intervals = []
     for specie in species:
         processed_files_specie = []
         for file in files_list:
@@ -418,9 +419,11 @@ def elaborate_day(day_input, model):
         time_min = min(time_steps)
         if time_av == 0:
             time_max = max(time_steps)
+            tavg_intervals.append(str(time_min) + '-' + str(time_max)  + '-tavg')
         else:
             time_max = time_min + time_av - 1
         while time_max <= max(time_steps):
+            tavg_intervals.append(str(time_min) + '-' + str(time_max) + '-tavg')
             for i in range(0,len(species)):
                 files_to_average = []
                 for level in levels:
@@ -449,6 +452,7 @@ def elaborate_day(day_input, model):
                         time_averaged_file = os.path.join(os.path.join(model_processed_output_folder_daily, species[i]),
                                                           'c_' + level + '_' + str(time_min) + '-' + str(
                                                               max(time_steps)) + '-tavg.grd')
+                        tavg_intervals[-1] = str(time_min) + '-' + str(max(time_steps)) + '-tavg'
                     time_average(files_to_average, time_averaged_file)
                     files_to_average = []
             if time_av == 0:
@@ -457,6 +461,7 @@ def elaborate_day(day_input, model):
                 time_min = time_max + 1
                 time_max = time_min + time_av - 1
                 continue
+    return tavg_intervals
 
 def probabilistic_output(model):
     def ecdf(index):
@@ -466,10 +471,16 @@ def probabilistic_output(model):
         quantile = index[0]
         output_files = []
         for day in days:
-            file_name = 'c_' + "{:03d}".format(int(level)) + '_' + "{:06d}".format(int(time_step)) + '.grd'
+            try:
+                file_name = 'c_' + "{:03d}".format(int(level)) + '_' + "{:06d}".format(int(time_step)) + '.grd'
+            except:
+                file_name = 'c_' + "{:03d}".format(int(level)) + '_' + time_step + '.grd'
             output_folder = os.path.join(model_processed_output_folder, day, specie)
             output_files.append(os.path.join(output_folder, file_name))
-        ecdf_output_file = os.path.join(ecdf_folder, str(quantile), specie, 'c_' + "{:03d}".format(int(level)) + '_' + "{:06d}".format(int(time_step)) + '.grd')
+        try:
+            ecdf_output_file = os.path.join(ecdf_folder, str(quantile), specie, 'c_' + "{:03d}".format(int(level)) + '_' + "{:06d}".format(int(time_step)) + '.grd')
+        except:
+            ecdf_output_file = os.path.join(ecdf_folder, str(quantile), specie,'c_' + "{:03d}".format(int(level)) + '_' + time_step + '.grd')
         output_quantile = np.zeros((ny, nx))
         c_arrays = []
         files_not_available = []
@@ -514,27 +525,40 @@ def probabilistic_output(model):
                 print('Folder ' + specie_folder + ' already exists')
     indexes = []
     pools_ecdfs = []
+    indexes_tavg = []
+    pools_ecdfs_tavg = []
     n_pool = 0
+    n_pool_tavg = 0
     for probability in exceedance_probabilities:
         for specie in species:
             pools_ecdfs.append(n_pool)
+            if len(tavg_intervals) > 0:
+                pools_ecdfs_tavg.append(n_pool_tavg)
             if levels[0] == 'all':
                 for i in range(1, nz + 1):
                     if time_steps[0] == 'all':
-                        for j in range(0, n_time_steps + 1):  #for j in range(1, n_time_steps):
+                        for j in range(0, n_time_steps + 1):
                             indexes.append([probability, specie, i, j])
                     else:
                         for time_step in time_steps:
                             indexes.append([probability, specie, i, time_step])
+                    if len(tavg_intervals) > 0:
+                        for k in range(0,len(tavg_intervals)):
+                            indexes_tavg.append([probability, specie, i, tavg_intervals[k]])
             else:
                 for level in levels:
                     if time_steps[0] == 'all':
-                        for j in range(0, n_time_steps + 1):  #for j in range(1, n_time_steps):
+                        for j in range(0, n_time_steps + 1):
                             indexes.append([probability, specie, level, j])
                     else:
                         for time_step in time_steps:
                             indexes.append([probability, specie, level, time_step])
+                    if len(tavg_intervals) > 0:
+                        for k in range(0,len(tavg_intervals)):
+                            indexes_tavg.append([probability, specie, level, tavg_intervals[k]])
             n_pool += 1
+            if len(tavg_intervals) > 0:
+                n_pool_tavg += 1
     n_pool = 0
     for probability in exceedance_probabilities:
         for specie in species:
@@ -554,6 +578,25 @@ def probabilistic_output(model):
                 if n_completed_processes == len(indexes):
                     break
             n_pool += 1
+    n_pool_tavg = 0
+    for probability in exceedance_probabilities:
+        for specie in species:
+            n_completed_processes = 0
+            while n_completed_processes <= len(indexes_tavg):
+                start = n_completed_processes
+                end = n_completed_processes + max_number_processes
+                if end > len(indexes_tavg):
+                    end = len(indexes_tavg)
+                try:
+                    pools_ecdfs_tavg[n_pool_tavg] = ThreadingPool(max_number_processes)
+                    pools_ecdfs_tavg[n_pool_tavg].map(ecdf, indexes_tavg[start:end])
+                except:
+                    print('Unable to elaborate days')
+                    sys.exit()
+                n_completed_processes = end
+                if n_completed_processes == len(indexes_tavg):
+                    break
+            n_pool_tavg += 1
 
 def save_plots(model):
     import re
@@ -573,7 +616,7 @@ def save_plots(model):
             X = np.arange(x0, xf, dx)
             Y = np.arange(y0, yf, dy)
             n_levels = 10
-            dc = max_con / 10
+            dc = max_con / n_levels
             levels = np.arange(0, max_con, dc)
             plt.contourf(X, Y, Z, levels, cmap = 'Reds')
             plt.xlabel('X_UTM [m]')
@@ -698,8 +741,7 @@ def save_plots(model):
                 try:
                     os.mkdir(os.path.join(graphical_outputs_ecdf, str(probability), specie))
                 except FileExistsError:
-                    print(
-                        'Folder ' + os.path.join(graphical_outputs_ecdf, str(probability), specie) + ' already exists')
+                    print('Folder ' + os.path.join(graphical_outputs_ecdf, str(probability), specie) + ' already exists')
                 files_list = os.listdir(os.path.join(ecdf_outputs, str(probability), specie))
                 for file in files_list:
                     file_path = os.path.join(ecdf_outputs, str(probability), specie, file)
@@ -717,6 +759,11 @@ def save_plots(model):
                                 if file_time_step == "{:06d}".format(int(time_step)):
                                     files_to_plot.append(file_path)
                                     output_files.append(os.path.join(graphical_outputs_ecdf, str(probability), specie, output_file_name))
+                        if 'tavg' in file_time_step:
+                            files_to_plot.append(file_path)
+                            tavg_output_file_name = file.split(os.sep)[-1].split('.')[0]
+                            tavg_output_file_name = tavg_output_file_name + '.png'
+                            output_files.append(os.path.join(graphical_outputs_ecdf, str(probability), specie, tavg_output_file_name))
                     else:
                         if time_steps[0] == 'all':
                             for level in levels:
@@ -729,6 +776,13 @@ def save_plots(model):
                                     if file_time_step == "{:06d}".format(int(time_step)) and file_level == "{:03d}".format(int(level)):
                                         files_to_plot.append(file_path)
                                         output_files.append(os.path.join(graphical_outputs_ecdf, str(probability), specie, output_file_name))
+                            for level in levels:
+                                if 'tavg' in file_time_step and file_level == "{:03d}".format(int(level)):
+                                    files_to_plot.append(file_path)
+                                    tavg_output_file_name = file.split(os.sep)[-1].split('.')[0]
+                                    tavg_output_file_name = tavg_output_file_name + '.png'
+                                    output_files.append(
+                                        os.path.join(graphical_outputs_ecdf, str(probability), specie, tavg_output_file_name))
     if len(files_to_plot) == 0:
         print('No files to plot')
     else:
@@ -763,6 +817,6 @@ if convert:
 for model in models_to_elaborate:
     x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps = domain(model)
     for day in days:
-        elaborate_day(day, model)
+        tavg_intervals = elaborate_day(day, model)
     probabilistic_output(model)
     save_plots(model)

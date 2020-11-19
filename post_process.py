@@ -496,7 +496,7 @@ def save_plots(model):
             X = np.arange(x0, xf, dx)
             Y = np.arange(y0, yf, dy)
             n_levels = 10
-            dc = max_con / 10
+            dc = max_con / n_levels
             levels = np.arange(0, max_con, dc)
             plt.contourf(X, Y, Z, levels, cmap = 'Reds')
             plt.xlabel('X_UTM [m]')

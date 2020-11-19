@@ -302,12 +302,11 @@ def converter(input_file, outname, specie_input, model):
     Z = np.loadtxt(input_file, skiprows=5)
     if units == 'ppm':
         if model == 'disgas':
-            Z = np.multiply(Z, 1000)  # convert kg/m3 to ppm
+            Z_converted = np.multiply(Z, 1000)  # convert kg/m3 to ppm
     else:
         if model == 'twodee':
-            Z = np.divide(Z, 1000) # convert ppm to kg/m3
+            Z_converted = np.divide(Z, 1000) # convert ppm to kg/m3
     if specie_input == 'original_specie':
-        Z_converted = np.reshape(Z, [nx, ny])
         np.savetxt(outname, Z_converted, fmt='%.2e')
     else:
         for specie in species_properties:
@@ -316,7 +315,6 @@ def converter(input_file, outname, specie_input, model):
                 molar_weight = specie['molar_weight']
         Z_converted = np.multiply(Z, mol_ratio)
         Z_converted = [(Z_converted / molar_weight) / (44.64 * 1000000000)]
-        Z_converted = np.reshape(Z_converted, [nx, ny])
         np.savetxt(outname, Z_converted, fmt='%.2e')
 
 def elaborate_day(day_input, model):
@@ -396,7 +394,7 @@ def probabilistic_output(model):
             output_files.append(os.path.join(output_folder, file_name))
         ecdf_output_file = os.path.join(ecdf_folder, str(quantile), specie, 'c_' + "{:03d}".format(int(level)) + '_' + "{:06d}".format(int(time_step)) + '.grd')
         quantile = 1 - quantile
-        output_quantile = np.zeros((nx, ny))
+        output_quantile = np.zeros((ny, nx))
         c_arrays = []
         files_not_available = []
         for file in output_files:
@@ -412,12 +410,12 @@ def probabilistic_output(model):
             c_arrays.append(records)
         for file in files_not_available:
             output_files.remove(file)
-        for i in range(0, nx):
-            for j in range(0, ny):
+        for j in range(0, ny):
+            for i in range(0, nx):
                 c_list = []
                 for k in range(0, len(output_files)):
-                    c_list.append(float(c_arrays[k][i][j]))
-                output_quantile[i, j] = np.quantile(c_list, q=quantile)
+                    c_list.append(float(c_arrays[k][j][i]))
+                output_quantile[j, i] = np.quantile(c_list, q=quantile)
         np.savetxt(ecdf_output_file, output_quantile, fmt='%.2e')
 
     if model == 'disgas':
@@ -490,7 +488,7 @@ def save_plots(model):
         from matplotlib import pyplot as plt
         from matplotlib.ticker import FormatStrFormatter
         with open(input) as input_file:
-            Z = [[float(record) for record in line.split(' ')] for line in input_file]
+            Z = np.loadtxt(input)
             fig = plt.figure(figsize=(8, 8))
             if units == 'ppm':
                 plt.title('Gas concentration [ppm]')
@@ -498,7 +496,10 @@ def save_plots(model):
                 plt.title('Gas concentration [kg m$\mathregular{^{-3}}$]')
             X = np.arange(x0, xf, dx)
             Y = np.arange(y0, yf, dy)
-            plt.contourf(X, Y, Z, cmap = 'Reds')
+            n_levels = 10
+            dc = max_con / 10
+            levels = np.arange(0, max_con, dc)
+            plt.contourf(X, Y, Z, levels, cmap = 'Reds')
             plt.xlabel('X_UTM [m]')
             plt.ylabel('Y_UTM [m]')
             plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
@@ -644,6 +645,12 @@ def save_plots(model):
     if len(files_to_plot) == 0:
         print('No files to plot')
     else:
+        max_con = 0
+        for file_to_plot in files_to_plot:
+            ZZ = np.loadtxt(file_to_plot)
+            max_c = np.amax(ZZ)
+            if max_c > max_con:
+                max_con = max_c
         i = 0
         for file_to_plot in files_to_plot:
             print('plotting ' + file_to_plot)
@@ -663,7 +670,6 @@ disgas_outputs, disgas_original_output_folder, disgas_processed_output_folder, e
 twodee_original_output_folder, twodee_processed_output_folder, twodee_ecdf, models_to_elaborate, twodee_output_time_step = folder_structure()
 
 days, days_to_plot = extract_days()
-
 if convert:
     species_properties = gas_properties()
 for model in models_to_elaborate:

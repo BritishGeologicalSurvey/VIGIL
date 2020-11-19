@@ -393,7 +393,6 @@ def probabilistic_output(model):
             output_folder = os.path.join(model_processed_output_folder, day, specie)
             output_files.append(os.path.join(output_folder, file_name))
         ecdf_output_file = os.path.join(ecdf_folder, str(quantile), specie, 'c_' + "{:03d}".format(int(level)) + '_' + "{:06d}".format(int(time_step)) + '.grd')
-        quantile = 1 - quantile
         output_quantile = np.zeros((ny, nx))
         c_arrays = []
         files_not_available = []

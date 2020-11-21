@@ -468,7 +468,7 @@ def probabilistic_output(model):
         specie = index[1]
         level = index[2]
         time_step = index[3]
-        quantile = index[0]
+        quantile = 1 - index[0]
         output_files = []
         for day in days:
             try:

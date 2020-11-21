@@ -468,7 +468,8 @@ def probabilistic_output(model):
         specie = index[1]
         level = index[2]
         time_step = index[3]
-        quantile = 1 - index[0]
+        ex_prob = index[0]
+        quantile = 1 - ex_prob
         output_files = []
         for day in days:
             try:
@@ -478,9 +479,9 @@ def probabilistic_output(model):
             output_folder = os.path.join(model_processed_output_folder, day, specie)
             output_files.append(os.path.join(output_folder, file_name))
         try:
-            ecdf_output_file = os.path.join(ecdf_folder, str(quantile), specie, 'c_' + "{:03d}".format(int(level)) + '_' + "{:06d}".format(int(time_step)) + '.grd')
+            ecdf_output_file = os.path.join(ecdf_folder, str(ex_prob), specie, 'c_' + "{:03d}".format(int(level)) + '_' + "{:06d}".format(int(time_step)) + '.grd')
         except:
-            ecdf_output_file = os.path.join(ecdf_folder, str(quantile), specie,'c_' + "{:03d}".format(int(level)) + '_' + time_step + '.grd')
+            ecdf_output_file = os.path.join(ecdf_folder, str(ex_prob), specie,'c_' + "{:03d}".format(int(level)) + '_' + time_step + '.grd')
         output_quantile = np.zeros((ny, nx))
         c_arrays = []
         files_not_available = []

@@ -307,6 +307,7 @@ def extract_days():
 
 def converter(input_file, processed_file, specie_input, model):
     Z = np.loadtxt(input_file, skiprows=5)
+    Z[Z < 0] = 0
     if units == 'ppm':
         if model == 'disgas':
             Z_converted = np.multiply(Z, 1000)  # convert kg/m3 to ppm

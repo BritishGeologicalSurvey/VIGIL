@@ -99,7 +99,9 @@ usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB]
                        [-EX EX_PROB [EX_PROB ...]]
                        [-T TIME_STEPS [TIME_STEPS ...]]
                        [-L LEVELS [LEVELS ...]] [-D DAYS_PLOT [DAYS_PLOT ...]]
-                       [-S SPECIES [SPECIES ...]] [-N NPROC]
+                       [-S SPECIES [SPECIES ...]] [-N NPROC] [-M MODELS] [-MO MERGE_OUTPUTS] [-U UNITS]
+                       [-TA TIME_AV]
+
   -h, --help            show this help message and exit
   -P PLOT, --plot PLOT  True: Produce plots of the solutions. False: Do not
                         produce plots
@@ -122,6 +124,14 @@ usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB]
                         List of gas species (e.g. CO2)
   -N NPROC, --nproc NPROC
                         Maximum number of allowed simultaneous processes
+  -M MODELS, --models MODELS
+                        Model outputs to post-process. Options: disgas, twodee, all
+  -MO MERGE_OUTPUTS, --merge_outputs MERGE_OUTPUTS
+                        Merge Twodee and Disgas outputs (true or false)
+  -U UNITS, --units UNITS
+                        Gas concentration units. Possible options are: ppm, kg/m3
+  -TA TIME_AV, --time_av TIME_AV
+                        Generate time-averaged outputs. Specify the time-averaging interval (in hours), or 0 for averaging over the whole duration
 
 ### DEPENDENCIES AND INSTALLATION INSTRUCTIONS ###
 The following software are required:

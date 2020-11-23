@@ -30,6 +30,7 @@ def read_arguments():
     parser.add_argument('-M', '--models', default='all', help='Model outputs to post-process. Options: disgas, twodee, all')
     parser.add_argument('-MO', '--merge_outputs', default='False', help='Merge Twodee and Disgas outputs (true or false)')
     parser.add_argument('-U', '--units', default = None, help='Gas concentration units. Possible options are: ppm, kg/m3')
+    parser.add_argument('-TA', '--time_av', default=None, help='Generate time-averaged outputs. Specify the time-averaging interval (in hours), or 0 for averaging over the whole duration')
     args = parser.parse_args()
     plot = args.plot
     plot_ex_prob = args.plot_ex_prob
@@ -43,6 +44,7 @@ def read_arguments():
     models = args.models
     merge_outputs = args.merge_outputs
     units = args.units
+    time_av = args.time_av
     if plot.lower() == 'true':
         plot = True
         if len(days_plot) == 0:
@@ -100,7 +102,12 @@ def read_arguments():
     if units != 'ppm' and units != 'kg/m3':
         print('ERROR. Wrong value for variable -U --units')
         sys.exit()
-    return plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert, models, merge_outputs, units
+    if time_av != None:
+        try:
+            time_av = int(time_av)
+        except:
+            print('ERROR. Please specify a valid time-averaging interval')
+    return plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert, models, merge_outputs, units, time_av
 
 def folder_structure():
     original_output_folder_name = 'simulations'
@@ -166,6 +173,8 @@ def folder_structure():
                     rmtree(os.path.join(twodee_ecdf, item), ignore_errors=True)
                 except:
                     print('Unable to remove ' + item + ' in ' + twodee_ecdf)
+    twodee_input_file = os.path.join(root, 'twodee.inp')
+    twodee_output_time_step = 0
     if models == 'all':
         models_to_elaborate = ['disgas','twodee']
     elif models == 'disgas':
@@ -173,15 +182,13 @@ def folder_structure():
     else:
         models_to_elaborate = ['twodee']
     # Read the output time interval from the twodee input file
-    twodee_input_file = os.path.join(root,'twodee.inp')
-    twodee_output_time_step = 0
-    with open(twodee_input_file, 'r') as twodee_file:
-        for line in twodee_file:
-            if 'OUTPUT_INTERVAL_(SEC)' in line:
-                twodee_output_time_step = float(line.split('=')[1])
-    if twodee_output_time_step == 0:
-        print('Unable to read the Twodee output time step')
-        sys.exit()
+        with open(twodee_input_file, 'r') as twodee_file:
+            for line in twodee_file:
+                if 'OUTPUT_INTERVAL_(SEC)' in line:
+                    twodee_output_time_step = float(line.split('=')[1])
+        if twodee_output_time_step == 0:
+            print('Unable to read the Twodee output time step')
+            sys.exit()
 
     return disgas_outputs, disgas_original_output_folder, disgas_processed_output_folder, ecdf_folder_name, disgas_ecdf, \
            twodee_outputs, twodee_original_output_folder, twodee_processed_output_folder, twodee_ecdf, models_to_elaborate, twodee_output_time_step
@@ -298,17 +305,17 @@ def extract_days():
                         days_to_plot.append(day_to_plot)
     return days, days_to_plot
 
-def converter(input_file, outname, specie_input, model):
+def converter(input_file, processed_file, specie_input, model):
     Z = np.loadtxt(input_file, skiprows=5)
+    Z[Z < 0] = 0
     if units == 'ppm':
         if model == 'disgas':
-            Z = np.multiply(Z, 1000)  # convert kg/m3 to ppm
+            Z_converted = np.multiply(Z, 1000)  # convert kg/m3 to ppm
     else:
         if model == 'twodee':
-            Z = np.divide(Z, 1000) # convert ppm to kg/m3
+            Z_converted = np.divide(Z, 1000)  # convert ppm to kg/m3
     if specie_input == 'original_specie':
-        Z_converted = np.reshape(Z, [nx, ny])
-        np.savetxt(outname, Z_converted, fmt='%.2e')
+        np.savetxt(processed_file, Z_converted, fmt='%.2e')
     else:
         for specie in species_properties:
             if specie['specie_name'] == specie_input:
@@ -316,8 +323,18 @@ def converter(input_file, outname, specie_input, model):
                 molar_weight = specie['molar_weight']
         Z_converted = np.multiply(Z, mol_ratio)
         Z_converted = [(Z_converted / molar_weight) / (44.64 * 1000000000)]
-        Z_converted = np.reshape(Z_converted, [nx, ny])
-        np.savetxt(outname, Z_converted, fmt='%.2e')
+        np.savetxt(processed_file, Z_converted, fmt='%.2e')
+
+def time_average(files_to_average, outfile):
+    Z_sum = 0
+    for file in files_to_average:
+        Z = np.loadtxt(file)
+        Z_sum += Z
+    Z_avg = np.divide(Z_sum, len(files_to_average))
+    np.savetxt(outfile, Z_avg, fmt='%.2e')
+
+def maximum(files_to_average, outfile):
+    print('Ciao') #to work on this, add argument as well and change the name "files_to_average" into a more generic one
 
 def elaborate_day(day_input, model):
     if model == 'disgas':
@@ -352,10 +369,15 @@ def elaborate_day(day_input, model):
                 files_list_path.append(os.path.join(model_output_folder, file))#
                 models.append(model)
     converted_files = []
-    outnames = []
+    processed_files = []
     species_list = []
-    for file in files_list:
-        for specie in species:
+    processed_files_species = []
+    levels = []
+    time_steps = []
+    tavg_intervals = []
+    for specie in species:
+        processed_files_specie = []
+        for file in files_list:
             species_list.append(specie)
             if model == 'twodee':
                 file_name_splitted = file.split('_')
@@ -364,9 +386,20 @@ def elaborate_day(day_input, model):
                 file_level = "{:03d}".format(int(int(file_level.split('cm')[0]) / 100))
                 file_time_step = "{:06d}".format(int((int(file_time_step) / twodee_output_time_step)))
                 file = 'c_' + file_level + '_' + file_time_step + '.grd'
+            else:
+                file_name_splitted = file.split('_')
+                file_level = file_name_splitted[1]
+                file_time_step = file_name_splitted[2]
+                file_time_step = file_time_step.split('.')[0]
+            if not file_level in levels:
+                levels.append(file_level)
+            if not file_time_step in time_steps:
+                time_steps.append(int(file_time_step))
             converted_file = file
             converted_files.append(converted_file)
-            outnames.append(os.path.join(os.path.join(model_processed_output_folder_daily, specie), converted_file))
+            processed_files.append(os.path.join(os.path.join(model_processed_output_folder_daily, specie), converted_file))
+            processed_files_specie.append(os.path.join(os.path.join(model_processed_output_folder_daily, specie), converted_file))
+        processed_files_species.append(processed_files_specie)
     n_elaborated_files = 0
     while n_elaborated_files < len(files_list_path):
         start = n_elaborated_files
@@ -375,28 +408,82 @@ def elaborate_day(day_input, model):
             end = len(files_list_path)
         try:
             pool_files = ThreadingPool(max_number_processes)
-            pool_files.map(converter,files_list_path[start:end], outnames[start:end], species_list[start:end], models[start:end])
+            pool_files.map(converter,files_list_path[start:end], processed_files[start:end], species_list[start:end], models[start:end])
         except:
             print('Unable to convert files')
             sys.exit()
         n_elaborated_files = end
         if n_elaborated_files == len(files_list_path):
             break
+    if time_av != None:
+        averaged_files = []
+        time_min = min(time_steps)
+        if time_av == 0:
+            time_max = max(time_steps)
+            tavg_intervals.append(str(time_min) + '-' + str(time_max)  + '-tavg')
+        else:
+            time_max = time_min + time_av - 1
+        while time_max <= max(time_steps):
+            tavg_intervals.append(str(time_min) + '-' + str(time_max) + '-tavg')
+            for i in range(0,len(species)):
+                files_to_average = []
+                for level in levels:
+                    files_in_level = []
+                    for file in processed_files_species[i]:
+                        file_level = file.split('c_')[1]
+                        file_level = file_level.split('_')[0]
+                        if file_level == level:
+                            files_in_level.append(file)
+                    time_averaged_file = os.path.join(os.path.join(model_processed_output_folder_daily, species[i]), 'c_' + level + '_' + str(time_min) + '-' + str(time_max)  + '-tavg.grd')
+                    for file in processed_files_species[i]:
+                        file_level = file.split('c_')[1]
+                        file_level = file_level.split('_')[0]
+                        file_time_step = file.split('c_')[1]
+                        file_time_step = file_time_step.split('_')[1]
+                        file_time_step = file_time_step.split('.')[0]
+                        if file_level == level:
+                            if time_min <= int(file_time_step) <= time_max:
+                                files_to_average.append(file)
+                                averaged_files.append(file)
+                    if max(time_steps) - time_max < time_av and len(files_in_level) != 0:
+                        for file in files_in_level:
+                            if file not in averaged_files:
+                                files_to_average.append(file)
+                                averaged_files.append(file)
+                        time_averaged_file = os.path.join(os.path.join(model_processed_output_folder_daily, species[i]),
+                                                          'c_' + level + '_' + str(time_min) + '-' + str(
+                                                              max(time_steps)) + '-tavg.grd')
+                        tavg_intervals[-1] = str(time_min) + '-' + str(max(time_steps)) + '-tavg'
+                    time_average(files_to_average, time_averaged_file)
+                    files_to_average = []
+            if time_av == 0:
+                break
+            else:
+                time_min = time_max + 1
+                time_max = time_min + time_av - 1
+                continue
+    return tavg_intervals
 
 def probabilistic_output(model):
     def ecdf(index):
         specie = index[1]
         level = index[2]
         time_step = index[3]
-        quantile = index[0]
+        ex_prob = index[0]
+        quantile = 1 - ex_prob
         output_files = []
         for day in days:
-            file_name = 'c_' + "{:03d}".format(int(level)) + '_' + "{:06d}".format(int(time_step)) + '.grd'
+            try:
+                file_name = 'c_' + "{:03d}".format(int(level)) + '_' + "{:06d}".format(int(time_step)) + '.grd'
+            except:
+                file_name = 'c_' + "{:03d}".format(int(level)) + '_' + time_step + '.grd'
             output_folder = os.path.join(model_processed_output_folder, day, specie)
             output_files.append(os.path.join(output_folder, file_name))
-        ecdf_output_file = os.path.join(ecdf_folder, str(quantile), specie, 'c_' + "{:03d}".format(int(level)) + '_' + "{:06d}".format(int(time_step)) + '.grd')
-        quantile = 1 - quantile
-        output_quantile = np.zeros((nx, ny))
+        try:
+            ecdf_output_file = os.path.join(ecdf_folder, str(ex_prob), specie, 'c_' + "{:03d}".format(int(level)) + '_' + "{:06d}".format(int(time_step)) + '.grd')
+        except:
+            ecdf_output_file = os.path.join(ecdf_folder, str(ex_prob), specie,'c_' + "{:03d}".format(int(level)) + '_' + time_step + '.grd')
+        output_quantile = np.zeros((ny, nx))
         c_arrays = []
         files_not_available = []
         for file in output_files:
@@ -412,12 +499,12 @@ def probabilistic_output(model):
             c_arrays.append(records)
         for file in files_not_available:
             output_files.remove(file)
-        for i in range(0, nx):
-            for j in range(0, ny):
+        for j in range(0, ny):
+            for i in range(0, nx):
                 c_list = []
                 for k in range(0, len(output_files)):
-                    c_list.append(float(c_arrays[k][i][j]))
-                output_quantile[i, j] = np.quantile(c_list, q=quantile)
+                    c_list.append(float(c_arrays[k][j][i]))
+                output_quantile[j, i] = np.quantile(c_list, q=quantile)
         np.savetxt(ecdf_output_file, output_quantile, fmt='%.2e')
 
     if model == 'disgas':
@@ -440,27 +527,40 @@ def probabilistic_output(model):
                 print('Folder ' + specie_folder + ' already exists')
     indexes = []
     pools_ecdfs = []
+    indexes_tavg = []
+    pools_ecdfs_tavg = []
     n_pool = 0
+    n_pool_tavg = 0
     for probability in exceedance_probabilities:
         for specie in species:
             pools_ecdfs.append(n_pool)
+            if len(tavg_intervals) > 0:
+                pools_ecdfs_tavg.append(n_pool_tavg)
             if levels[0] == 'all':
                 for i in range(1, nz + 1):
                     if time_steps[0] == 'all':
-                        for j in range(0, n_time_steps + 1):  #for j in range(1, n_time_steps):
+                        for j in range(0, n_time_steps + 1):
                             indexes.append([probability, specie, i, j])
                     else:
                         for time_step in time_steps:
                             indexes.append([probability, specie, i, time_step])
+                    if len(tavg_intervals) > 0:
+                        for k in range(0,len(tavg_intervals)):
+                            indexes_tavg.append([probability, specie, i, tavg_intervals[k]])
             else:
                 for level in levels:
                     if time_steps[0] == 'all':
-                        for j in range(0, n_time_steps + 1):  #for j in range(1, n_time_steps):
+                        for j in range(0, n_time_steps + 1):
                             indexes.append([probability, specie, level, j])
                     else:
                         for time_step in time_steps:
                             indexes.append([probability, specie, level, time_step])
+                    if len(tavg_intervals) > 0:
+                        for k in range(0,len(tavg_intervals)):
+                            indexes_tavg.append([probability, specie, level, tavg_intervals[k]])
             n_pool += 1
+            if len(tavg_intervals) > 0:
+                n_pool_tavg += 1
     n_pool = 0
     for probability in exceedance_probabilities:
         for specie in species:
@@ -480,6 +580,25 @@ def probabilistic_output(model):
                 if n_completed_processes == len(indexes):
                     break
             n_pool += 1
+    n_pool_tavg = 0
+    for probability in exceedance_probabilities:
+        for specie in species:
+            n_completed_processes = 0
+            while n_completed_processes <= len(indexes_tavg):
+                start = n_completed_processes
+                end = n_completed_processes + max_number_processes
+                if end > len(indexes_tavg):
+                    end = len(indexes_tavg)
+                try:
+                    pools_ecdfs_tavg[n_pool_tavg] = ThreadingPool(max_number_processes)
+                    pools_ecdfs_tavg[n_pool_tavg].map(ecdf, indexes_tavg[start:end])
+                except:
+                    print('Unable to elaborate days')
+                    sys.exit()
+                n_completed_processes = end
+                if n_completed_processes == len(indexes_tavg):
+                    break
+            n_pool_tavg += 1
 
 def save_plots(model):
     import re
@@ -490,7 +609,7 @@ def save_plots(model):
         from matplotlib import pyplot as plt
         from matplotlib.ticker import FormatStrFormatter
         with open(input) as input_file:
-            Z = [[float(record) for record in line.split(' ')] for line in input_file]
+            Z = np.loadtxt(input)
             fig = plt.figure(figsize=(8, 8))
             if units == 'ppm':
                 plt.title('Gas concentration [ppm]')
@@ -498,7 +617,10 @@ def save_plots(model):
                 plt.title('Gas concentration [kg m$\mathregular{^{-3}}$]')
             X = np.arange(x0, xf, dx)
             Y = np.arange(y0, yf, dy)
-            plt.contourf(X, Y, Z, cmap = 'Reds')
+            n_levels = 10
+            dc = max_con / n_levels
+            levels = np.arange(0, max_con, dc)
+            plt.contourf(X, Y, Z, levels, cmap = 'Reds')
             plt.xlabel('X_UTM [m]')
             plt.ylabel('Y_UTM [m]')
             plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
@@ -587,6 +709,11 @@ def save_plots(model):
                             if file_time_step == "{:06d}".format(int(time_step)):
                                 files_to_plot.append(file)
                                 output_files.append(os.path.join(graphical_outputs_daily, file_specie, output_file_name))
+                    if 'tavg' in file_time_step:
+                        files_to_plot.append(file)
+                        tavg_output_file_name = file.split(os.sep)[-1].split('.')[0]
+                        tavg_output_file_name = tavg_output_file_name + '.png'
+                        output_files.append(os.path.join(graphical_outputs_daily, file_specie, tavg_output_file_name))
                 else:
                     if time_steps[0] == 'all':
                         for level in levels:
@@ -599,6 +726,12 @@ def save_plots(model):
                                 if file_time_step == "{:06d}".format(int(time_step)) and file_level == "{:03d}".format(int(level)):
                                     files_to_plot.append(file)
                                     output_files.append(os.path.join(graphical_outputs_daily, file_specie, output_file_name))
+                    for level in levels:
+                        if 'tavg' in file_time_step and file_level == "{:03d}".format(int(level)):
+                            files_to_plot.append(file)
+                            tavg_output_file_name = file.split(os.sep)[-1].split('.')[0]
+                            tavg_output_file_name = tavg_output_file_name + '.png'
+                            output_files.append(os.path.join(graphical_outputs_daily, file_specie, tavg_output_file_name))
                 i += 1
     if plot_ex_prob:
         for probability in exceedance_probabilities:
@@ -610,8 +743,7 @@ def save_plots(model):
                 try:
                     os.mkdir(os.path.join(graphical_outputs_ecdf, str(probability), specie))
                 except FileExistsError:
-                    print(
-                        'Folder ' + os.path.join(graphical_outputs_ecdf, str(probability), specie) + ' already exists')
+                    print('Folder ' + os.path.join(graphical_outputs_ecdf, str(probability), specie) + ' already exists')
                 files_list = os.listdir(os.path.join(ecdf_outputs, str(probability), specie))
                 for file in files_list:
                     file_path = os.path.join(ecdf_outputs, str(probability), specie, file)
@@ -629,6 +761,11 @@ def save_plots(model):
                                 if file_time_step == "{:06d}".format(int(time_step)):
                                     files_to_plot.append(file_path)
                                     output_files.append(os.path.join(graphical_outputs_ecdf, str(probability), specie, output_file_name))
+                        if 'tavg' in file_time_step:
+                            files_to_plot.append(file_path)
+                            tavg_output_file_name = file.split(os.sep)[-1].split('.')[0]
+                            tavg_output_file_name = tavg_output_file_name + '.png'
+                            output_files.append(os.path.join(graphical_outputs_ecdf, str(probability), specie, tavg_output_file_name))
                     else:
                         if time_steps[0] == 'all':
                             for level in levels:
@@ -641,9 +778,22 @@ def save_plots(model):
                                     if file_time_step == "{:06d}".format(int(time_step)) and file_level == "{:03d}".format(int(level)):
                                         files_to_plot.append(file_path)
                                         output_files.append(os.path.join(graphical_outputs_ecdf, str(probability), specie, output_file_name))
+                            for level in levels:
+                                if 'tavg' in file_time_step and file_level == "{:03d}".format(int(level)):
+                                    files_to_plot.append(file_path)
+                                    tavg_output_file_name = file.split(os.sep)[-1].split('.')[0]
+                                    tavg_output_file_name = tavg_output_file_name + '.png'
+                                    output_files.append(
+                                        os.path.join(graphical_outputs_ecdf, str(probability), specie, tavg_output_file_name))
     if len(files_to_plot) == 0:
         print('No files to plot')
     else:
+        max_con = 0
+        for file_to_plot in files_to_plot:
+            ZZ = np.loadtxt(file_to_plot)
+            max_c = np.amax(ZZ)
+            if max_c > max_con:
+                max_con = max_c
         i = 0
         for file_to_plot in files_to_plot:
             print('plotting ' + file_to_plot)
@@ -652,7 +802,7 @@ def save_plots(model):
 
 root = os.getcwd()
 
-plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert, models, merge_outputs, units = read_arguments()
+plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert, models, merge_outputs, units, time_av = read_arguments()
 
 try:
     max_number_processes = int(os.environ["SLURM_NPROCS"])
@@ -669,6 +819,6 @@ if convert:
 for model in models_to_elaborate:
     x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps = domain(model)
     for day in days:
-        elaborate_day(day, model)
+        tavg_intervals = elaborate_day(day, model)
     probabilistic_output(model)
     save_plots(model)

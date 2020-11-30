@@ -571,10 +571,11 @@ def run_disgas():
             for day in days[start:end]:
                 disgas_folder = os.path.join(root, 'simulations', 'disgas', day, 'infiles')
                 disgas_input_file = os.path.join(disgas_folder, 'disgas.inp')
+                disgas_log_file = os.path.join(disgas_folder, 'disgas_log_' + day + '.txt')
                 try:
-                    p = subprocess.Popen(['srun', '-n', '1', 'disgas', disgas_input_file,'&'])
+                    p = subprocess.Popen(['srun', '-n', '1', 'disgas', disgas_input_file, disgas_log_file])
                 except:
-                    p = subprocess.Popen(['disgas', disgas_input_file])
+                    p = subprocess.Popen(['disgas', disgas_input_file, disgas_log_file])
                 ps.append(p)
             for p in ps:
                 p.wait()
@@ -600,9 +601,9 @@ def run_twodee():
                 twodee_folder = os.path.join(root, 'simulations', 'twodee', day)
                 shutil.copyfile(os.path.join(diagno,'diagno.out'),os.path.join(twodee_folder,'infiles','diagno.out'))
                 twodee_input_file = os.path.join(twodee_folder, 'twodee.inp')
-                twodee_log_file = os.path.join(twodee_folder, 'twodee.log')
+                twodee_log_file = os.path.join(twodee_folder, 'twodee_log_' + day + '.txt')
                 try:
-                    p = subprocess.Popen(['srun', '-n', '1', 'Twodee.2.2.x', twodee_input_file, twodee_log_file,'&'])
+                    p = subprocess.Popen(['srun', '-n', '1', 'Twodee.2.2.x', twodee_input_file, twodee_log_file])
                 except:
                     p = subprocess.Popen(['Twodee.2.2.x', twodee_input_file, twodee_log_file])
                 ps.append(p)

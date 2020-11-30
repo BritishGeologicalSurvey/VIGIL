@@ -782,8 +782,8 @@ def automatic_weather(analysis_start):
 
     if ERA5_on:
         print('Retrieving ERA5 data for day ' + str(analysis_start)[0:10])
-
         tref, tsoil, press = era5_retrieve(volc_lon, volc_lat, analysis_start)
+
     if weather_station_on:
         stations_input = open('weather_stations_list.txt','r', encoding="utf-8-sig", errors="surrogateescape")
         print('Analysing weather station data for day ' + str(analysis_start)[0:10])

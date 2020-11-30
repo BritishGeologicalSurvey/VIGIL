@@ -1,0 +1,67 @@
+DISGAS INPUT FILE
+
+TIME
+  YEAR   = 1997
+  MONTH  = 07
+  DAY    = 10
+  HOUR   = 0
+  MINUTE = 0
+  SIMULATION_INTERVAL_(SEC) = 86400
+  RESTART_RUN = NO
+  RESET_TIME  = NO
+
+GRID
+  NX     = 81
+  NY     = 71
+  NZ     = 12
+  Z_LAYERS_(M) = 0. 0.5  1.5  5. 15. 30. 50. 75. 100. 125. 150. 200.
+  DX_(M) = 100.
+  DY_(M) = 100.
+  X_ORIGIN_(UTM_M) = 425450
+  Y_ORIGIN_(UTM_M) = 4516000
+
+PROPERTIES
+  DISPERSION_TYPE = GAS            (GAS/PARTICLES)
+  PARTICLE_DIAMETER = 1e-5         (DIAMETER IN M)
+  PARTICLE_DENSITY =  2500.         (KG/M3)
+  PARTICLE_SHAPE_PARAMETER = 1.     ([0-1])
+  PARTICLE_MODEL_VSET = GANSER      (ARASTOOPOUR/GANSER/WILSON_HUANG)
+
+TOPOGRAPHY
+  EXTRACT_TOPOGRAPHY_FROM_FILE = YES    (YES/NO)
+  Z_ORIGIN_(M) = 0.0
+  X_SLOPE_(DEG) = 0.0
+  Y_SLOPE_(DEG) = 0.0
+
+METEO
+  WIND_MODEL            = DIAGNO        (SIMILARITY/DIAGNO)
+  HORIZONTAL_TURB_MODEL = SMAGORINSKY   (CONSTANT/SMAGORINSKY)
+  VERTICAL_TURB_MODEL   = SIMILARITY    (CONSTANT/SIMILARITY)
+  ROUGHNESS_MODEL       = UNIFORM       (UNIFORM/MATRIX)
+  ROUGHNESS_LENGTH      = 0.05          (Roughness length if UNIFORM)
+  DIFF_COEFF_HORIZONTAL = 10.           (Only for turbulence model=0)
+  DIFF_COEFF_VERTICAL   = 10.           (Only for turbulence model=0)
+
+ FILES                                        (Relative or absolute file paths)
+   TOPOGRAPHY_FILE_PATH   = /Users/silviamassaro/Programmi/APVGDM-master/simulations/diagno/19970710/topography.grd 
+   ROUGHNESS_FILE_PATH   = /Users/silviamassaro/Programmi/APVGDM-master/simulations/disgas/19970710/infiles/roughness.grd 
+   RESTART_FILE_PATH   = /Users/silviamassaro/Programmi/APVGDM-master/simulations/disgas/19970710/infiles/restart.dat 
+   SOURCE_FILE_PATH   = /Users/silviamassaro/Programmi/APVGDM-master/simulations/disgas/19970710/infiles/source.dat 
+   WIND_FILE_PATH   = /Users/silviamassaro/Programmi/APVGDM-master/simulations/disgas/19970710/infiles/winds.dat 
+   DIAGNO_FILE_PATH   = /Users/silviamassaro/Programmi/APVGDM-master/simulations/diagno/19970710/diagno.out 
+   OUTPUT_DIRECTORY    = /Users/silviamassaro/Programmi/APVGDM-master/simulations/disgas/19970710/outfiles/ 
+
+OUTPUT
+  LOG_VERBOSITY_LEVEL  = 0                 (0/1)
+  OUTPUT_GRD_TYPE      = ASCII             (ASCII/BINARY)
+  OUTPUT_INTERVAL_(SEC) = 21600           (Number of seconds between prints)
+  OUTPUT_U_VELOCITY = NO                  (YES/NO)
+  OUTPUT_V_VELOCITY = NO                 (YES/NO)
+  OUTPUT_W_VELOCITY = NO                  (YES/NO)
+  OUTPUT_CONCENTRATION = YES               (YES/NO)
+  OUTPUT_LAYERS = ALL                      (ALL/List_of_layers)
+  TRACK_POINTS = NO                       (YES/NO)
+  N_POINTS = 2                             (Number of tracking points)
+  POINTS_EASTING = 643080 641000           (UTM easting coordinate of each tracking point)
+  POINTS_NORTHING = 1774150 1774250        (UTM northing coordinate of each tracking point)
+  POINTS_ELEVATION = 1 1                   (Meters above ground of each tracking point)

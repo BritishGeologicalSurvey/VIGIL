@@ -322,7 +322,7 @@ def converter(input_file, processed_file, specie_input, model):
                 mol_ratio = specie['molar_ratio']
                 molar_weight = specie['molar_weight']
         Z_converted = np.multiply(Z, mol_ratio)
-        Z_converted = [(Z_converted / molar_weight) / (44.64 * 1000000000)]
+        Z_converted = np.divide(Z_converted, molar_weight / (44.64 * 1000000000))
         np.savetxt(processed_file, Z_converted, fmt='%.2e')
 
 def time_average(files_to_average, outfile):
@@ -332,9 +332,6 @@ def time_average(files_to_average, outfile):
         Z_sum += Z
     Z_avg = np.divide(Z_sum, len(files_to_average))
     np.savetxt(outfile, Z_avg, fmt='%.2e')
-
-def maximum(files_to_average, outfile):
-    print('Ciao') #to work on this, add argument as well and change the name "files_to_average" into a more generic one
 
 def elaborate_day(day_input, model):
     if model == 'disgas':

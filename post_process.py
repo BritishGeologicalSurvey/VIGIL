@@ -580,25 +580,26 @@ def probabilistic_output(model):
                 if n_completed_processes == len(indexes):
                     break
             n_pool += 1
-    n_pool_tavg = 0
-    for probability in exceedance_probabilities:
-        for specie in species:
-            n_completed_processes = 0
-            while n_completed_processes <= len(indexes_tavg):
-                start = n_completed_processes
-                end = n_completed_processes + max_number_processes
-                if end > len(indexes_tavg):
-                    end = len(indexes_tavg)
-                try:
-                    pools_ecdfs_tavg[n_pool_tavg] = ThreadingPool(max_number_processes)
-                    pools_ecdfs_tavg[n_pool_tavg].map(ecdf, indexes_tavg[start:end])
-                except:
-                    print('Unable to elaborate days')
-                    sys.exit()
-                n_completed_processes = end
-                if n_completed_processes == len(indexes_tavg):
-                    break
-            n_pool_tavg += 1
+    if len(tavg_intervals) > 0:
+        n_pool_tavg = 0
+        for probability in exceedance_probabilities:
+            for specie in species:
+                n_completed_processes = 0
+                while n_completed_processes <= len(indexes_tavg):
+                    start = n_completed_processes
+                    end = n_completed_processes + max_number_processes
+                    if end > len(indexes_tavg):
+                        end = len(indexes_tavg)
+                    try:
+                        pools_ecdfs_tavg[n_pool_tavg] = ThreadingPool(max_number_processes)
+                        pools_ecdfs_tavg[n_pool_tavg].map(ecdf, indexes_tavg[start:end])
+                    except:
+                        print('Unable to elaborate days')
+                        sys.exit()
+                    n_completed_processes = end
+                    if n_completed_processes == len(indexes_tavg):
+                        break
+                n_pool_tavg += 1
 
 def save_plots(model):
     import re

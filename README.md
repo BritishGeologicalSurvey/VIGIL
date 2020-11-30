@@ -95,12 +95,9 @@ Python script that:
 	+ calculates the converted outputs at user's specified exceedance probabilities, time steps and vertical levels; these are stored in the folder output_ecdf
 	+ plot the converted outputs and those at selected exceedance probabilities at user's selectd time steps and vertical levels; the plots are stored in the folder graphical_outputs.
 The following flags control the execution of post_process.py:
-usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB]
-                       [-EX EX_PROB [EX_PROB ...]]
-                       [-T TIME_STEPS [TIME_STEPS ...]]
-                       [-L LEVELS [LEVELS ...]] [-D DAYS_PLOT [DAYS_PLOT ...]]
-                       [-S SPECIES [SPECIES ...]] [-N NPROC] [-M MODELS] [-MO MERGE_OUTPUTS] [-U UNITS]
-                       [-TA TIME_AV]
+usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB] [-EX EX_PROB [EX_PROB ...]] [-T TIME_STEPS [TIME_STEPS ...]]
+                       [-L LEVELS [LEVELS ...]] [-D DAYS_PLOT [DAYS_PLOT ...]] [-C CONVERT] [-S SPECIES [SPECIES ...]]
+                       [-N NPROC] [-M MODELS] [-MO MERGE_OUTPUTS] [-U UNITS] [-TA TIME_AV]
 
   -h, --help            show this help message and exit
   -P PLOT, --plot PLOT  True: Produce plots of the solutions. False: Do not
@@ -120,6 +117,8 @@ usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB]
   -D DAYS_PLOT [DAYS_PLOT ...], --days_plot DAYS_PLOT [DAYS_PLOT ...]
                         List of days to plot (YYYYMMDD). Type all to plot all
                         the days
+  -C CONVERT, --convert CONVERT
+                        If True, convert output concentration into other species listed with the command -S (--species)
   -S SPECIES [SPECIES ...], --species SPECIES [SPECIES ...]
                         List of gas species (e.g. CO2)
   -N NPROC, --nproc NPROC

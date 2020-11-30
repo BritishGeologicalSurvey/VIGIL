@@ -242,7 +242,7 @@ def pre_process():
             random_dy.append(choices(dys, k = 1)[0])
             random_dur.append(choices(durs, k = 1)[0])
 
-        return random_eastings, random_northings, random_elevations, random_probabilities, random_elevations, random_fluxes, random_dx, random_dy, random_dur
+        return random_eastings, random_northings, random_elevations, random_probabilities, random_fluxes, random_dx, random_dy, random_dur
 
     def fluxes():
         import numpy as np
@@ -297,7 +297,7 @@ def pre_process():
         else:
             Nsources = [nsources]
         n_random_sources = sample(Nsources, 1)[0]
-        random_eastings, random_northings, random_elevations, random_probabilities, random_elevations, random_fluxes, \
+        random_eastings, random_northings, random_elevations, random_probabilities, random_fluxes, \
         random_dx, random_dy, random_dur = sample_random_sources(n_random_sources, 'probability_map.txt', bottom_left_easting, top_right_easting,
                                                                  bottom_left_northing, top_right_northing, dur_min, dur_max, source_size_min, source_size_max)
     easting = random_eastings
@@ -326,14 +326,15 @@ def pre_process():
                 except:
                     continue
     except:
-        easting.append(source_easting)
-        northing.append(source_northing)
-        elevations.append(source_el)
-        probabilities.append(1.0)
-        fluxes_input.append(source_emission)
-        dx.append(source_dx)
-        dy.append(source_dy)
-        dur.append(source_dur)
+        if random_sources != 'on':
+            easting.append(source_easting)
+            northing.append(source_northing)
+            elevations.append(source_el)
+            probabilities.append(1.0)
+            fluxes_input.append(source_emission)
+            dx.append(source_dx)
+            dy.append(source_dy)
+            dur.append(source_dur)
     n_sources = len(easting)
 
     raw_days = [] # store the days as originally formatted

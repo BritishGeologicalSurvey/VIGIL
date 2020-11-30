@@ -293,7 +293,7 @@ def pre_process():
     source_size_max = 100
     if random_sources == 'on':
         if nsources == 'random':
-            Nsources = [*range(sources_interval[0],sources_interval[1] + 1)]
+            Nsources = [*range(int(sources_interval[0]),int(sources_interval[1]) + 1)]
         else:
             Nsources = [nsources]
         n_random_sources = sample(Nsources, 1)[0]

@@ -614,7 +614,7 @@ def extract_station_data(station_data_files,  eastings, northings, zst, data_fol
         for i in range(0, n_line):
         #for i in range(0,len(records)-1):
             try:
-                time_record = records[i][0][0:7]
+                time_record = records[i][0][0:8]
                 day_record = datetime.datetime.strptime(time_record,'%Y%m%d')
                 #datetime.datetime(int(records[i][0]),int(records[i][1]),int(records[i][2]))
             except:
@@ -815,6 +815,10 @@ def automatic_weather(analysis_start):
         tref, tsoil, press = extract_station_data(station_data_files, eastings, northings, zst, data_folder)
     if twodee_on:
         twodee_data(tref, tsoil, press, data_folder)
+    if not os.path.exists(os.path.join(data_folder,'upper.dat')):
+        with open(os.path.join(data_folder,'upper.dat'),'w',encoding='utf-8') as fake_upper: #To not let DIAGNO crash when using just presfc
+            fake_upper.write('Fake upper.dat file')
+        fake_upper.close()
 
 nsamples, time_start, time_stop, analysis_start, analysis_stop, ERA5_on, weather_station_on, elevation, \
 volc_lat, volc_lon, easting, northing, max_number_processes, twodee_on, disgas_on = read_arguments()

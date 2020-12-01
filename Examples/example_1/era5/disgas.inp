@@ -6,7 +6,7 @@ TIME
   DAY    = 10
   HOUR   = 0
   MINUTE = 0
-  SIMULATION_INTERVAL_(SEC) = 7200 !86400
+  SIMULATION_INTERVAL_(SEC) = 86400
   RESTART_RUN = NO
   RESET_TIME  = NO
 
@@ -54,7 +54,7 @@ METEO
 OUTPUT
   LOG_VERBOSITY_LEVEL  = 0                 (0/1)
   OUTPUT_GRD_TYPE      = ASCII             (ASCII/BINARY)
-  OUTPUT_INTERVAL_(SEC) = 3600 !21600            (Number of seconds between prints)
+  OUTPUT_INTERVAL_(SEC) = 21600            (Number of seconds between prints)
   OUTPUT_U_VELOCITY = NO                   (YES/NO)
   OUTPUT_V_VELOCITY = NO                   (YES/NO)
   OUTPUT_W_VELOCITY = NO                   (YES/NO)

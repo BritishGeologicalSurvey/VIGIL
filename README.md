@@ -148,7 +148,7 @@ The following software are required:
   Once the registration is approved, to get the data follow the instructions here: https://confluence.ecmwf.int/display/CKB/How+to+download+ERA5
   The user needs to install the personal key in a .cdsapirc file, to save in different locations depending on the OS. Please read the instructions.
 
-With Conda, it is possible to set a virtual environmnent with all the required dependencies specific for REFIR. This simplifies the 
+With Conda, it is possible to set a virtual environmnent with all the required dependencies specific for APVGDM. This simplifies the 
 installation of the different packages and the management of the Python installation in the system.
 Instructions for setting the Conda environment:
 1) create the environment with all the needed additional packages:

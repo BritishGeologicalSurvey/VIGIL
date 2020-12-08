@@ -481,7 +481,14 @@ def pre_process():
             twodee_input = os.path.join(twodee_daily, 'twodee.inp')
             topography_converter(topography_original)
             shutil.move(os.path.join(diagno_daily,'surface_data.txt'),os.path.join(infiles_twodee,'surface_data.txt'))
-            shutil.copyfile(os.path.join(root,'roughness_twodee.grd'),os.path.join(infiles_twodee,'roughness.grd'))
+            try:
+                shutil.copyfile(os.path.join(root,'roughness_twodee.grd'),os.path.join(infiles_twodee,'roughness.grd'))
+            except:
+                try:
+                    shutil.copyfile(os.path.join(root, 'roughness.grd'),os.path.join(infiles_twodee, 'roughness.grd'))
+                except:
+                    print('Unable to find a valid roughness file for TWODEE (valid names are roughness_twodee.grd or roughness.grd')
+                    sys.exit()
             with open(os.path.join(infiles_twodee,'source.dat'), 'w', encoding="utf-8", errors="surrogateescape") as source_file:
                 for i in range(0, n_sources):
                     if source_emission != 999:

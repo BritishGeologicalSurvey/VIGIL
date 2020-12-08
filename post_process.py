@@ -315,9 +315,13 @@ def converter(input_file, processed_file, specie_input, model):
     if units == 'ppm':
         if model == 'disgas':
             Z_converted = np.multiply(Z, 1000)  # convert kg/m3 to ppm
+        else:
+            Z_converted = Z
     else:
         if model == 'twodee':
             Z_converted = np.divide(Z, 1000)  # convert ppm to kg/m3
+        else:
+            Z_converted = Z
     if specie_input == 'original_specie':
         np.savetxt(processed_file, Z_converted, fmt='%.2e')
     else:

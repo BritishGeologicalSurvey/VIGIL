@@ -1,0 +1,1 @@
+Modify params.f in DIAGNO to allow larger array size (NX = 400 at least)

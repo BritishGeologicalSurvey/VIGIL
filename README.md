@@ -10,9 +10,7 @@ The weather data can be either retrieved from ECMWF ERA5 database or from time s
 	+ ERA5 Reanalysis data
 	In this mode, the script is designed to randomly sample N days from a time interval defined by the user. The number of days N is also specified by the user in input. It is possible to retrieve date from one single day by setting the end date equal to the start date and the number of samples to 1
 	+ Weather station data
-	In this mode, the script is design to extract weather data in the time interval specified by the user from selected weather data file. The script reads the number of files, file location and name from weather_stations.txt; the file data should be stored in the folder weather_stations. Currently, the following format is assumed:
-	yyyy mm dd HH MM SS H.R.(%) T-Air(°C) Irrad.(W/m2) D-Vent(°N) V-Vent(km/h) Rain(mm) P-Air(hPa) Batt.(V) T-Air2(°C).
-	Only the wind direction (D-Vent) and speed (V-Vent) are used, but it is important to provide the other data fields (placing random numbers or NaN). This will be improved in the future. [GENERALIZATION NEEDED]
+	In this mode, the script is design to extract weather data in the time interval specified by the user from selected weather data file. The script reads the number of files, file location and name from weather_stations.txt; the file data should be stored in the folder weather_stations.
 The following flags control the execution of weather.py:
 usage: weather.py [-h] [-S START_DATE] [-E END_DATE] [-V VOLC] [-LAT LAT]
                   [-LON LON] [-EL ELEV] [-NS SAMPLES] [-ERA5 ERA5]
@@ -71,7 +69,7 @@ usage: run_models.py [-h] [-N NPROC] [-RS RANDOM_SOURCES] [-NS NSOURCES]
   -SDY SOURCE_DY, --source_dy SOURCE_DY
                         Extension [m] along the Y direction of 1 single source. Option valid for Twodee only
   -SDUR SOURCE_DUR, --source_dur SOURCE_DUR
-                        Emission duration [s] of 1 single source. Option valid for Twodee on
+                        Emission duration [s] of 1 single source. Option valid for Twodee only
   -D DOMAIN [DOMAIN ...], --domain DOMAIN [DOMAIN ...]
                         Coordinates type (UTM/GEO), coordinates
                         (latitude/northing, longitude/easting) of the bottom

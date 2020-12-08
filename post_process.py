@@ -30,6 +30,7 @@ def read_arguments():
     parser.add_argument('-M', '--models', default='all', help='Model outputs to post-process. Options: disgas, twodee, all')
     parser.add_argument('-MO', '--merge_outputs', default='False', help='Merge Twodee and Disgas outputs (true or false)')
     parser.add_argument('-U', '--units', default = None, help='Gas concentration units. Possible options are: ppm, kg/m3')
+    parser.add_argument('-PL', '--plot_limits', nargs='+', default=[], help='Minimum and maximum value of concentration to display. If unspecified, they are obtained from all the outputs')
     parser.add_argument('-TA', '--time_av', default=None, help='Generate time-averaged outputs. Specify the time-averaging interval (in hours), or 0 for averaging over the whole duration')
     args = parser.parse_args()
     plot = args.plot
@@ -44,6 +45,7 @@ def read_arguments():
     models = args.models
     merge_outputs = args.merge_outputs
     units = args.units
+    plot_limits = args.plot_limits
     time_av = args.time_av
     if plot.lower() == 'true':
         plot = True
@@ -111,7 +113,15 @@ def read_arguments():
             time_av = int(time_av)
         except:
             print('ERROR. Please specify a valid time-averaging interval')
-    return plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert, models, merge_outputs, units, time_av
+    min_con = max_con = -1.0
+    if len(plot_limits) > 0:
+        try:
+            min_con = float(plot_limits[0])
+            max_con = float(plot_limits[1])
+        except:
+            print('ERROR. Please specify valid minimum and maximum concentration -PL --plot_limits')
+            sys.exit()
+    return plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert, models, merge_outputs, units, time_av, min_con, max_con
 
 def folder_structure():
     original_output_folder_name = 'simulations'
@@ -606,7 +616,7 @@ def probabilistic_output(model):
                         break
                 n_pool_tavg += 1
 
-def save_plots(model):
+def save_plots(model,min_con,max_con):
     import re
 
     def plot_file(input,output):
@@ -614,26 +624,37 @@ def save_plots(model):
         matplotlib.use('Agg')
         from matplotlib import pyplot as plt
         from matplotlib.ticker import FormatStrFormatter
+        from mpl_toolkits.axes_grid1 import make_axes_locatable, axes_size
         with open(input) as input_file:
             Z = np.loadtxt(input)
-            fig = plt.figure(figsize=(8, 8))
-            if units == 'ppm':
-                plt.title('Gas concentration [ppm]')
-            else:
-                plt.title('Gas concentration [kg m$\mathregular{^{-3}}$]')
             X = np.arange(x0, xf, dx)
             Y = np.arange(y0, yf, dy)
             n_levels = 10
-            dc = max_con / n_levels
-            levels = np.arange(0, max_con, dc)
-            plt.contourf(X, Y, Z, levels, cmap = 'Reds')
-            plt.xlabel('X_UTM [m]')
-            plt.ylabel('Y_UTM [m]')
-            plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
-            plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%.0f'))
-            cax = fig.add_axes([0.1, 0.03, 0.8, 0.01])
-            plt.colorbar(cax = cax, orientation='horizontal', format='%.1e')
+            dc = (max_con - min_con) / n_levels
+            levels = np.arange(min_con + 0.0000001, max_con, dc)
+            fig, ax = plt.subplots()
+            cf = ax.contourf(X, Y, Z, levels, cmap = 'Reds')
+            aspect = 20
+            pad_fraction = 0.5
+            divider = make_axes_locatable(ax)
+            width = axes_size.AxesY(ax, aspect=1. / aspect)
+            pad = axes_size.Fraction(pad_fraction, width)
+            cax = divider.append_axes("right", size=width, pad=pad)
+            cbar = fig.colorbar(cf, cax = cax, orientation='vertical', format='%.1e')
+            cbar.ax.tick_params(labelsize=8)
+            cbar.set_label('ppm')
+            if units == 'ppm':
+                ax.set_title('Gas concentration [ppm]')
+            else:
+                ax.set_title('Gas concentration [kg m$\mathregular{^{-3}}$]')
+            ax.set_aspect('equal')
+            ax.set_xlim(x0,xf)
+            ax.set_ylim(y0,yf)
+            ax.ticklabel_format(style='plain')
+            ax.set_xlabel('X_UTM [m]')
+            ax.set_ylabel('Y_UTM [m]')
             image_buffer = StringIO()
+            plt.tight_layout()
             plt.savefig(output)
             image_buffer.close()
             plt.close(fig)
@@ -794,12 +815,17 @@ def save_plots(model):
     if len(files_to_plot) == 0:
         print('No files to plot')
     else:
-        max_con = 0
-        for file_to_plot in files_to_plot:
-            ZZ = np.loadtxt(file_to_plot)
-            max_c = np.amax(ZZ)
-            if max_c > max_con:
-                max_con = max_c
+        if min_con == -1.0 and max_con == -1.0:
+            max_con = 0
+            min_con = 1000000000000000
+            for file_to_plot in files_to_plot:
+                ZZ = np.loadtxt(file_to_plot)
+                max_c = np.amax(ZZ)
+                min_c = np.amin(ZZ)
+                if max_c > max_con:
+                    max_con = max_c
+                if min_c < min_con:
+                    min_con = min_c
         i = 0
         for file_to_plot in files_to_plot:
             print('plotting ' + file_to_plot)
@@ -808,7 +834,7 @@ def save_plots(model):
 
 root = os.getcwd()
 
-plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert, models, merge_outputs, units, time_av = read_arguments()
+plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert, models, merge_outputs, units, time_av, min_con, max_con = read_arguments()
 
 try:
     max_number_processes = int(os.environ["SLURM_NPROCS"])
@@ -827,4 +853,4 @@ for model in models_to_elaborate:
     for day in days:
         tavg_intervals = elaborate_day(day, model)
     probabilistic_output(model)
-    save_plots(model)
+    save_plots(model,min_con,max_con)

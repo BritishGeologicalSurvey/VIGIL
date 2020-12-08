@@ -97,7 +97,7 @@ Python script that:
 The following flags control the execution of post_process.py:
 usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB] [-EX EX_PROB [EX_PROB ...]] [-T TIME_STEPS [TIME_STEPS ...]]
                        [-L LEVELS [LEVELS ...]] [-D DAYS_PLOT [DAYS_PLOT ...]] [-C CONVERT] [-S SPECIES [SPECIES ...]]
-                       [-N NPROC] [-M MODELS] [-MO MERGE_OUTPUTS] [-U UNITS] [-TA TIME_AV]
+                       [-N NPROC] [-M MODELS] [-MO MERGE_OUTPUTS] [-U UNITS] [-PL PLOT_LIMITS [PLOT_LIMITS ...]] [-TA TIME_AV]
 
   -h, --help            show this help message and exit
   -P PLOT, --plot PLOT  True: Produce plots of the solutions. False: Do not
@@ -129,6 +129,8 @@ usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB] [-EX EX_PROB [EX_PROB .
                         Merge Twodee and Disgas outputs (true or false)
   -U UNITS, --units UNITS
                         Gas concentration units. Possible options are: ppm, kg/m3
+  -PL PLOT_LIMITS [PLOT_LIMITS ...], --plot_limits PLOT_LIMITS [PLOT_LIMITS ...]
+                        Minimum and maximum value of concentration to display. If unspecified, they are obtained from all the outputs
   -TA TIME_AV, --time_av TIME_AV
                         Generate time-averaged outputs. Specify the time-averaging interval (in hours), or 0 for averaging over the whole duration
 

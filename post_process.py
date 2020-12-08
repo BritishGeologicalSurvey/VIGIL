@@ -98,9 +98,13 @@ def read_arguments():
     else:
         print('ERROR. Wrong value for variable -MO --merge_outputs')
         sys.exit()
-    units = units.lower()
-    if units != 'ppm' and units != 'kg/m3':
-        print('ERROR. Wrong value for variable -U --units')
+    try:
+        units = units.lower()
+        if units != 'ppm' and units != 'kg/m3':
+            print('ERROR. Wrong value for variable -U --units')
+            sys.exit()
+    except:
+        print('Please provide an option for -U --units')
         sys.exit()
     if time_av != None:
         try:

@@ -1,0 +1,11 @@
+HOW TO RUN EXAMPLE_1: La Soufrière de Guadeloupe (Lesser Antilles)
+
+OPTION_1) 
+python weather.py -S 12/03/1990 -E 23/11/2019 -V 360060 -NS 2 -ERA5 True -N 2 -DG on 
+
+OPTION_2) 
+python weather.py -S 16/04/2016 -E 16/04/2016 -V 360060 -NS 1 -WST True -N 1 -DG on 
+
+python run_models.py -N 2 -RS on -NS 5 -SINT 2 5 -D UTM 1774000 642900 1776500 645400 -RER on -N 2 -DG on 
+
+python post_process.py -P true -PE True -EX 0.05 -T 3 -L 3 -D all -C True -S H2S -N 2 -M disgas -MO False -U ppm 

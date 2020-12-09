@@ -104,7 +104,7 @@ usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB] [-EX EX_PROB [EX_PROB .
                         True: Produce plots of the specified exceedance
                         probabilities. False: Do not produce plots
   -EX EX_PROB [EX_PROB ...], --ex_prob EX_PROB [EX_PROB ...]
-                        List of exceedence probabilities to be used for
+                        List of exceedance probabilities to be used for
                         graphical output
   -T TIME_STEPS [TIME_STEPS ...], --time_steps TIME_STEPS [TIME_STEPS ...]
                         List of time steps to plot (integer >= 0). Type all to

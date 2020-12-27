@@ -32,6 +32,7 @@ def read_arguments():
     parser.add_argument('-U', '--units', default = None, help='Gas concentration units. Possible options are: ppm, kg/m3')
     parser.add_argument('-PL', '--plot_limits', nargs='+', default=[], help='Minimum and maximum value of concentration to display. If unspecified, they are obtained from all the outputs')
     parser.add_argument('-TA', '--time_av', default=None, help='Generate time-averaged outputs. Specify the time-averaging interval (in hours), or 0 for averaging over the whole duration')
+    parser.add_argument('-OF', '--output_format', default='GRD', help='Select format of the processed output files. Valid options are: GRD')
     args = parser.parse_args()
     plot = args.plot
     plot_ex_prob = args.plot_ex_prob
@@ -47,6 +48,7 @@ def read_arguments():
     units = args.units
     plot_limits = args.plot_limits
     time_av = args.time_av
+    output_format = args.output_format
     if plot.lower() == 'true':
         plot = True
         if len(days_plot) == 0:
@@ -121,7 +123,12 @@ def read_arguments():
         except:
             print('ERROR. Please specify valid minimum and maximum concentration -PL --plot_limits')
             sys.exit()
-    return plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert, models, merge_outputs, units, time_av, min_con, max_con
+    if output_format.lower() != 'grd':
+        print('ERROR. Please specify a valid output format. Current valid options are: GRD')
+        sys.exit()
+    else:
+        output_format = 'grd'
+    return plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert, models, merge_outputs, units, time_av, min_con, max_con, output_format
 
 def folder_structure():
     original_output_folder_name = 'simulations'
@@ -332,16 +339,24 @@ def converter(input_file, processed_file, specie_input, model):
             Z_converted = np.divide(Z, 1000)  # convert ppm to kg/m3
         else:
             Z_converted = Z
-    if specie_input == 'original_specie':
-        np.savetxt(processed_file, Z_converted, fmt='%.2e')
-    else:
-        for specie in species_properties:
-            if specie['specie_name'] == specie_input:
-                mol_ratio = specie['molar_ratio']
-                molar_weight = specie['molar_weight']
-        Z_converted = np.multiply(Z, mol_ratio)
-        Z_converted = np.divide(Z_converted, molar_weight / (44.64 * 1000000000))
-        np.savetxt(processed_file, Z_converted, fmt='%.2e')
+    # Create header of the processed file
+    with open(processed_file, 'a') as processed_file:
+        if output_format == 'grd':
+            processed_file.write('DSAA\n')
+            processed_file.write(str(nx) + '  ' + str(ny) + '\n')
+            processed_file.write(str(x0) + '  ' + str(xf) + '\n')
+            processed_file.write(str(y0) + '  ' + str(yf) + '\n')
+            processed_file.write(str(np.amin(Z_converted)) + '  ' + str(np.amax(Z_converted)) + '\n')
+        if specie_input == 'original_specie':
+            np.savetxt(processed_file, Z_converted, fmt='%.2e')
+        else:
+            for specie in species_properties:
+                if specie['specie_name'] == specie_input:
+                    mol_ratio = specie['molar_ratio']
+                    molar_weight = specie['molar_weight']
+            Z_converted = np.multiply(Z, mol_ratio)
+            Z_converted = np.divide(Z_converted, molar_weight / (44.64 * 1000000000))
+            np.savetxt(processed_file, Z_converted, fmt='%.2e')
 
 def time_average(files_to_average, outfile):
     Z_sum = 0
@@ -349,7 +364,15 @@ def time_average(files_to_average, outfile):
         Z = np.loadtxt(file)
         Z_sum += Z
     Z_avg = np.divide(Z_sum, len(files_to_average))
-    np.savetxt(outfile, Z_avg, fmt='%.2e')
+    # Create header of the processed file
+    with open(outfile, 'a') as processed_file:
+        if output_format == 'grd':
+            processed_file.write('DSAA\n')
+            processed_file.write(str(nx) + '  ' + str(ny) + '\n')
+            processed_file.write(str(x0) + '  ' + str(xf) + '\n')
+            processed_file.write(str(y0) + '  ' + str(yf) + '\n')
+            processed_file.write(str(np.amin(Z_avg)) + '  ' + str(np.amax(Z_avg)) + '\n')
+        np.savetxt(processed_file, Z_avg, fmt='%.2e')
 
 def elaborate_day(day_input, model):
     if model == 'disgas':
@@ -509,8 +532,11 @@ def probabilistic_output(model):
                 files_not_available.append(file)
                 continue
             records = []
+            nline=1
             for line in input_file:
-                records.append(line.split(' '))
+                if nline > 5:
+                    records.append(line.split(' '))
+                nline += 1
             c_arrays.append(records)
         for file in files_not_available:
             output_files.remove(file)
@@ -520,7 +546,15 @@ def probabilistic_output(model):
                 for k in range(0, len(output_files)):
                     c_list.append(float(c_arrays[k][j][i]))
                 output_quantile[j, i] = np.quantile(c_list, q=quantile)
-        np.savetxt(ecdf_output_file, output_quantile, fmt='%.2e')
+        # Create header of the processed file
+        with open(ecdf_output_file, 'a') as processed_file:
+            if output_format == 'grd':
+                processed_file.write('DSAA\n')
+                processed_file.write(str(nx) + '  ' + str(ny) + '\n')
+                processed_file.write(str(x0) + '  ' + str(xf) + '\n')
+                processed_file.write(str(y0) + '  ' + str(yf) + '\n')
+                processed_file.write(str(np.amin(output_quantile)) + '  ' + str(np.amax(output_quantile)) + '\n')
+            np.savetxt(processed_file, output_quantile, fmt='%.2e')
 
     if model == 'disgas':
         ecdf_folder = disgas_ecdf
@@ -585,12 +619,14 @@ def probabilistic_output(model):
                 end = n_completed_processes + max_number_processes
                 if end > len(indexes):
                     end = len(indexes)
-                try:
-                    pools_ecdfs[n_pool] = ThreadingPool(max_number_processes)
-                    pools_ecdfs[n_pool].map(ecdf, indexes[start:end])
-                except:
-                    print('Unable to elaborate days')
-                    sys.exit()
+                pools_ecdfs[n_pool] = ThreadingPool(max_number_processes)
+                pools_ecdfs[n_pool].map(ecdf, indexes[start:end])
+                #try:
+                #    pools_ecdfs[n_pool] = ThreadingPool(max_number_processes)
+                #    pools_ecdfs[n_pool].map(ecdf, indexes[start:end])
+                #except:
+                #    print('Unable to elaborate days')
+                #    sys.exit()
                 n_completed_processes = end
                 if n_completed_processes == len(indexes):
                     break
@@ -626,7 +662,8 @@ def save_plots(model,min_con,max_con):
         from matplotlib.ticker import FormatStrFormatter
         from mpl_toolkits.axes_grid1 import make_axes_locatable, axes_size
         with open(input) as input_file:
-            Z = np.loadtxt(input)
+            if output_format == 'grd':
+                Z = np.loadtxt(input, skiprows=5)
             X = np.arange(x0, xf, dx)
             Y = np.arange(y0, yf, dy)
             n_levels = 10
@@ -834,7 +871,7 @@ def save_plots(model,min_con,max_con):
 
 root = os.getcwd()
 
-plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert, models, merge_outputs, units, time_av, min_con, max_con = read_arguments()
+plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert, models, merge_outputs, units, time_av, min_con, max_con, output_format = read_arguments()
 
 try:
     max_number_processes = int(os.environ["SLURM_NPROCS"])

@@ -1,4 +1,4 @@
-﻿# APVGDM - Automatic Probabilistic Volcanic Gas Dispersion Modelling
+﻿# VIGIL - automatic probabilistic VolcanIc Gas dIspersion modeLling
 Fabio Dioguardi. British Geological Survey, The Lyell Centre, Edinburgh, United Kingdom. Email: fabiod@bgs.ac.uk
 Silvia Massaro. Istituto Nazionale di Geofisica e Vulcanologia, Sezione di Bologna, Bologna, Italy. Email: silvia.massaro@ingv.it
 
@@ -12,14 +12,19 @@ The weather data can be either retrieved from ECMWF ERA5 database or from time s
 	+ Weather station data
 	In this mode, the script is design to extract weather data in the time interval specified by the user from selected weather data file. The script reads the number of files, file location and name from weather_stations.txt; the file data should be stored in the folder weather_stations.
 The following flags control the execution of weather.py:
-usage: weather.py [-h] [-S START_DATE] [-E END_DATE] [-V VOLC] [-LAT LAT]
-                  [-LON LON] [-EL ELEV] [-NS SAMPLES] [-ERA5 ERA5]
-                  [-WST STATION] [-N NPROC]  [-TD TWODEE] [-DG DISGAS]
+usage: weather.py [-h] [-S START_DATE] [-E END_DATE] [-SY SAMPLED_YEARS [SAMPLED_YEARS ...]] [-SM SAMPLED_MONTHS [SAMPLED_MONTHS ...]] [-SD SAMPLED_DAYS [SAMPLED_DAYS ...]] [-V VOLC] [-LAT LAT] [-LON LON]
+                  [-EL ELEV] [-NS SAMPLES] [-ERA5 ERA5] [-WST STATION] [-N NPROC] [-TD TWODEE] [-DG DISGAS]
   -h, --help            show this help message and exit
   -S START_DATE, --start_date START_DATE
                         Start date of the sampling period. Format: DD/MM/YYYY
   -E END_DATE, --end_date END_DATE
                         Start date of the sampling period. Format: DD/MM/YYYY
+  -SY SAMPLED_YEARS [SAMPLED_YEARS ...], --sampled_years SAMPLED_YEARS [SAMPLED_YEARS ...]
+                        Specify years to sample from the time interval
+  -SM SAMPLED_MONTHS [SAMPLED_MONTHS ...], --sampled_months SAMPLED_MONTHS [SAMPLED_MONTHS ...]
+                        Specify months to sample from the time interval
+  -SD SAMPLED_DAYS [SAMPLED_DAYS ...], --sampled_days SAMPLED_DAYS [SAMPLED_DAYS ...]
+                        Specify days to sample from the time interval
   -V VOLC, --volc VOLC  This is the volcano ID based on the Smithsonian
                         Institute IDs
   -LAT LAT, --lat LAT   Volcano latitude

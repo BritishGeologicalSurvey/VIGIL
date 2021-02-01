@@ -16,6 +16,9 @@ def read_arguments():
     parser = argparse.ArgumentParser(description='Input data')
     parser.add_argument('-S', '--start_date', default=999, help='Start date of the sampling period. Format: DD/MM/YYYY')
     parser.add_argument('-E', '--end_date', default=999, help='Start date of the sampling period. Format: DD/MM/YYYY')
+    parser.add_argument('-SY', '--sampled_years', nargs='+', default=[], help='Specify years to sample from the time interval')
+    parser.add_argument('-SM', '--sampled_months', nargs='+', default=[], help='Specify months to sample from the time interval')
+    parser.add_argument('-SD', '--sampled_days', nargs='+', default=[], help='Specify days to sample from the time interval')
     parser.add_argument('-V', '--volc', default=999,
                         help='This is the volcano ID based on the Smithsonian Institute IDs')
     parser.add_argument('-LAT', '--lat', default=999, help='Volcano latitude')
@@ -33,6 +36,9 @@ def read_arguments():
     args = parser.parse_args()
     start_date = args.start_date
     end_date = args.end_date
+    sampled_years = args.sampled_years
+    sampled_months = args.sampled_months
+    sampled_days = args.sampled_days
     volc_id = int(args.volc)
     volc_lat = float(args.lat)
     volc_lon = float(args.lon)
@@ -127,7 +133,7 @@ def read_arguments():
         print('Please provide a valid entry for the variable -DG --disgas')
         sys.exit()
     return nsamples, time_start, time_stop, analysis_start, analysis_stop, ERA5_on, weather_station_on, \
-           elevation, volc_lat, volc_lon, easting, northing, max_number_processes, twodee_on, disgas_on
+           elevation, volc_lat, volc_lon, easting, northing, max_number_processes, twodee_on, disgas_on, sampled_years, sampled_months, sampled_days
 
 def era5_retrieve(lon_source,lat_source,retrieved_day):
     from datetime import timedelta as td, datetime
@@ -821,7 +827,7 @@ def automatic_weather(analysis_start):
         fake_upper.close()
 
 nsamples, time_start, time_stop, analysis_start, analysis_stop, ERA5_on, weather_station_on, elevation, \
-volc_lat, volc_lon, easting, northing, max_number_processes, twodee_on, disgas_on = read_arguments()
+volc_lat, volc_lon, easting, northing, max_number_processes, twodee_on, disgas_on, sampled_years, sampled_months, sampled_days = read_arguments()
 
 if disgas_on == False and twodee_on == False:
     print('Both DISGAS and TWODEE are turned off')
@@ -831,12 +837,21 @@ delta = time_stop - time_start
 days_list = []
 sampled_periods_end = []
 #Generate a list of days in the time interval defined above
+sampled_years_int = [int(i) for i in sampled_years]
+sampled_months_int = [float(i) for i in sampled_months]
+sampled_days_int = [float(i) for i in sampled_days]
 for i in range(delta.days + 1):
     day = time_start + datetime.timedelta(days = i)
-    days_list.append(day)
-#
+    if day.year in sampled_years_int or len(sampled_years_int) == 0:
+        if day.month in sampled_months_int or len(sampled_months_int)== 0:
+            if day.day in sampled_days_int or len(sampled_days_int)== 0:
+                days_list.append(day)
 #Create a new list of nsamples randomly-sampled periods
-sampled_period_days = sample(days_list,nsamples)
+try:
+    sampled_period_days = sample(days_list,nsamples)
+except ValueError:
+    print('ERROR. The sample is larger than the population of days')
+    sys.exit()
 try:
     os.mkdir(simulations)
 except:

@@ -100,7 +100,8 @@ Python script that:
 The following flags control the execution of post_process.py:
 usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB] [-EX EX_PROB [EX_PROB ...]] [-T TIME_STEPS [TIME_STEPS ...]]
                        [-L LEVELS [LEVELS ...]] [-D DAYS_PLOT [DAYS_PLOT ...]] [-C CONVERT] [-S SPECIES [SPECIES ...]]
-                       [-N NPROC] [-M MODELS] [-MO MERGE_OUTPUTS] [-U UNITS] [-PL PLOT_LIMITS [PLOT_LIMITS ...]] [-TA TIME_AV] [-OF OUTPUT_FORMAT]
+                       [-N NPROC] [-M MODELS] [-MO MERGE_OUTPUTS] [-U UNITS] [-PL PLOT_LIMITS [PLOT_LIMITS ...]] [-TA TIME_AV] 
+		       [-OF OUTPUT_FORMAT] [-PT PLOT_TOPOGRAPHY] [-PR PLOT_RESOLUTION]
 
   -h, --help            show this help message and exit
   -P PLOT, --plot PLOT  True: Produce plots of the solutions. False: Do not
@@ -138,6 +139,10 @@ usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB] [-EX EX_PROB [EX_PROB .
                         Generate time-averaged outputs. Specify the time-averaging interval (in hours), or 0 for averaging over the whole duration
   -OF OUTPUT_FORMAT, --output_format OUTPUT_FORMAT
                         Select format of the processed output files. Valid options are: GRD
+  -PT PLOT_TOPOGRAPHY, --plot_topography PLOT_TOPOGRAPHY
+                        Plot topography layer (True or False). Warning, it can be time-consuming!
+  -PR PLOT_RESOLUTION, --plot_resolution PLOT_RESOLUTION
+                        Specify plot resolution in dpi
 
 ### DEPENDENCIES AND INSTALLATION INSTRUCTIONS ###
 The following software are required:

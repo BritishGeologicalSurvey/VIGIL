@@ -33,6 +33,8 @@ def read_arguments():
     parser.add_argument('-PL', '--plot_limits', nargs='+', default=[], help='Minimum and maximum value of concentration to display. If unspecified, they are obtained from all the outputs')
     parser.add_argument('-TA', '--time_av', default=None, help='Generate time-averaged outputs. Specify the time-averaging interval (in hours), or 0 for averaging over the whole duration')
     parser.add_argument('-OF', '--output_format', default='GRD', help='Select format of the processed output files. Valid options are: GRD')
+    parser.add_argument('-PT', '--plot_topography', default='False', help='Plot topography layer (True or False). Warning, it can be time-consuming!')
+    parser.add_argument('-PR', '--plot_resolution', default=600, help='Specify plot resolution in dpi')
     args = parser.parse_args()
     plot = args.plot
     plot_ex_prob = args.plot_ex_prob
@@ -49,6 +51,8 @@ def read_arguments():
     plot_limits = args.plot_limits
     time_av = args.time_av
     output_format = args.output_format
+    plot_topography = args.plot_topography
+    plot_resolution = args.plot_resolution
     if plot.lower() == 'true':
         plot = True
         if len(days_plot) == 0:
@@ -128,7 +132,19 @@ def read_arguments():
         sys.exit()
     else:
         output_format = 'grd'
-    return plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert, models, merge_outputs, units, time_av, min_con, max_con, output_format
+    if plot_topography.lower() == 'true':
+        plot_topography_layer = True
+    elif plot_topography.lower() == 'false':
+        plot_topography_layer = False
+    else:
+        print('ERROR. Wrong value for variable -PT --plot_topography')
+        sys.exit()
+    try:
+        plot_resolution = int(plot_resolution)
+    except:
+        print('ERROR. Please provide a valid number for -PR --plot_resolution')
+        sys.exit()
+    return plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert, models, merge_outputs, units, time_av, min_con, max_con, output_format, plot_topography_layer, plot_resolution
 
 def folder_structure():
     original_output_folder_name = 'simulations'
@@ -661,6 +677,37 @@ def save_plots(model,min_con,max_con):
         from matplotlib import pyplot as plt
         from matplotlib.ticker import FormatStrFormatter
         from mpl_toolkits.axes_grid1 import make_axes_locatable, axes_size
+        if plot_topography_layer:
+            with open('topography.grd') as topography_file:
+                for i, line in enumerate(topography_file):
+                    if i == 1:
+                        nx_top = float(line.split(' ')[0])
+                        ny_top = float(line.split(' ')[1])
+                    if i == 2:
+                        x0_top = float(line.split(' ')[0])
+                        xf_top = float(line.split(' ')[1])
+                    if i == 3:
+                        y0_top = float(line.split(' ')[0])
+                        yf_top = float(line.split(' ')[1])
+                    if i == 4:
+                        min_z = float(line.split(' ')[0])
+                        if min_z < 0:
+                            min_z = 0
+                        max_z = float(line.split(' ')[1])
+            dx_top = (xf_top - x0_top) / nx_top
+            dy_top = (yf_top - y0_top) / ny_top
+            with open('topography.grd') as topography_file:
+                if output_format == 'grd':
+                    Z_top = np.loadtxt('topography.grd', skiprows=5)
+                X_top = np.arange(x0_top, xf_top, dx_top)
+                Y_top = np.arange(y0_top, yf_top, dy_top)
+                n_levels = 10
+                n_levels_lines = 10
+                dz = (max_z - min_z) / n_levels
+                dz_lines = (max_z - min_z) / n_levels_lines
+                levels_top = np.arange(min_z + 0.0000001, max_z, dz)
+                levels_line = np.arange(min_z + 0.0000001, max_z, dz_lines)
+            topography_file.close()
         with open(input) as input_file:
             if output_format == 'grd':
                 Z = np.loadtxt(input, skiprows=5)
@@ -669,32 +716,39 @@ def save_plots(model,min_con,max_con):
             n_levels = 10
             dc = (max_con - min_con) / n_levels
             levels = np.arange(min_con + 0.0000001, max_con, dc)
-            fig, ax = plt.subplots()
-            cf = ax.contourf(X, Y, Z, levels, cmap = 'Reds')
-            aspect = 20
-            pad_fraction = 0.5
-            divider = make_axes_locatable(ax)
-            width = axes_size.AxesY(ax, aspect=1. / aspect)
-            pad = axes_size.Fraction(pad_fraction, width)
-            cax = divider.append_axes("right", size=width, pad=pad)
-            cbar = fig.colorbar(cf, cax = cax, orientation='vertical', format='%.1e')
-            cbar.ax.tick_params(labelsize=8)
-            cbar.set_label('ppm')
-            if units == 'ppm':
-                ax.set_title('Gas concentration [ppm]')
-            else:
-                ax.set_title('Gas concentration [kg m$\mathregular{^{-3}}$]')
-            ax.set_aspect('equal')
-            ax.set_xlim(x0,xf)
-            ax.set_ylim(y0,yf)
-            ax.ticklabel_format(style='plain')
-            ax.set_xlabel('X_UTM [m]')
-            ax.set_ylabel('Y_UTM [m]')
-            image_buffer = StringIO()
-            plt.tight_layout()
-            plt.savefig(output)
-            image_buffer.close()
-            plt.close(fig)
+        fig, ax = plt.subplots(figsize=(6, 5), dpi=plot_resolution)
+        if plot_topography_layer:
+            top = ax.contourf(X_top, Y_top, Z_top, levels_top, cmap='Greys')
+            top_lines = ax.contour(X_top, Y_top, Z_top, levels_line, colors='black', linewidths=0.05)
+            top_cbar = fig.colorbar(top, orientation='horizontal', format='%.1f', shrink=0.75)
+            top_cbar.ax.tick_params(labelsize=8)
+            top_cbar.set_label('m a.s.l.')
+        c_field = plt.contourf(X, Y, Z, levels, cmap='Reds', alpha=0.9)
+        aspect = 20
+        pad_fraction = 0.5
+        divider = make_axes_locatable(ax)
+        width = axes_size.AxesY(ax, aspect=1. / aspect)
+        pad = axes_size.Fraction(pad_fraction, width)
+        cax_c = divider.append_axes("right", size=width, pad=pad)
+        cbar = fig.colorbar(c_field, cax=cax_c, orientation='vertical', format='%.1e')
+        cbar.ax.tick_params(labelsize=8)
+        cbar.set_label('ppm')
+        if units == 'ppm':
+            ax.set_title('Gas concentration [ppm]')
+        else:
+            ax.set_title('Gas concentration [kg m$\mathregular{^{-3}}$]')
+        ax.set_aspect('equal')
+        ax.set_xlim(x0, xf)
+        ax.set_ylim(y0, yf)
+        ax.ticklabel_format(style='plain')
+        ax.set_xlabel('X_UTM [m]')
+        ax.tick_params(labelsize=8)
+        ax.set_ylabel('Y_UTM [m]')
+        image_buffer = StringIO()
+        plt.tight_layout()
+        plt.savefig(output)
+        image_buffer.close()
+        plt.close(fig)
         input_file.close()
 
     if model == 'disgas':
@@ -871,7 +925,7 @@ def save_plots(model,min_con,max_con):
 
 root = os.getcwd()
 
-plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert, models, merge_outputs, units, time_av, min_con, max_con, output_format = read_arguments()
+plot, plot_ex_prob, time_steps, levels, days_plot, species, exceedance_probabilities, nproc, convert, models, merge_outputs, units, time_av, min_con, max_con, output_format, plot_topography_layer, plot_resolution = read_arguments()
 
 try:
     max_number_processes = int(os.environ["SLURM_NPROCS"])

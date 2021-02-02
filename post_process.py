@@ -377,7 +377,8 @@ def converter(input_file, processed_file, specie_input, model):
 def time_average(files_to_average, outfile):
     Z_sum = 0
     for file in files_to_average:
-        Z = np.loadtxt(file)
+        if output_format == 'grd':
+            Z = np.loadtxt(file, skiprows=5)
         Z_sum += Z
     Z_avg = np.divide(Z_sum, len(files_to_average))
     # Create header of the processed file

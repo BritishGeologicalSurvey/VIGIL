@@ -449,7 +449,7 @@ def elaborate_day(day_input, model):
                 except:
                     print('Cannot find the expected TWODEE output file at the level ' + str(file_level))
                     sys.exit()
-                file_level = "{:03d}".format(file_level_index)
+                file_level = "{:03d}".format(file_level_index + 1)
                 file_time_step = "{:06d}".format(int((int(file_time_step) / twodee_output_time_step)))
                 file = 'c_' + file_level + '_' + file_time_step + '.grd'
             else:

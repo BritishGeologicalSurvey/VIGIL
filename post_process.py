@@ -377,6 +377,7 @@ def converter(input_file, processed_file, specie_input, model):
             Z_converted = np.multiply(Z, mol_ratio)
             Z_converted = np.divide(Z_converted, molar_weight / (44.64 * 1000000000))
             np.savetxt(processed_file, Z_converted, fmt='%.2e')
+    processed_file.close()
 
 def time_average(files_to_average, outfile):
     Z_sum = 0
@@ -495,16 +496,15 @@ def elaborate_day(day_input, model):
                 for level in levels:
                     files_in_level = []
                     for file in processed_files_species[i]:
-                        file_level = file.split('c_')[1]
-                        file_level = file_level.split('_')[0]
+                        file_level = os.path.split(file)[1]
+                        file_level = file_level.split('_')[1]
                         if file_level == level:
                             files_in_level.append(file)
                     time_averaged_file = os.path.join(os.path.join(model_processed_output_folder_daily, species[i]), 'c_' + level + '_' + str(time_min) + '-' + str(time_max)  + '-tavg.grd')
                     for file in processed_files_species[i]:
-                        file_level = file.split('c_')[1]
-                        file_level = file_level.split('_')[0]
-                        file_time_step = file.split('c_')[1]
-                        file_time_step = file_time_step.split('_')[1]
+                        file_name = os.path.split(file)[1]
+                        file_level = file_name.split('_')[1]
+                        file_time_step = file_name.split('_')[2]
                         file_time_step = file_time_step.split('.')[0]
                         if file_level == level:
                             if time_min <= int(file_time_step) <= time_max:

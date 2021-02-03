@@ -265,6 +265,7 @@ def gas_properties():
 
 def domain(model):
     import re
+    output_levels = []
     if model == 'disgas':
         with open(file='disgas.inp') as input_file:
             for record in input_file:
@@ -317,12 +318,15 @@ def domain(model):
                         heights = temp[0]
                         extracted_heights = re.findall('\d+\.\d+', heights) # This extracts decimal numbers only!
                         nz = len(extracted_heights)
+                        for height in extracted_heights:
+                            output_levels.append(float(height))
+                        output_levels = sorted(output_levels)
                 except:
                     continue
     yf = y0 + ny * dy
     xf = x0 + nx * dx
     n_time_steps = int(tot_time / dt)
-    return x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps
+    return x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, output_levels
 
 def extract_days():
     days = []
@@ -438,7 +442,13 @@ def elaborate_day(day_input, model):
                 file_name_splitted = file.split('_')
                 file_level = file_name_splitted[1]
                 file_time_step = file_name_splitted[2].split('.')[0]
-                file_level = "{:03d}".format(int(int(file_level.split('cm')[0]) / 100))
+                file_level = float(file_level.split('cm')[0]) / 100
+                try:
+                    file_level_index = output_levels.index(file_level)
+                except:
+                    print('Cannot find the expected TWODEE output file at the level ' + str(file_level))
+                    sys.exit()
+                file_level = "{:03d}".format(file_level_index)
                 file_time_step = "{:06d}".format(int((int(file_time_step) / twodee_output_time_step)))
                 file = 'c_' + file_level + '_' + file_time_step + '.grd'
             else:
@@ -941,7 +951,7 @@ days, days_to_plot = extract_days()
 if convert:
     species_properties = gas_properties()
 for model in models_to_elaborate:
-    x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps = domain(model)
+    x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, output_levels = domain(model)
     for day in days:
         tavg_intervals = elaborate_day(day, model)
     probabilistic_output(model)

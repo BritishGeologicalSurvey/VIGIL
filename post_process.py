@@ -547,7 +547,7 @@ def probabilistic_output(model):
         try:
             ecdf_output_file = os.path.join(ecdf_folder, str(ex_prob), specie, 'c_' + "{:03d}".format(int(level)) + '_' + "{:06d}".format(int(time_step)) + '.grd')
         except:
-            ecdf_output_file = os.path.join(ecdf_folder, str(ex_prob), specie,'c_' + "{:03d}".format(int(level)) + '_' + time_step + '.grd')
+            ecdf_output_file = os.path.join(ecdf_folder, str(ex_prob), specie, 'c_' + "{:03d}".format(int(level)) + '_' + time_step + '.grd')
         output_quantile = np.zeros((ny, nx))
         c_arrays = []
         files_not_available = []

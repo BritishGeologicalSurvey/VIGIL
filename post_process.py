@@ -682,7 +682,7 @@ def probabilistic_output(model):
 def save_plots(model,min_con,max_con):
     import re
 
-    def plot_file(input,output):
+    def plot_file(input, output):
         import matplotlib
         matplotlib.use('Agg')
         from matplotlib import pyplot as plt
@@ -692,8 +692,8 @@ def save_plots(model,min_con,max_con):
             with open('topography.grd') as topography_file:
                 for i, line in enumerate(topography_file):
                     if i == 1:
-                        nx_top = float(line.split(' ')[0])
-                        ny_top = float(line.split(' ')[1])
+                        nx_top = int(line.split(' ')[0])
+                        ny_top = int(line.split(' ')[1])
                     if i == 2:
                         x0_top = float(line.split(' ')[0])
                         xf_top = float(line.split(' ')[1])
@@ -705,14 +705,12 @@ def save_plots(model,min_con,max_con):
                         if min_z < 0:
                             min_z = 0
                         max_z = float(line.split(' ')[1])
-            dx_top = (xf_top - x0_top) / nx_top
-            dy_top = (yf_top - y0_top) / ny_top
             with open('topography.grd') as topography_file:
                 if output_format == 'grd':
                     Z_top = np.loadtxt('topography.grd', skiprows=5)
-                X_top = np.arange(x0_top, xf_top, dx_top)
-                Y_top = np.arange(y0_top, yf_top, dy_top)
-                n_levels = 10
+                X_top = np.linspace(x0_top, xf_top, num=nx_top)
+                Y_top = np.linspace(y0_top, yf_top, num=ny_top)
+                n_levels = 100
                 n_levels_lines = 10
                 dz = (max_z - min_z) / n_levels
                 dz_lines = (max_z - min_z) / n_levels_lines
@@ -722,17 +720,17 @@ def save_plots(model,min_con,max_con):
         with open(input) as input_file:
             if output_format == 'grd':
                 Z = np.loadtxt(input, skiprows=5)
-            X = np.arange(x0, xf, dx)
-            Y = np.arange(y0, yf, dy)
+            X = np.linspace(x0, xf, num=nx)
+            Y = np.linspace(y0, yf, num=ny)
             n_levels = 10
             dc = (max_con - min_con) / n_levels
             levels = np.arange(min_con + 0.0000001, max_con, dc)
-        fig, ax = plt.subplots(figsize=(6, 5), dpi=plot_resolution)
+        fig, ax = plt.subplots(figsize=(6, 5), dpi=600)
         if plot_topography_layer:
             top = ax.contourf(X_top, Y_top, Z_top, levels_top, cmap='Greys')
             top_lines = ax.contour(X_top, Y_top, Z_top, levels_line, colors='black', linewidths=0.05)
             top_cbar = fig.colorbar(top, orientation='horizontal', format='%.1f', shrink=0.75)
-            top_cbar.ax.tick_params(labelsize=8)
+            top_cbar.ax.tick_params(labelsize=6)
             top_cbar.set_label('m a.s.l.')
         c_field = plt.contourf(X, Y, Z, levels, cmap='Reds', alpha=0.9)
         aspect = 20

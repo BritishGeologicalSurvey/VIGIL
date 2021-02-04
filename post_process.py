@@ -159,7 +159,10 @@ def folder_structure():
     disgas_ecdf = os.path.join(disgas_outputs, ecdf_folder_name)
     twodee_processed_output_folder = os.path.join(twodee_outputs, processed_output_folder_name)
     twodee_ecdf = os.path.join(twodee_outputs, ecdf_folder_name)
-    os.mkdir(post_processing)
+    try:
+        os.mkdir(post_processing)
+    except FileExistsError:
+        print('Folder post_processing already exists')
     if models == 'disgas' or models == 'all':
         try:
             os.mkdir(disgas_outputs)

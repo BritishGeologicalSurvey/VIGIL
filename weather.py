@@ -765,7 +765,7 @@ def extract_station_data(station_data_files,  eastings, northings, zst, data_fol
         print('Unable to process diagno.inp')
     return tref_vector,tsoil_vector,press_vector
 
-def twodee_data(tref, tsoil, press, data_folder):
+def save_surface_data(tref, tsoil, press, data_folder):
     with open(os.path.join(data_folder,'surface_data.txt'),'w',encoding='UTF-8') as surface_data:
         surface_data.write('Time [HHMM] Tref[K]  Tz0[K]   P[Pa]\n')
         for i in range(0,len(tref)):
@@ -819,8 +819,7 @@ def automatic_weather(analysis_start):
                 i += 1
                 continue
         tref, tsoil, press = extract_station_data(station_data_files, eastings, northings, zst, data_folder)
-    if twodee_on:
-        twodee_data(tref, tsoil, press, data_folder)
+    save_surface_data(tref, tsoil, press, data_folder)
     if not os.path.exists(os.path.join(data_folder,'upper.dat')):
         with open(os.path.join(data_folder,'upper.dat'),'w',encoding='utf-8') as fake_upper: #To not let DIAGNO crash when using just presfc
             fake_upper.write('Fake upper.dat file')

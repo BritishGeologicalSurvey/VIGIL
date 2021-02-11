@@ -80,16 +80,19 @@ def read_arguments():
         if len(levels) == 0:
             print('ERROR. Please specify at least one level to plot')
             sys.exit()
+    if len(species) == 0:
+        print('ERROR. Please specify at least one gas specie name')
+        sys.exit()
     if convert.lower() == 'true':
         convert = True
-        if len(species) == 0:
-            print('ERROR. Please specify at least one gas specie name when --convert=True')
-            sys.exit()
+        #if len(species) == 0:
+        #    print('ERROR. Please specify at least one gas specie name when --convert=True')
+        #    sys.exit()
     elif convert.lower() == 'false':
         convert = False
-        if len(species) != 0:
-            del species[:]
-        species.append('original_specie')
+        #if len(species) != 0:
+        #    del species[:]
+        #species.append('original_specie')
     else:
         print('ERROR. Wrong value for variable -C --convert')
         sys.exit()
@@ -293,6 +296,8 @@ def domain(model):
                         x0 = float(temp[0])
                     elif 'Y_ORIGIN_(UTM_M)' in record_splitted[0]:
                         y0 = float(temp[0])
+                    elif 'OUTPUT_INTERVAL_(SEC)' in record_splitted[0]:
+                        dt = float(temp[0])
                 except:
                     continue
     else:
@@ -324,12 +329,14 @@ def domain(model):
                         for height in extracted_heights:
                             output_levels.append(float(height))
                         output_levels = sorted(output_levels)
+                    elif 'OUTPUT_INTERVAL_(SEC)' in record_splitted[0]:
+                        dt = float(temp[0])
                 except:
                     continue
     yf = y0 + ny * dy
     xf = x0 + nx * dx
     n_time_steps = int(tot_time / dt)
-    return x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, output_levels
+    return x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, output_levels
 
 def extract_days():
     days = []
@@ -354,12 +361,80 @@ def converter(input_file, processed_file, specie_input, model):
     Z[Z < 0] = 0
     if units == 'ppm':
         if model == 'disgas':
-            Z_converted = np.multiply(Z, 1000)  # convert kg/m3 to ppm
+            file_time_step = os.path.split(processed_file)[1]
+            file_time_step = file_time_step.split('_')[2]
+            file_time_step = int(file_time_step.split('.grd')[0])
+            file_time_s = file_time_step * dt
+            hours, remainder = divmod(file_time_s, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            hours_int = int(hours)
+            minutes_int = int(minutes)
+            # Round to the next hours. It can be improved with a linear interpolation
+            if minutes_int > 30:
+                minutes_int = 0
+                hours_int += 1
+            if hours_int > 23:  # First order approximation for the last time step. To be modified if simulations > 24 hours are to be implemented
+                hours_int = 23
+            file_time_h = '{:02}{:02}'.format(hours_int, minutes_int)
+            file_name = input_file.split(os.sep)[-1]
+            file_folder = input_file.split(file_name)[0]
+            file_folder_infiles = file_folder.split('outfiles')[0] # To be changed when folder structures will change
+            file_folder_infiles = os.path.join(file_folder_infiles,'infiles')
+            surface_data = os.path.join(file_folder_infiles,'surface_data.txt')
+            with open(surface_data) as surface_data_file:
+                for line in surface_data_file:
+                    try:
+                        records = line.split('\t')
+                    except:
+                        continue
+                    if file_time_h == records[0]:
+                        t2m = float(records[2])
+                        p2m = float(records[3]) / 100 # in hPa for this conversion
+                        break
+            for specie in species_properties:
+                if specie['specie_name'] == specie_input:
+                    molar_weight = specie['molar_weight']
+            conversion_factor = ((22.4 / molar_weight) * ((273 + t2m) / 273) * (1013 / p2m)) * 1000000
+            Z_converted = np.multiply(Z, conversion_factor)  # convert kg/m3 to ppm
         else:
             Z_converted = Z
     else:
         if model == 'twodee':
-            Z_converted = np.divide(Z, 1000)  # convert ppm to kg/m3
+            file_time_step = os.path.split(processed_file)[1]
+            file_time_step = file_time_step.split('_')[2]
+            file_time_step = int(file_time_step.split('.grd')[0])
+            file_time_s = file_time_step * dt
+            hours, remainder = divmod(file_time_s, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            hours_int = int(hours)
+            minutes_int = int(minutes)
+            # Round to the next hours. It can be improved with a linear interpolation
+            if minutes_int > 30:
+                minutes_int = 0
+                hours_int += 1
+            if hours_int > 23:  # First order approximation for the last time step. To be modified if simulations > 24 hours are to be implemented
+                hours_int = 23
+            file_time_h = '{:02}{:02}'.format(hours_int, minutes_int)
+            file_name = input_file.split(os.sep)[-1]
+            file_folder = input_file.split(file_name)[0]
+            file_folder_infiles = file_folder.split('outfiles')[0]  # To be changed when folder structures will change
+            file_folder_infiles = os.path.join(file_folder_infiles, 'infiles')
+            surface_data = os.path.join(file_folder_infiles, 'surface_data.txt')
+            with open(surface_data) as surface_data_file:
+                for line in surface_data_file:
+                    try:
+                        records = line.split('\t')
+                    except:
+                        continue
+                    if file_time_h == records[0]:
+                        t2m = float(records[2])
+                        p2m = float(records[3]) / 100  # in hPa for this conversion
+                        break
+            for specie in species_properties:
+                if specie['specie_name'] == specie_input:
+                    molar_weight = specie['molar_weight']
+            conversion_factor = ((molar_weight / 22.4) * (273 / (273 + t2m)) * (p2m / 1013)) / 1000000
+            Z_converted = np.multiply(Z, conversion_factor)  # convert ppm to kg/m3
         else:
             Z_converted = Z
     # Create header of the processed file
@@ -370,7 +445,9 @@ def converter(input_file, processed_file, specie_input, model):
             processed_file.write(str(x0) + '  ' + str(xf) + '\n')
             processed_file.write(str(y0) + '  ' + str(yf) + '\n')
             processed_file.write(str(np.amin(Z_converted)) + '  ' + str(np.amax(Z_converted)) + '\n')
-        if specie_input == 'original_specie':
+        #if specie_input == 'original_specie':
+        #    np.savetxt(processed_file, Z_converted, fmt='%.2e')
+        if convert == False:
             np.savetxt(processed_file, Z_converted, fmt='%.2e')
         else:
             for specie in species_properties:
@@ -938,10 +1015,11 @@ twodee_original_output_folder, twodee_processed_output_folder, twodee_ecdf, mode
 
 days, days_to_plot = extract_days()
 
-if convert:
-    species_properties = gas_properties()
+species_properties = gas_properties()
+#if convert:
+#    species_properties = gas_properties()
 for model in models_to_elaborate:
-    x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, output_levels = domain(model)
+    x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, output_levels = domain(model)
     for day in days:
         tavg_intervals = elaborate_day(day, model)
     probabilistic_output(model)

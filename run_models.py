@@ -422,6 +422,7 @@ def pre_process():
                 shutil.copyfile(os.path.join(root,'roughness_disgas.grd'),os.path.join(infiles,'roughness.grd'))
             except:
                 roughness_file_exist = False
+            shutil.move(os.path.join(diagno_daily, 'surface_data.txt'), os.path.join(infiles, 'surface_data.txt'))
             # read and memorize disgas.inp file
             disgas_input_records = []
             with open(disgas_original, 'r', encoding="utf-8", errors="surrogateescape") as disgas_or_input:

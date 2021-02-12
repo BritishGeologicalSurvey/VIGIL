@@ -245,7 +245,6 @@ def gas_properties():
         list_x = list(x)
         samples = (random.sample(list_x, 1))
         molar_ratio = samples[0]
-        print('The molar ratio ' + specie + '/H2O is', molar_ratio)
         return molar_ratio, molar_weight
 
     gas_properties_file = os.path.join(root, 'gas_properties.csv')

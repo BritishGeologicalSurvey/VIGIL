@@ -1,12 +1,12 @@
-﻿Menfite d'Ansanto
-  400      NX
-  170      NY
-  5       NZ
-  0.003    DXK (km)
-  0.003    DYK (km)
-0. 0.5  1.5  5. 15. 30. CELLZB(1:NZ+1) (m)
-  511.300      UTMXOR   (km)
- 4535.600      UTMYOR   (km)
+﻿Campi Flegrei
+  335      NX
+  300      NY
+  11       NZ
+  0.02496    DXK (km)
+  0.02496    DYK (km)
+0. 0.5  1.5  5. 15. 30. 50. 75. 100. 125. 150. 200. CELLZB(1:NZ+1) (m)
+  425.3721      UTMXOR   (km)
+ 4515.7131      UTMYOR   (km)
   0000        TSTART   (24-hours: HHMM)
   2300        TEND     (24-hours: HHMM)
     1         TINC     (hours)

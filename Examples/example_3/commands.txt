@@ -1,6 +1,6 @@
 HOW TO RUN EXAMPLE_3: Mefite Valle d’Ansanto (Italy)
 
-python weather.py -S 20/01/1996 -E 20/01/1996 -LAT 40.97 -LON 15.13 -EL 600 -NS 1 -ERA5 True -N 1 -TD on
+python weather.py -S 01/01/1990 -E 01/01/2020 -SM 12 1 2 -LAT 40.97 -LON 15.13 -EL 600 -NS 1 -ERA5 True -N 100 -TD on
 
 python run_models.py -N 100 -RS off -D UTM 4535600 511300 4536110 512500 -TD on
 

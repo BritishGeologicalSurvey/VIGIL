@@ -4,4 +4,4 @@ python weather.py -S 01/01/1990 -E 01/01/2020 -SM 12 1 2 -LAT 40.97 -LON 15.13 -
 
 python run_models.py -N 100 -RS off -D UTM 4535600 511300 4536110 512500 -TD on
 
-python post_process.py -P True -PE False -T all -L all -D all -N 1 -M twodee -TA 0 -U ppm -PL 350 10000
+python post_process.py -P True -PE True -EX 0.01 0.05 0.5 -T all -L 1 2 -D all -N 50 -M twodee -U ppm -S CO2 -PT True

@@ -85,14 +85,8 @@ def read_arguments():
         sys.exit()
     if convert.lower() == 'true':
         convert = True
-        #if len(species) == 0:
-        #    print('ERROR. Please specify at least one gas specie name when --convert=True')
-        #    sys.exit()
     elif convert.lower() == 'false':
         convert = False
-        #if len(species) != 0:
-        #    del species[:]
-        #species.append('original_specie')
     else:
         print('ERROR. Wrong value for variable -C --convert')
         sys.exit()
@@ -1015,8 +1009,7 @@ twodee_original_output_folder, twodee_processed_output_folder, twodee_ecdf, mode
 days, days_to_plot = extract_days()
 
 species_properties = gas_properties()
-#if convert:
-#    species_properties = gas_properties()
+
 for model in models_to_elaborate:
     x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, output_levels = domain(model)
     for day in days:

@@ -1014,5 +1014,6 @@ for model in models_to_elaborate:
     x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, output_levels = domain(model)
     for day in days:
         tavg_intervals = elaborate_day(day, model)
-    probabilistic_output(model)
+    if plot_ex_prob:
+        probabilistic_output(model)
     save_plots(model,min_con,max_con)

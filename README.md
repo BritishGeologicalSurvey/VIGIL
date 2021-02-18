@@ -154,7 +154,7 @@ The following software are required:
   Linux: Install eccodes
   In both cases, add the binaries folder to the system PATH
 - Additional python packages needed
-  utm, cdsapi, pandas, xlrd
+  utm, cdsapi, pandas, pathos, openpyxl
 - CDSAPI client key
   The user needs to register to: https://cds.climate.copernicus.eu/cdsapp#!/home
   Once the registration is approved, to get the data follow the instructions here: https://confluence.ecmwf.int/display/CKB/How+to+download+ERA5
@@ -164,7 +164,7 @@ With Conda, it is possible to set a virtual environmnent with all the required d
 installation of the different packages and the management of the Python installation in the system.
 Instructions for setting the Conda environment:
 1) create the environment with all the needed additional packages:
-	conda create --name name_of_environment python=3.7 utm cdsapi pandas xlrd
+	conda create --name name_of_environment python=3.8 utm cdsapi pandas pathos openpyxl
 2) activate the environment with:
 	conda activate name_of_environment
 3) to exit from the environment:

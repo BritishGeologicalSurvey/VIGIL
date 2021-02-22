@@ -4,4 +4,4 @@ python weather.py -S 01/01/1990 -E 01/01/2020 -V 211010 -NS 100 -ERA5 True -N 10
 
 python run_models.py -RS off -D UTM 455450 4516000 433450 4523000 -N 50 -DG on 
 
-python post_process.py -P true -PE True -EX 0.05 -T 3 -L 3 -D all -C False -N 2 -M disgas -MO False -U ppm -S CO2 -PT True
+python post_process.py -P true -PE True -EX 0.5 0.05 0.01 -T 4 -L 3 -D all -C False -N 2 -M disgas -MO False -U ppm -S CO2 -PT True

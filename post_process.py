@@ -794,7 +794,7 @@ def save_plots(model,min_con,max_con):
             top_cbar = fig.colorbar(top, orientation='horizontal', format='%.1f', shrink=0.75)
             top_cbar.ax.tick_params(labelsize=6)
             top_cbar.set_label('m a.s.l.')
-        c_field = plt.contourf(X, Y, Z, levels, cmap='Reds', alpha=0.9)
+        c_field = plt.contourf(X, Y, Z, levels, cmap='Reds', alpha=0.9, extend='max')
         aspect = 20
         pad_fraction = 0.5
         divider = make_axes_locatable(ax)

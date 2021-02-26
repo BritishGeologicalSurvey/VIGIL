@@ -11,12 +11,12 @@ TIME
   RESET_TIME  = NO
 
 GRID
-  NX     = 81
-  NY     = 71
-  NZ     = 12
-  Z_LAYERS_(M) = 0. 0.5  1.5  5. 15. 30. 50. 75. 100. 125. 150. 200.
-  DX_(M) = 100.
-  DY_(M) = 100.
+  NX     = 321
+  NY     = 281
+  NZ     = 8
+  Z_LAYERS_(M) = 0. 0.5  1.5  5. 15. 30. 50. 75.
+  DX_(M) = 25.
+  DY_(M) = 25.
   X_ORIGIN_(UTM_M) = 425450
   Y_ORIGIN_(UTM_M) = 4516000
 

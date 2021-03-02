@@ -1,0 +1,111 @@
+!-------------------------------
+!
+!  EXAMPLE OF TWODEE INPUT FILE
+!
+!-------------------------------
+
+ VERSION
+   VERSION = 2.2
+   PROBLEM_NAME = Example
+   !
+ TIME
+   YEAR = 1996                                      (Beginning date)
+   MONTH = 01
+   DAY = 20
+   HOUR = 00
+   MINUTE = 00 
+   SIMULATION_INTERVAL_(SEC) =  3600               (Run duration in seconds)
+   RESTART_RUN = NO                                 (Options: YES/NO)
+   ! 
+ GRID
+   UTM_ZONE  = 33N                                  (value in format 30T)
+   UTM_DATUM = WGS_84                               (options: WGS_84/NAD_83/ED_50/ETRS_89/HGRS_87/OSGB_36/SIRGAS_00)
+   !
+   X_ORIGIN_(UTM_M) = 511300                      (X-coordinate of the grid BL corner)
+   Y_ORIGIN_(UTM_M) = 4535600                       (Y-coordinate of the grid BL corner)
+   NX     = 400                                     (Number of grid divisions in X)
+   NY     = 170                                     (Number of grid divisions in Y)
+   DX_(M) = 3                                   (Grid spacing along X in m)
+   DY_(M) = 3                                   (Grid spacing along Y in m)
+   !
+ PROPERTIES 
+   AMBIENT_GAS_DENSITY_20C_(KG/M3) = 1.204          (use 1.204 for air)
+   DENSE_GAS_DENSITY_20C_(KG/M3)   = 1.839          (use 1.839 for CO2)
+   AVERAGED_TEMPERATURE_(C)        = 0.0
+   DOSE_GAS_TOXIC_EXPONENT         = 2.0
+   !  
+ METEO
+   WIND_MODEL        = DIAGNO                      (Options: UNIFORM/DIAGNO/MET_NC)
+   Z_REFERENCE_(M)   = 2.0
+   !
+   X_STATION_(UTM_M) = 500.                         (Ground station x-coordinate. Only used if wind model is UNIFORM)     
+   Y_STATION_(UTM_M) = 500.                         (Ground station y-coordinate. Only used if wind model is UNIFORM)  
+   !
+   NC_DIM_X_NAME = lon                              (Name of the x-dimension    in the meteo NC file. Only used if wind model is MET_NC)
+   NC_DIM_Y_NAME = lat                              (Name of the y-dimension    in the meteo NC file. Only used if wind model is MET_NC)
+   NC_DIM_Z_NAME = z                                (Name of the z-dimension    in the meteo NC file. Only used if wind model is MET_NC)
+   NC_DIM_T_NAME = time                             (Name of the time dimension in the meteo NC file. Only used if wind model is MET_NC)
+   !
+   NC_VAR_DATE_NAME = DATE                          (Name of the DATE variable in the meteo NC file. Only used if wind model is MET_NC)
+   NC_VAR_HOUR_NAME = HOUR                          (Name of the HOUR variable in the meteo NC file. Only used if wind model is MET_NC)
+   NC_VAR_U_NAME    = U-VEL-WRF  ! U-VEL-DOWN       (Name of the U    variable in the meteo NC file. Only used if wind model is MET_NC)
+   NC_VAR_V_NAME    = V-VEL-WRF  ! V-VEL-DOWN       (Name of the V    variable in the meteo NC file. Only used if wind model is MET_NC)
+   NC_VAR_T_NAME    = T-WRF                         (Name of the TPOT variable in the meteo NC file. Only used if wind model is MET_NC)
+   !
+ FILES  
+   KML_RESOURCES_DIRECTORY = /home/vulcanomod/twodee2/twodee-2.2/Resources                    
+   INPUT_DIRECTORY         = /home/vulcanomod/twodee2/twodee-2.2_dev/test2/infiles
+   OUTPUT_DIRECTORY        = /home/vulcanomod/twodee2/twodee-2.2_dev/test2/outfiles
+   ! 
+   TOPOGRAPHY_FILE         = topography.grd 
+   TOPOGRAPHY_FILE_FORMAT  = GRD               (Options: NONE value/AAIG/GRD)  
+   ROUGHNESS_FILE          = roughness.grd 
+   ROUGHNESS_FILE_FORMAT   = GRD               (Options: NONE value/AAIG/GRD)  
+   RESTART_FILE            = restart.dat        (Only used if RESTART_RUN = YES)
+   SOURCE_FILE             = source.dat
+   !
+   WIND_FILE               = winds.dat          (Only used if WIND_MODEL = UNIFORM)
+   DIAGNO_FILE             = diagno.out         (Only used if WIND_MODEL = DIAGNO)
+   SURF_DATA_FILE          = surface_data.txt   (Only used if WIND_MODEL = DIAGNO)
+   MET_NC_FILE             = winds.nc           (Only used if WIND_MODEL = MET_NC)
+   !
+   TRACK_POINTS            = NO                (Options:YES/NO  If YES, outputs concentration at receptor points)
+   TRACK_POINTS_FILE       = points.pts         (Only used if TRACK_POINTS = YES) 
+   TRACK_BOXES             = NO                 (Options:YES/NO  If YES, outputs averaged concentration at boxes)
+   TRACK_BOXES_FILE        = boxes.dat          (Only used if TRACK_BOXES  = YES) 
+   !
+ OUTPUT
+   OUTPUT_INTERVAL_(SEC)  = 600
+   !
+   OUTPUT_GRD_FILE_FORMAT = yes                       (Options:YES/NO  If YES, outputs results in GRD format)
+   OUTPUT_NC_FILE_FORMAT  = no                      (Options:YES/NO  If YES, outputs results in netCDF format)
+   OUTPUT_KML_FILE_FORMAT = no                      (Options:YES/NO  If YES, outputs results in kml format)
+   ! 
+   OUTPUT_DOMAIN          = yes                      (Options:YES/NO  If YES, outputs topography)
+   OUTPUT_Z0              = yes                      (Options:YES/NO  If YES, outputs roughness)
+   OUTPUT_SOURCE          = yes                      (Options:YES/NO  If YES, outputs source term)
+   OUTPUT_METEO           = yes                      (Options:YES/NO  If YES, outputs meteo variables)
+   !
+   OUTPUT_VELOCITY        = yes                      (Options:YES/NO  If YES, outputs velocity)
+   OUTPUT_H               = yes                      (Options:YES/NO  If YES, outputs averaged cloud thickness)
+   OUTPUT_RHO             = yes                      (Options:YES/NO  If YES, outputs averaged cloud density)
+   OUTPUT_DOSE            = yes                      (Options:YES/NO  If YES, outputs toxic dose)
+   OUTPUT_CONCENTRATION   = yes                      (Options:YES/NO  If YES, outputs concentration in ppm)
+     HEIGHTS_(M)          = 0.05 0.5 1.0 1.5 2.0 2.5 3.0              (Heights at which concentration is plot)
+     CONCENTRATION_BG     = 350.                     (Background dense gas concentration in ppm)
+   OUTPUT_Z_CRITICAL      = yes                      (Options:YES/NO  If YES, outputs z below which c>c_critical)
+     CRITICAL_C_(%)       = 5 10 15                     (Critical concentration values in %)
+   OUTPUT_IMPACT          = no                       (Options:YES/NO  If YES, outputs impact based on averagedconcentrations over 15,30 and 60 min)
+   !
+ NUMERIC
+   FRONT_FROUDE_NUMBER     = 1.0                        (beta parameter)
+   OPTIMAL_COURANT_NUMBER  = 0.25
+   EDGE_ENTRAINMENT_COEFF  = 0.0                        (edge entrainment coefficient)
+   DIFFUSION_COEFFICIENT   = 0.20                       (diffusion coefficient for Zalesak method)
+   SHAPE_PARAMETER         = 0.5                        (shape parameter as in Ellison and Turner)
+   ZETA_PARAMETER          = 0.0                        (zeta constant in turbulent shear stress)
+   ALPHA_2                 = 0.7
+   ALPHA_3                 = 1.3
+   ALPHA_7                 = 0.45
+   VON_KARMAN_CONSTANT     = 0.4
+   BRITTER_B_CONSTANT      = 0.11

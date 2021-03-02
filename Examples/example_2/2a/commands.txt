@@ -1,0 +1,5 @@
+HOW TO RUN EXAMPLE_2a:  La Soufriére de Guadeloupe
+
+python weather.py -S 01/01/1990 -E 01/01/2020 -V 360060 -NS 100 -ERA5 True -N 100 -DG on
+
+python run_models.py -N 100 -RS on -NS 5 -SINT 2 5 -D UTM 1774000 642900 1776500 645400 -RER on -DG on

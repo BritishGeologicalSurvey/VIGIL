@@ -789,7 +789,7 @@ def save_plots(model,min_con,max_con):
             levels = np.arange(min_con + 0.0000001, max_con, dc)
         fig, ax = plt.subplots(figsize=(6, 5), dpi=600)
         if plot_topography_layer:
-            top = ax.contourf(X_top, Y_top, Z_top, levels_top, cmap='Greys')
+            top = ax.contourf(X_top, Y_top, Z_top, levels_top, cmap='Greys', extend='max')
             top_lines = ax.contour(X_top, Y_top, Z_top, levels_line, colors='black', linewidths=0.05)
             top_cbar = fig.colorbar(top, orientation='horizontal', format='%.1f', shrink=0.75)
             top_cbar.ax.tick_params(labelsize=6)

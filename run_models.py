@@ -92,9 +92,9 @@ def read_arguments():
             top_right_easting = temp
     if random_sources == 'on':
         try:
-            np.loadtxt('probability_map.txt')
+            np.loadtxt('probability_map.grd',skiprows=5)
         except:
-            print('Please provide a valid probability_map.txt file when random_sources option is on')
+            print('Please provide a valid probability_map.grd file when random_sources option is on')
             sys.exit()
         if nsources == 'random':
             if len(sources_interval) == 0 or len(sources_interval) > 2:
@@ -194,12 +194,33 @@ def read_arguments():
            source_dx, source_dy, source_dur, twodee_on, disgas_on
 
 def pre_process():
-    def sample_random_sources(n_sources, input_file, xmin, xmax, ymin, ymax, dur_min, dur_max, source_size_min, source_size_max):
+    def sample_random_sources(n_sources, input_file, dur_min, dur_max, source_size_min, source_size_max):
         from random import choices
 
-        probabilities_input = np.loadtxt(input_file)
-        nx = probabilities_input.shape[0]
-        ny = probabilities_input.shape[1]
+        with open(input_file) as probability_file:
+            i = 1
+            for line in probability_file:
+                if i == 2:
+                    nx = int(line.split(' ')[0])
+                    ny = int(line.split(' ')[1])
+                    i += 1
+                    continue
+                elif i == 3:
+                    xmin = float(line.split(' ')[0])
+                    xmax = float(line.split(' ')[1])
+                    i += 1
+                    continue
+                elif i == 4:
+                    ymin = float(line.split(' ')[0])
+                    ymax = float(line.split(' ')[1])
+                    i += 1
+                    continue
+                else:
+                    i += 1
+                    continue
+        probabilities_input = np.loadtxt(input_file, skiprows=5)
+        #nx = probabilities_input.shape[0]
+        #ny = probabilities_input.shape[1]
         location_cum_indexes = []
         location_indexes = []
         probabilities = []
@@ -298,8 +319,7 @@ def pre_process():
             Nsources = [nsources]
         n_random_sources = sample(Nsources, 1)[0]
         random_eastings, random_northings, random_elevations, random_probabilities, random_fluxes, \
-        random_dx, random_dy, random_dur = sample_random_sources(n_random_sources, 'probability_map.txt', bottom_left_easting, top_right_easting,
-                                                                 bottom_left_northing, top_right_northing, dur_min, dur_max, source_size_min, source_size_max)
+        random_dx, random_dy, random_dur = sample_random_sources(n_random_sources, 'probability_map.grd', dur_min, dur_max, source_size_min, source_size_max)
     easting = random_eastings
     northing = random_northings
     elevations = random_elevations

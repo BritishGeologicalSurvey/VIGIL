@@ -265,11 +265,12 @@ def pre_process():
 
     def fluxes():
         import numpy as np
-        import pandas as pd
-
-        data = pd.read_csv('flux.csv', error_bad_lines=False)
-        x = np.sort(data['flux'])
-        y = np.arange(1, len(x) + 1) / len(x)
+        fluxes_in = []
+        with open('flux.txt') as flux_file:
+            for line in flux_file:
+                fluxes_in.append(float(line))
+        flux_file.close()
+        x = np.sort(fluxes_in)
         list_x = list(x)
         sampled_flux = (sample(list_x, 1))
         return sampled_flux

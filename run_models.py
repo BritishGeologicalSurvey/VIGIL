@@ -219,8 +219,6 @@ def pre_process():
                     i += 1
                     continue
         probabilities_input = np.loadtxt(input_file, skiprows=5)
-        #nx = probabilities_input.shape[0]
-        #ny = probabilities_input.shape[1]
         location_cum_indexes = []
         location_indexes = []
         probabilities = []

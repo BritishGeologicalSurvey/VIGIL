@@ -14,26 +14,24 @@ n_stations = 1
 
 def read_arguments():
     parser = argparse.ArgumentParser(description='Input data')
+    parser.add_argument('-M', '--mode', default='reanalysis', help='Possible options: reanalysis, forecast. If reanalysis, either ERA5 or WST options should be on. \n If forecast, GFS data will be downloaded and processed' )
     parser.add_argument('-S', '--start_date', default=999, help='Start date of the sampling period. Format: DD/MM/YYYY')
     parser.add_argument('-E', '--end_date', default=999, help='Start date of the sampling period. Format: DD/MM/YYYY')
     parser.add_argument('-SY', '--sampled_years', nargs='+', default=[], help='Specify years to sample from the time interval')
     parser.add_argument('-SM', '--sampled_months', nargs='+', default=[], help='Specify months to sample from the time interval')
     parser.add_argument('-SD', '--sampled_days', nargs='+', default=[], help='Specify days to sample from the time interval')
-    parser.add_argument('-V', '--volc', default=999,
-                        help='This is the volcano ID based on the Smithsonian Institute IDs')
+    parser.add_argument('-V', '--volc', default=999, help='This is the volcano ID based on the Smithsonian Institute IDs')
     parser.add_argument('-LAT', '--lat', default=999, help='Volcano latitude')
     parser.add_argument('-LON', '--lon', default=999, help='Volcano longitude')
     parser.add_argument('-EL', '--elev', default=999, help='Volcano elevation')
     parser.add_argument('-NS', '--samples', default=1, help='Number of days to sample')
-    parser.add_argument('-ERA5', '--ERA5', default='False',
-                        help='True: Use ERA5 reanalysis. False: Do not use ERA5 reanalysis')
-    parser.add_argument('-WST', '--station', default='False',
-                        help='True: Use weather station data. False: Do not use weather station data')
+    parser.add_argument('-ERA5', '--ERA5', default='False', help='True: Use ERA5 reanalysis. False: Do not use ERA5 reanalysis')
+    parser.add_argument('-WST', '--station', default='False', help='True: Use weather station data. False: Do not use weather station data')
     parser.add_argument('-N', '--nproc', default=1, help='Maximum number of allowed simultaneous processes')
-    parser.add_argument('-TD', '--twodee', default='off',
-                        help='on or off, to prepare additional weather data files for Twodee.')
+    parser.add_argument('-TD', '--twodee', default='off', help='on or off, to prepare additional weather data files for Twodee.')
     parser.add_argument('-DG', '--disgas', default='off', help='on or off, to run Disgas')
     args = parser.parse_args()
+    mode = args.mode
     start_date = args.start_date
     end_date = args.end_date
     sampled_years = args.sampled_years
@@ -50,17 +48,33 @@ def read_arguments():
     nproc = args.nproc
     twodee = args.twodee
     disgas = args.disgas
+    mode = mode.lower()
+    if mode != 'reanalysis' and mode != 'forecast':
+        print('ERROR. Wrong value for variable -M --mode')
+        sys.exit()
     if ERA5_on == 'True':
         ERA5_on = True
+        if mode == 'forecast':
+            print('ERROR. ERA5 cannot be on in forecast mode')
+            sys.exit()
     elif ERA5_on == 'False':
         ERA5_on = False
+        if mode == 'reanalysis':
+            print('ERROR. ERA5 cannot be off in reanalysis mode')
+            sys.exit()
     else:
-        print('ERROR. Wrong value for variable --ERA5')
+        print('ERROR. Wrong value for variable -ERA5 --ERA5')
         sys.exit()
     if weather_station_on == 'True':
         weather_station_on = True
+        if mode == 'forecast':
+            print('ERROR. Weather station data cannot be on in forecast mode')
+            sys.exit()
     elif weather_station_on == 'False':
         weather_station_on = False
+        if mode == 'reanalysis':
+            print('ERROR. Weather station data cannot be off in reanalysis mode')
+            sys.exit()
     else:
         print('ERROR. Wrong value for variable --station')
         sys.exit()
@@ -132,13 +146,10 @@ def read_arguments():
     else:
         print('Please provide a valid entry for the variable -DG --disgas')
         sys.exit()
-    return nsamples, time_start, time_stop, analysis_start, analysis_stop, ERA5_on, weather_station_on, \
+    return mode, nsamples, time_start, time_stop, analysis_start, analysis_stop, ERA5_on, weather_station_on, \
            elevation, volc_lat, volc_lon, easting, northing, max_number_processes, twodee_on, disgas_on, sampled_years, sampled_months, sampled_days
 
-def era5_retrieve(lon_source,lat_source,retrieved_day):
-    from datetime import timedelta as td, datetime
-
-    def extract_data(folder,validity, wtfile_prof_step):
+def extract_grib_data(folder, validity, wtfile_prof_step):
         from math import atan2,pi
         file = open(wtfile_prof_step, "r", encoding="utf-8", errors="surrogateescape")
         records1 = []
@@ -193,7 +204,7 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
         gamma_pl = -(t[-1]-t[0])/((hgt[-1]-hgt[0])/1000)
         return wind, direction, hgt, gamma_pl
 
-    def extract_data_sl(folder,validity, wtfile_sl_location_step):
+def extract_grib_data_sl(folder, validity, wtfile_sl_location_step):
         from math import atan2,pi
         file = open(wtfile_sl_location_step, "r", encoding="utf-8", errors="surrogateescape")
         records1 = []
@@ -227,7 +238,212 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
         gamma_sl = (t2m - tz0) / 2.0
         return u, v, t2m, wind, direction, tz0, gamma_sl, pz0
 
-    def era5_request_pressure(folder,year,month,day):
+def prepare_diagno_files(data_folder, year, month, day):
+    files_list = os.listdir(data_folder)
+    path = os.path.normpath(data_folder)
+    splitted_path = path.split(os.sep)
+    retrieved_day_s = splitted_path[-1]
+    profile_data_files = []
+    surface_data_files = []
+    for file in files_list:
+        if 'profile_' in file:
+            profile_data_files.append(file)
+        if 'data_location_' in file:
+            surface_data_files.append(file)
+    wind_direction_string = ''
+    wind_speed_string = ''
+    heights_string = ''
+    gamma_string_1 = ''
+    gamma_string_2 = ''
+    gamma_string_3 = ''
+    try:
+        diagno_preupr = open(os.path.join(data_folder, 'preupr.dat'), 'w', encoding="utf-8", errors="surrogateescape")
+        diagno_preupr.write('1           NSTA\n')
+        diagno_preupr.write('20         LEVELS\n')
+        diagno_preupr.write('0          NSTRHR\n')
+        diagno_preupr.write('23         NENDHR\n')
+        diagno_preupr.write('0.5          TDIF\n')
+        diagno_preupr.write('13          NCELL\n')
+        diagno_preupr.write('0. 1. 2. 4. 8. 16. 24. 32. 40. 60. 80. 100. 250. 500.  CELLZB\n')
+        diagno_preupr.write(year[2:4] + '       KYEAR\n')
+        diagno_preupr.write(str(int(month)) + '       KMONTH\n')
+        diagno_preupr.write(str(int(day)) + '       KDAY\n')
+        diagno_preupr.write('2          IOPT\n')
+        diagno_preupr.write('ST01' + ' ' + '{0:7.1f}'.format(easting) + '{0:7.1f}'.format(northing) + '{0:7.1f}'.format(
+            elevation) + '\n')
+        for file in profile_data_files:
+            validity = file.split('profile_')[1]
+            validity = validity.split('.txt')[0]
+            year = validity[0:4]
+            month = validity[4:6]
+            day = validity[6:8]
+            hour = validity[8:10]
+            wtfile_prof_step = os.path.join(data_folder, file)
+            # Extract and elaborate weather data
+            wind, direction, height, gamma_pl = extract_grib_data(data_folder, validity, wtfile_prof_step)
+            for i in range(0, len(wind) - 1):
+                try:
+                    heights_string += '{:>5}'.format(str(int(round(height[i]))))
+                except:
+                    heights_string += '   -1'
+                try:
+                    if wind[i] > 50:  # This is the maximum speed limit accepted by DIAGNO
+                        wind_speed_string += '   -1'
+                    else:
+                        wind_speed_string += '{:>5}'.format(str(int(round(wind[i] * 10))))
+                except:
+                    wind_speed_string += '   -1'
+                try:
+                    wind_direction_string += '{:>5}'.format(str(int(round(direction[i]))))
+                except:
+                    wind_direction_string += '   -1'
+            diagno_preupr.write('{:2}'.format(year[2:4]) + '{:>2}'.format(str(int(month))) + '{:>2}'.format(
+                str(int(day))) + 'ST01' + ' ' + hour + '00' + ' ' + 'MET' + heights_string + '\n')
+            diagno_preupr.write('{:2}'.format(year[2:4]) + '{:>2}'.format(str(int(month))) + '{:>2}'.format(
+                str(int(day))) + 'ST01' + ' ' + hour + '00' + ' ' + 'DEG' + wind_direction_string + '\n')
+            diagno_preupr.write('{:2}'.format(year[2:4]) + '{:>2}'.format(str(int(month))) + '{:>2}'.format(
+                str(int(day))) + 'ST01' + ' ' + hour + '00' + ' ' + 'MPS' + wind_speed_string + '\n')
+            wind_direction_string = ''
+            wind_speed_string = ''
+            heights_string = ''
+
+        tref_vector = []
+        tsoil_vector = []
+        press_vector = []
+        wind_direction_sl_string = ''
+        wind_speed_sl_string = ''
+        um_string_1 = ''
+        um_string_2 = ''
+        um_string_3 = ''
+        vm_string_1 = ''
+        vm_string_2 = ''
+        vm_string_3 = ''
+        tinf = 0
+        for file in surface_data_files:
+            validity = file.split('data_location_')[1]
+            validity = validity.split('.txt')[0]
+            year = validity[0:4]
+            month = validity[4:6]
+            day = validity[6:8]
+            hour = validity[8:10]
+            wtfile_sl_location_step = os.path.join(data_folder, file)
+            u, v, t2m, wind_sl, direction_sl, tz0, gamma_sl, pz0 = extract_grib_data_sl(data_folder, validity,
+                                                                                        wtfile_sl_location_step)
+            tinf += 0.5 * (tz0 + t2m)
+            tref_vector.append(t2m)
+            tsoil_vector.append(tz0)
+            press_vector.append(pz0)
+            # Extract and elaborate weather data
+            try:
+                wind_speed_sl_string += '{:>3}'.format(str(int(round(wind_sl * 10))))
+            except:
+                wind_speed_sl_string += ' -1'
+            try:
+                wind_direction_sl_string += '{:>3}'.format(str(int(round(direction_sl))))
+            except:
+                wind_direction_sl_string += ' -1'
+            if len(um_string_1) < 48:
+                um_string_1 += '{:<6.1f}'.format(u)
+            else:
+                if len(um_string_2) < 48:
+                    um_string_2 += '{:<6.1f}'.format(u)
+                else:
+                    um_string_3 += '{:<6.1f}'.format(u)
+            if len(vm_string_1) < 48:
+                vm_string_1 += '{:<6.1f}'.format(v)
+            else:
+                if len(vm_string_2) < 48:
+                    vm_string_2 += '{:<6.1f}'.format(v)
+                else:
+                    vm_string_3 += '{:<6.1f}'.format(v)
+            if len(gamma_string_1) < 56:
+                gamma_string_1 += '{:<7.1f}'.format(gamma_sl)
+            else:
+                if len(gamma_string_2) < 56:
+                    gamma_string_2 += '{:<7.1f}'.format(gamma_sl)
+                else:
+                    gamma_string_3 += '{:<7.1f}'.format(gamma_sl)
+        tinf = tinf / float(len(profile_data_files))
+        str_tinf = '{:<4.1f}'.format(tinf)
+        str_tinf += '       TINF\n'
+        um_string_1 += '     UM\n'
+        um_string_2 += '     UM\n'
+        um_string_3 += '     UM\n'
+        vm_string_1 += '     VM\n'
+        vm_string_2 += '     VM\n'
+        vm_string_3 += '     VM\n'
+        gamma_string_1 += '         GAMMA (K/km)\n'
+        gamma_string_2 += '         GAMMA (K/km)\n'
+        gamma_string_3 += '         GAMMA (K/km)\n'
+        # Memorize the needed records in the original presfc.dat
+        try:
+            presfc_file_records = []
+            diagno_presfc = open(os.path.join(data_folder, 'presfc.dat'), 'r', encoding="utf-8",
+                                 errors="surrogateescape")
+            for line in diagno_presfc:
+                presfc_file_records.append(line)
+            diagno_presfc.close()
+            os.remove('presfc.dat')
+            diagno_presfc = open(os.path.join(data_folder, 'presfc.dat'), 'w', encoding="utf-8",
+                                 errors="surrogateescape")
+            diagno_presfc.write(str(n_stations) + '        NSTA\n')
+            diagno_presfc.write('0        NSTRHR\n')
+            diagno_presfc.write('23       NENDHR\n')
+            diagno_presfc.write('0.5      TDIF\n')
+            diagno_presfc.write(year[2:4] + '       KYEAR\n')
+            diagno_presfc.write(str(int(month)) + '       KMONTH\n')
+            diagno_presfc.write(str(int(day)) + '       KDAY\n')
+            diagno_presfc.write(presfc_file_records[7])
+            diagno_presfc.write('ST02' + '  ' + '{0:7.1f}'.format(easting) + '{0:7.1f}'.format(northing) + '\n')
+            diagno_presfc.write(presfc_file_records[8])
+            diagno_presfc.write(presfc_file_records[9])
+            diagno_presfc.write('{:2}'.format(year[2:4]) + '{:>2}'.format(str(int(month))) + '{:>2}'.format(
+                str(int(day))) + '  ST02' + '  WD' + '  DEG  ' + wind_direction_sl_string + '\n')
+            diagno_presfc.write('{:2}'.format(year[2:4]) + '{:>2}'.format(str(int(month))) + '{:>2}'.format(
+                str(int(day))) + '  ST02' + '  WS' + '  MPS  ' + wind_speed_sl_string + '\n')
+        except:
+            diagno_presfc = open(os.path.join(data_folder, 'presfc.dat'), 'w', encoding="utf-8",
+                                 errors="surrogateescape")
+            diagno_presfc.write(str(n_stations) + '        NSTA\n')
+            diagno_presfc.write('0        NSTRHR\n')
+            diagno_presfc.write('23       NENDHR\n')
+            diagno_presfc.write('0.5      TDIF\n')
+            diagno_presfc.write(year[2:4] + '       KYEAR\n')
+            diagno_presfc.write(str(int(month)) + '       KMONTH\n')
+            diagno_presfc.write(str(int(day)) + '       KDAY\n')
+            diagno_presfc.write('ST02' + '  ' + '{0:7.1f}'.format(easting) + '{0:7.1f}'.format(northing) + '\n')
+            diagno_presfc.write('{:2}'.format(year[2:4]) + '{:>2}'.format(str(int(month))) + '{:>2}'.format(
+                str(int(day))) + '  ST02' + '  WD' + '  DEG  ' + wind_direction_sl_string + '\n')
+            diagno_presfc.write('{:2}'.format(year[2:4]) + '{:>2}'.format(str(int(month))) + '{:>2}'.format(
+                str(int(day))) + '  ST02' + '  WS' + '  MPS  ' + wind_speed_sl_string + '\n')
+        try:
+            diagno_records = []
+            diagno = open(os.path.join(data_folder, 'diagno.inp'), 'r', encoding="utf-8", errors="surrogateescape")
+            for line in diagno:
+                diagno_records.append(line)
+            diagno_records[42] = gamma_string_1
+            diagno_records[43] = gamma_string_2
+            diagno_records[44] = gamma_string_3
+            diagno_records[47] = str_tinf
+            diagno_records[51] = um_string_1
+            diagno_records[52] = um_string_2
+            diagno_records[53] = um_string_3
+            diagno_records[54] = vm_string_1
+            diagno_records[55] = vm_string_2
+            diagno_records[56] = vm_string_3
+            with open(os.path.join(data_folder, 'diagno.inp'), 'w', encoding="utf-8",
+                      errors="surrogateescape") as diagno:
+                diagno.writelines(diagno_records)
+        except:
+            print('Unable to process diagno.inp')
+    except:
+        with open('log.txt', 'a+', encoding="utf-8", errors="surrogateescape") as logger:
+            logger.write(retrieved_day_s + '\n')
+    return tref_vector, tsoil_vector, press_vector
+
+def era5_retrieve(lon_source,lat_source, retrieved_day):
+
+    def era5_request_pressure(folder, year, month,day):
         import cdsapi
         check_pl = 1
         grib_file = os.path.join(folder,'pressure_levels.grib')
@@ -280,7 +496,7 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
             check_pl = 0
         return check_pl
 
-    def era5_request_single(folder, year,month,day):
+    def era5_request_single(folder, year, month, day):
         import cdsapi
         check_sl = 1
         print('Downloading file from ERA5 database')
@@ -353,6 +569,7 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
         print('Saving weather data along the vertical at the vent location')
         os.system('wgrib2 ' + wtfile + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_prof)
         os.system('wgrib2 ' + wtfile_sl + ' -s -lon ' + slon_source + ' ' + slat_source + '  >' + wtfile_sl_location)
+
         # Split wtfile_prof into multiple file, each one for a specific time step
         splitLen = 148
         outputBase = os.path.join(data_folder, 'profile_')
@@ -360,7 +577,6 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
         count = 0
         dest = None
         steps = []
-
         for line in input:
             if count % splitLen == 0:
                 if dest: dest.close()
@@ -372,65 +588,6 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
             count += 1
         input.close()
         dest.close()
-        wind_direction_string = ''
-        wind_speed_string = ''
-        heights_string = ''
-        gamma_string_1 = ''
-        gamma_string_2 = ''
-        gamma_string_3 = ''
-        diagno_preupr = open(os.path.join(data_folder, 'preupr.dat'), 'w', encoding="utf-8", errors="surrogateescape")
-        diagno_preupr.write('1           NSTA\n')
-        diagno_preupr.write('20         LEVELS\n')
-        diagno_preupr.write('0          NSTRHR\n')
-        diagno_preupr.write('23         NENDHR\n')
-        diagno_preupr.write('0.5          TDIF\n')
-        diagno_preupr.write('13          NCELL\n')
-        diagno_preupr.write('0. 1. 2. 4. 8. 16. 24. 32. 40. 60. 80. 100. 250. 500.  CELLZB\n')
-        diagno_preupr.write(year[2:4] + '       KYEAR\n')
-        diagno_preupr.write(str(int(month)) + '       KMONTH\n')
-        diagno_preupr.write(str(int(day)) + '       KDAY\n')
-        diagno_preupr.write('2          IOPT\n')
-        diagno_preupr.write('ST01' + ' ' + '{0:7.1f}'.format(easting) + '{0:7.1f}'.format(northing) + '{0:7.1f}'.format(elevation) + '\n')
-        for validity in steps:
-            year = validity[0:4]
-            month = validity[4:6]
-            day = validity[6:8]
-            hour = validity[8:10]
-            wtfile_prof_step = os.path.join(data_folder,'profile_' + validity + '.txt')
-            # Extract and elaborate weather data
-            wind, direction, height, gamma_pl = extract_data(data_folder,validity, wtfile_prof_step)
-            for i in range (0, len(wind)-1):
-                try:
-                    heights_string += '{:>5}'.format(str(int(round(height[i]))))
-                except:
-                    heights_string += '   -1'
-                try:
-                    if wind[i] > 50: #This is the maximum speed limit accepted by DIAGNO
-                        wind_speed_string += '   -1'
-                    else:
-                        wind_speed_string += '{:>5}'.format(str(int(round(wind[i] * 10))))
-                except:
-                    wind_speed_string += '   -1'
-                try:
-                    wind_direction_string += '{:>5}'.format(str(int(round(direction[i]))))
-                except:
-                    wind_direction_string += '   -1'
-            diagno_preupr.write('{:2}'.format(year[2:4]) + '{:>2}'.format(str(int(month))) + '{:>2}'.format(str(int(day))) + 'ST01' + ' ' + hour + '00' + ' ' + 'MET' + heights_string +'\n')
-            diagno_preupr.write('{:2}'.format(year[2:4]) + '{:>2}'.format(str(int(month))) + '{:>2}'.format(str(int(day))) + 'ST01' + ' ' + hour + '00' + ' ' + 'DEG' + wind_direction_string + '\n')
-            diagno_preupr.write('{:2}'.format(year[2:4]) + '{:>2}'.format(str(int(month))) + '{:>2}'.format(str(int(day))) + 'ST01' + ' ' + hour + '00' + ' ' + 'MPS' + wind_speed_string + '\n')
-            wind_direction_string = ''
-            wind_speed_string = ''
-            heights_string = ''
-#            if len(gamma_string_1) < 56:
-#                gamma_string_1 += '{:<7.1f}'.format(gamma)
-#            else:
-#                if len(gamma_string_2) < 56:
-#                    gamma_string_2 += '{:<7.1f}'.format(gamma)
-#                else:
-#                    gamma_string_3 += '{:<7.1f}'.format(gamma)
-#        gamma_string_1 += '         GAMMA (K/km)\n'
-#        gamma_string_2 += '         GAMMA (K/km)\n'
-#        gamma_string_3 += '         GAMMA (K/km)\n'
 
         # Split data_location into multiple file, each one for a specific time step
         splitLen = 5
@@ -439,9 +596,6 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
         count = 0
         dest = None
         steps = []
-        tref_vector = []
-        tsoil_vector = []
-        press_vector = []
         for line in input:
             if count % splitLen == 0:
                 if dest: dest.close()
@@ -453,127 +607,166 @@ def era5_retrieve(lon_source,lat_source,retrieved_day):
             count += 1
         input.close()
         dest.close()
-        wind_direction_sl_string = ''
-        wind_speed_sl_string = ''
-        um_string_1 = ''
-        um_string_2 = ''
-        um_string_3 = ''
-        vm_string_1 = ''
-        vm_string_2 = ''
-        vm_string_3 = ''
-        tinf = 0
-        for validity in steps:
-            year = validity[0:4]
-            month = validity[4:6]
-            day = validity[6:8]
-            hour = validity[8:10]
-            wtfile_sl_location_step = os.path.join(data_folder, 'data_location_' + validity + '.txt')
-            u, v, t2m, wind_sl, direction_sl, tz0, gamma_sl, pz0 = extract_data_sl(data_folder,validity, wtfile_sl_location_step)
-            tinf += 0.5 * (tz0 + t2m)
-            tref_vector.append(t2m)
-            tsoil_vector.append(tz0)
-            press_vector.append(pz0)
-            # Extract and elaborate weather data
-            try:
-                wind_speed_sl_string += '{:>3}'.format(str(int(round(wind_sl * 10))))
-            except:
-                wind_speed_sl_string += ' -1'
-            try:
-                wind_direction_sl_string += '{:>3}'.format(str(int(round(direction_sl))))
-            except:
-                wind_direction_sl_string += ' -1'
-            if len(um_string_1) < 48:
-                um_string_1 += '{:<6.1f}'.format(u)
-            else:
-                if len(um_string_2) < 48:
-                    um_string_2 += '{:<6.1f}'.format(u)
-                else:
-                    um_string_3 += '{:<6.1f}'.format(u)
-            if len(vm_string_1) < 48:
-                vm_string_1 += '{:<6.1f}'.format(v)
-            else:
-                if len(vm_string_2) < 48:
-                    vm_string_2 += '{:<6.1f}'.format(v)
-                else:
-                    vm_string_3 += '{:<6.1f}'.format(v)
-            if len(gamma_string_1) < 56:
-                gamma_string_1 += '{:<7.1f}'.format(gamma_sl)
-            else:
-                if len(gamma_string_2) < 56:
-                    gamma_string_2 += '{:<7.1f}'.format(gamma_sl)
-                else:
-                    gamma_string_3 += '{:<7.1f}'.format(gamma_sl)
-        tinf = tinf/float(len(steps))
-        str_tinf = '{:<4.1f}'.format(tinf)
-        str_tinf += '       TINF\n'
-        um_string_1 += '     UM\n'
-        um_string_2 += '     UM\n'
-        um_string_3 += '     UM\n'
-        vm_string_1 += '     VM\n'
-        vm_string_2 += '     VM\n'
-        vm_string_3 += '     VM\n'
-        gamma_string_1 += '         GAMMA (K/km)\n'
-        gamma_string_2 += '         GAMMA (K/km)\n'
-        gamma_string_3 += '         GAMMA (K/km)\n'
-        #Memorize the needed records in the original presfc.dat
-        try:
-            presfc_file_records = []
-            diagno_presfc = open(os.path.join(data_folder, 'presfc.dat'), 'r', encoding="utf-8", errors="surrogateescape")
-            for line in diagno_presfc:
-                presfc_file_records.append(line)
-            diagno_presfc.close()
-            os.remove('presfc.dat')
-            diagno_presfc = open(os.path.join(data_folder, 'presfc.dat'), 'w', encoding="utf-8", errors="surrogateescape")
-            diagno_presfc.write(str(n_stations) + '        NSTA\n')
-            diagno_presfc.write('0        NSTRHR\n')
-            diagno_presfc.write('23       NENDHR\n')
-            diagno_presfc.write('0.5      TDIF\n')
-            diagno_presfc.write(year[2:4] + '       KYEAR\n')
-            diagno_presfc.write(str(int(month)) + '       KMONTH\n')
-            diagno_presfc.write(str(int(day)) + '       KDAY\n')
-            diagno_presfc.write(presfc_file_records[7])
-            diagno_presfc.write('ST02' + '  ' + '{0:7.1f}'.format(easting) + '{0:7.1f}'.format(northing) + '\n')
-            diagno_presfc.write(presfc_file_records[8])
-            diagno_presfc.write(presfc_file_records[9])
-            diagno_presfc.write('{:2}'.format(year[2:4]) + '{:>2}'.format(str(int(month))) + '{:>2}'.format(str(int(day))) + '  ST02' + '  WD' + '  DEG  ' + wind_direction_sl_string +'\n')
-            diagno_presfc.write('{:2}'.format(year[2:4]) + '{:>2}'.format(str(int(month))) + '{:>2}'.format(str(int(day))) + '  ST02' + '  WS' + '  MPS  ' + wind_speed_sl_string +'\n')
-        except:
-            diagno_presfc = open(os.path.join(data_folder, 'presfc.dat'), 'w', encoding="utf-8", errors="surrogateescape")
-            diagno_presfc.write(str(n_stations) + '        NSTA\n')
-            diagno_presfc.write('0        NSTRHR\n')
-            diagno_presfc.write('23       NENDHR\n')
-            diagno_presfc.write('0.5      TDIF\n')
-            diagno_presfc.write(year[2:4] + '       KYEAR\n')
-            diagno_presfc.write(str(int(month)) + '       KMONTH\n')
-            diagno_presfc.write(str(int(day)) + '       KDAY\n')
-            diagno_presfc.write('ST02' + '  ' + '{0:7.1f}'.format(easting) + '{0:7.1f}'.format(northing) + '\n')
-            diagno_presfc.write('{:2}'.format(year[2:4]) + '{:>2}'.format(str(int(month))) + '{:>2}'.format(
-                str(int(day))) + '  ST02' + '  WD' + '  DEG  ' + wind_direction_sl_string + '\n')
-            diagno_presfc.write('{:2}'.format(year[2:4]) + '{:>2}'.format(str(int(month))) + '{:>2}'.format(
-                str(int(day))) + '  ST02' + '  WS' + '  MPS  ' + wind_speed_sl_string + '\n')
-        try:
-            diagno_records = []
-            diagno = open(os.path.join(data_folder,'diagno.inp'), 'r', encoding="utf-8", errors="surrogateescape")
-            for line in diagno:
-                diagno_records.append(line)
-            diagno_records[42] = gamma_string_1
-            diagno_records[43] = gamma_string_2
-            diagno_records[44] = gamma_string_3
-            diagno_records[47] = str_tinf
-            diagno_records[51] = um_string_1
-            diagno_records[52] = um_string_2
-            diagno_records[53] = um_string_3
-            diagno_records[54] = vm_string_1
-            diagno_records[55] = vm_string_2
-            diagno_records[56] = vm_string_3
-            with open(os.path.join(data_folder,'diagno.inp'), 'w', encoding="utf-8", errors="surrogateescape") as diagno:
-                diagno.writelines(diagno_records)
-        except:
-            print('Unable to process diagno.inp')
     except:
         with open('log.txt','a+', encoding="utf-8", errors="surrogateescape") as logger:
             logger.write(retrieved_day_s+'\n')
-    return tref_vector,tsoil_vector,press_vector
+
+def gfs_retrieve(lon_source,lat_source, nfcst, time_in):
+    import urllib.request
+    import urllib.error
+    from datetime import datetime, timedelta
+
+    def wtfile_download(url, wtfile_dwnl):
+        print('Downloading forecast file ' + url)
+        urllib.request.urlretrieve(url, wtfile_dwnl)
+
+    cwd = os.getcwd()
+    slon_source_left = str(lon_source - 2)
+    slon_source_right = str(lon_source + 2)
+    slat_source_bottom = str(lat_source - 2)
+    slat_source_top = str(lat_source + 2)
+    if(lon_source < 0):
+        lon_source = 360 + lon_source
+    slon_source = str(lon_source)
+    slat_source = str(lat_source)
+    lon_corner = str(int(lon_source - 2))
+    lat_corner = str(int(lat_source - 2))
+    if time_in != 999:
+        now = str(time_in)
+    else:
+        now = str(datetime.utcnow())
+    day_before = str(time_in - timedelta(1))
+    year= now[0:4]
+    month = now[5:7]
+    day = now[8:10]
+    hour = now[11:13]
+    year_yst = day_before[0:4]
+    month_yst = day_before[5:7]
+    day_yst = day_before[8:10]
+    urls = []
+    wtfiles = []
+    wtfiles_int = []
+    wtfiles_prof = []
+    abs_validities = []
+    zooms = []
+    lon_corners = []
+    lat_corners = []
+    slon_sources = []
+    slat_sources = []
+    # Find last GFS analysis
+    ihour = int(hour)
+    if 0 <= ihour < 6:
+        ianl = 0
+    elif 6 <= ihour < 12:
+        ianl = 6
+    elif 12 <= ihour < 18:
+        ianl = 12
+    else:
+        ianl = 18
+    anl = "{:02d}".format(ianl)
+    year_anl = year
+    month_anl = month
+    day_anl = day
+    url = 'http://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/gfs.' + year_anl + month_anl + day_anl + '/' +  anl
+    try:
+        urllib.request.urlopen(url)
+    except urllib.error.HTTPError as e:
+        ianl = ianl - 6
+        print('Analysis file at ' + anl + 'z not yet available. Retrieving the latest available')
+    # except urllib2.URLError:
+    except urllib.error.URLError as e:
+        ianl = ianl - 6
+        print('Analysis file at ' + anl + 'z not yet available. Retrieving the latest available')
+    if ianl < 0:  # this is in case the analysis at 00z is not available; in this case, ianl = -6 from above, hence must be corrected. Additionally, the variable ianl will be updated later otherwise it would affect ifcst
+        anl = '18'
+        year_anl = year_yst
+        month_anl = month_yst
+        day_anl = day_yst
+    elif 0 <= ianl < 10:
+        anl = '0' + str(ianl)
+    else:
+        anl = str(ianl)
+    url = 'http://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/gfs.' + year_anl + month_anl + day_anl + '/' + anl
+    print('Most up to date GFS analysis: ' + url)
+
+    data_folder = os.path.join(cwd,'raw_forecast_weather_data_'+ year + month + day + '/')
+    # Retrieve weather data that best matches current time
+    ifcst = ihour - ianl
+    if ianl < 0:
+        ianl = 18
+        ifcst = ihour + 6
+    # Check all forecast files are available
+    max_ifcst = ifcst + nfcst
+    while ifcst < max_ifcst:
+        fcst = 'f' + "{:03d}".format(ifcst)
+        wtfile_dwnl = 'gfs.t' + anl + 'z.pgrb2.0p25.' + fcst
+        url = 'http://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/gfs.' + year_anl + month_anl + day_anl + '/' + anl + '/atmos/' + wtfile_dwnl
+        try:
+            urllib.request.urlopen(url)
+        except urllib.error.HTTPError as e:
+            ianl = ianl - 6
+            ifcst = ifcst + 6
+            print('Forecast file ' + wtfile_dwnl + ' not yet available. Retrieving the equivalent from the previous forecast')
+            urls = []
+            wtfiles = []
+            max_ifcst = ifcst + nfcst
+        except urllib.error.URLError as e:
+            ianl = ianl - 6
+            ifcst = ifcst + 6
+            print('Forecast file ' + wtfile_dwnl + ' not yet available. Retrieving the equivalent from the previous forecast')
+            urls = []
+            wtfiles = []
+            max_ifcst = ifcst + nfcst
+        if ianl < 0:
+            ianl = 18
+            year_anl = year_yst
+            month_anl = month_yst
+            day_anl = day_yst
+            anl = str(ianl)
+        elif 0 <= ianl < 10:
+            anl = '0' + str(ianl)
+        else:
+            anl = str(ianl)
+        ival = ianl + ifcst
+        if ival < 10:
+            validity = '0' + str(ival)
+        elif ival >= 24:
+            ival = ival - 24
+            validity = '0' + str(ival)
+        else:
+            validity = str(ival)
+        fcst = 'f' + "{:03d}".format(ifcst)
+        wtfile_dwnl = 'gfs.t' + anl + 'z.pgrb2.0p25.' + fcst
+        abs_validity = year + month + day + validity
+        elaborated_prof_file = 'profile_data_' + abs_validity + '.txt'
+        elaborated_prof_file_path = os.path.join(data_folder, elaborated_prof_file)
+        abs_validities.append(abs_validity)
+        wtfile = 'weather_data_' + year_anl + month_anl + day_anl + anl + '_' + fcst
+        wtfile_int = 'weather_data_interpolated_' + year_anl + month_anl + day_anl + anl + '_' + fcst
+        wtfile_prof = 'profile_' + year + month + day + anl + validity + '.txt'
+        try:
+            url = 'https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25_1hr.pl?file=' + wtfile_dwnl + '&all_lev=on&var_HGT=on&var_TMP=on&var_UGRD=on&var_VGRD=on&subregion=&leftlon=' + slon_source_left + '&rightlon=' + slon_source_right + '&toplat=' + slat_source_top + '&bottomlat=' + slat_source_bottom + '&dir=%2Fgfs.' + year_anl + month_anl + day_anl + '%2F' + anl + '%2Fatmos'
+            urllib.request.urlopen(url)
+            zoom = False
+        except:
+            url = 'http://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/gfs.' + year_anl + month_anl + day_anl + '/' + anl + '/atmos/' + wtfile_dwnl
+            urllib.request.urlopen(url)
+            zoom = True
+        urls.append(url)
+        ifcst += 1
+        wtfiles.append(wtfile)
+        wtfiles_int.append(wtfile_int)
+        wtfiles_prof.append(wtfile_prof)
+        zooms.append(zoom)
+        lon_corners.append(lon_corner)
+        lat_corners.append(lat_corner)
+        slon_sources.append(slon_source)
+        slat_sources.append(slat_source)
+    try:
+        pool = ThreadingPool(nfcst)
+        pool.map(wtfile_download,urls,wtfiles)
+    except:
+        print('No new weather data downloaded')
 
 def extract_station_data(station_data_files,  eastings, northings, zst, data_folder):
     global n_stations
@@ -785,11 +978,14 @@ def automatic_weather(analysis_start):
         copy('diagno.inp', os.path.join(data_folder, 'diagno.inp'))
     except:
         print('File diagno.inp not found')
-
+    if mode == 'forecast':
+        print('Retrieving GFS data for day ' + str(analysis_start)[0:10])
+        gfs_retrieve(volc_lon, volc_lat, 24, analysis_start) #for the moment nfcst set to 24 since the models can run for 24 hours
     if ERA5_on:
         print('Retrieving ERA5 data for day ' + str(analysis_start)[0:10])
-        tref, tsoil, press = era5_retrieve(volc_lon, volc_lat, analysis_start)
-
+        era5_retrieve(volc_lon, volc_lat, analysis_start)
+    if mode == 'forecast' or ERA5_on:
+        tref, tsoil, press = prepare_diagno_files(data_folder, year, month, day)
     if weather_station_on:
         stations_input = open('weather_stations_list.txt','r', encoding="utf-8-sig", errors="surrogateescape")
         print('Analysing weather station data for day ' + str(analysis_start)[0:10])
@@ -825,7 +1021,7 @@ def automatic_weather(analysis_start):
             fake_upper.write('Fake upper.dat file')
         fake_upper.close()
 
-nsamples, time_start, time_stop, analysis_start, analysis_stop, ERA5_on, weather_station_on, elevation, \
+mode, nsamples, time_start, time_stop, analysis_start, analysis_stop, ERA5_on, weather_station_on, elevation, \
 volc_lat, volc_lon, easting, northing, max_number_processes, twodee_on, disgas_on, sampled_years, sampled_months, sampled_days = read_arguments()
 
 if disgas_on == False and twodee_on == False:

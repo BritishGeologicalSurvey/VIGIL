@@ -170,14 +170,15 @@ def extract_grib_data(folder, validity, wtfile_prof_step):
         hgt = []
         i = 0
         while i < nrecords:
-            if records1[i][3] == 'UGRD':
-                u_tmp.append(records2[i][1])
-            elif records1[i][3] == 'VGRD':
-                v_tmp.append(records2[i][1])
-            elif records1[i][3] == 'GP':
-                hgt_tmp.append(records2[i][1])
-            elif records1[i][3] == 'TMP':
-                t_tmp.append(records2[i][1])
+            if 'mb' in records1[i][4] and ' mb ' not in records1[i][4]:
+                if records1[i][3] == 'UGRD':
+                    u_tmp.append(records2[i][1])
+                elif records1[i][3] == 'VGRD':
+                    v_tmp.append(records2[i][1])
+                elif records1[i][3] == 'GP' or records1[i][3] == 'HGT':
+                    hgt_tmp.append(records2[i][1])
+                elif records1[i][3] == 'TMP':
+                    t_tmp.append(records2[i][1])
             i += 1
         j = 0
         for i in range(len(u_tmp)-1, -1, -1):
@@ -214,18 +215,32 @@ def extract_grib_data_sl(folder, validity, wtfile_sl_location_step):
             records1.append(line.split(':'))
             records2.append(line.split('val='))
         i = 0
-        while i < nrecords:
-            if records1[i][3] == 'UGRD':
-                u = float(records2[i][1])
-            elif records1[i][3] == 'VGRD':
-                v = float(records2[i][1])
-            elif records1[i][3] == 'TMP':
-                t2m = float(records2[i][1])
-            elif records1[i][3] == 'PRES':
-                pz0 = float(records2[i][1])
-            else:
-                tz0 = float(records2[i][1])
-            i += 1
+        if mode == 'reanalysis':
+            while i < nrecords:
+                if records1[i][3] == 'UGRD':
+                    u = float(records2[i][1])
+                elif records1[i][3] == 'VGRD':
+                    v = float(records2[i][1])
+                elif records1[i][3] == 'TMP':
+                    t2m = float(records2[i][1])
+                elif records1[i][3] == 'PRES':
+                    pz0 = float(records2[i][1])
+                else:
+                    tz0 = float(records2[i][1])
+                i += 1
+        else:
+            while i < nrecords:
+                if records1[i][3] == 'UGRD' and records1[i][4] == '10 m above ground':
+                    u = float(records2[i][1])
+                elif records1[i][3] == 'VGRD' and records1[i][4] == '10 m above ground':
+                    v = float(records2[i][1])
+                elif records1[i][3] == 'TMP' and records1[i][4] == '2 m above ground':
+                    t2m = float(records2[i][1])
+                elif records1[i][3] == 'PRES' and  records1[i][4] == 'surface':
+                    pz0 = float(records2[i][1])
+                elif records1[i][3] == 'TMP' and records1[i][4] == 'surface':
+                    tz0 = float(records2[i][1])
+                i += 1
         wind = (u ** 2 + v ** 2) ** 0.5
         wind_dir_degrees = atan2(u,v) * 180/pi
         direction = wind_dir_degrees + 180
@@ -305,7 +320,6 @@ def prepare_diagno_files(data_folder, year, month, day):
             wind_direction_string = ''
             wind_speed_string = ''
             heights_string = ''
-
         tref_vector = []
         tsoil_vector = []
         press_vector = []
@@ -318,8 +332,14 @@ def prepare_diagno_files(data_folder, year, month, day):
         vm_string_2 = ''
         vm_string_3 = ''
         tinf = 0
-        for file in surface_data_files:
-            validity = file.split('data_location_')[1]
+        if mode == 'reanalysis':
+            files_to_iterate = surface_data_files
+            file_keyword = 'data_location_'
+        else:
+            files_to_iterate = profile_data_files
+            file_keyword = 'profile_'
+        for file in files_to_iterate:
+            validity = file.split(file_keyword)[1]
             validity = validity.split('.txt')[0]
             year = validity[0:4]
             month = validity[4:6]
@@ -619,7 +639,16 @@ def gfs_retrieve(lon_source,lat_source, nfcst, time_in):
         print('Downloading forecast file ' + url)
         urllib.request.urlretrieve(url, wtfile_dwnl)
 
-    cwd = os.getcwd()
+    def interpolate(slon, slat, lon_corner, lat_corner, zoom, wtfile, wtfile_int, wtfile_interpolated):
+        from shutil import copyfile
+        if zoom:
+            os.system('wgrib2 ' + wtfile + ' -set_grib_type same -new_grid_winds earth -new_grid latlon ' + lon_corner + ':400:0.01 ' + lat_corner + ':400:0.01 ' +
+                wtfile_int)
+        else:
+            copyfile(wtfile, wtfile_int)
+        print('Saving weather data along the vertical at the vent location')
+        os.system('wgrib2 ' + wtfile + ' -s -lon ' + slon + ' ' + slat + '  >' + wtfile_interpolated)
+
     slon_source_left = str(lon_source - 2)
     slon_source_right = str(lon_source + 2)
     slat_source_bottom = str(lat_source - 2)
@@ -642,6 +671,8 @@ def gfs_retrieve(lon_source,lat_source, nfcst, time_in):
     year_yst = day_before[0:4]
     month_yst = day_before[5:7]
     day_yst = day_before[8:10]
+    data_folder = os.path.join(simulations , year + month + day)
+    date_bis = year + month + day
     urls = []
     wtfiles = []
     wtfiles_int = []
@@ -688,7 +719,6 @@ def gfs_retrieve(lon_source,lat_source, nfcst, time_in):
     url = 'http://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/gfs.' + year_anl + month_anl + day_anl + '/' + anl
     print('Most up to date GFS analysis: ' + url)
 
-    data_folder = os.path.join(cwd,'raw_forecast_weather_data_'+ year + month + day + '/')
     # Retrieve weather data that best matches current time
     ifcst = ihour - ianl
     if ianl < 0:
@@ -737,14 +767,14 @@ def gfs_retrieve(lon_source,lat_source, nfcst, time_in):
         fcst = 'f' + "{:03d}".format(ifcst)
         wtfile_dwnl = 'gfs.t' + anl + 'z.pgrb2.0p25.' + fcst
         abs_validity = year + month + day + validity
-        elaborated_prof_file = 'profile_data_' + abs_validity + '.txt'
-        elaborated_prof_file_path = os.path.join(data_folder, elaborated_prof_file)
+        #elaborated_prof_file = 'profile_data_' + abs_validity + '.txt'
+        #elaborated_prof_file_path = os.path.join(data_folder, elaborated_prof_file)
+        wtfile_int = os.path.join(data_folder,'weather_data_interpolated_' + year_anl + month_anl + day_anl + anl + '_' + fcst)
         abs_validities.append(abs_validity)
-        wtfile = 'weather_data_' + year_anl + month_anl + day_anl + anl + '_' + fcst
-        wtfile_int = 'weather_data_interpolated_' + year_anl + month_anl + day_anl + anl + '_' + fcst
-        wtfile_prof = 'profile_' + year + month + day + anl + validity + '.txt'
+        wtfile = os.path.join(data_folder,'weather_data_' + year_anl + month_anl + day_anl + anl + '_' + fcst)
+        wtfile_prof = os.path.join(data_folder, 'profile_' + abs_validity + '.txt')
         try:
-            url = 'https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25_1hr.pl?file=' + wtfile_dwnl + '&all_lev=on&var_HGT=on&var_TMP=on&var_UGRD=on&var_VGRD=on&subregion=&leftlon=' + slon_source_left + '&rightlon=' + slon_source_right + '&toplat=' + slat_source_top + '&bottomlat=' + slat_source_bottom + '&dir=%2Fgfs.' + year_anl + month_anl + day_anl + '%2F' + anl + '%2Fatmos'
+            url = 'https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25_1hr.pl?file=' + wtfile_dwnl + '&all_lev=on&var_HGT=on&var_TMP=on&var_UGRD=on&var_VGRD=on&var_PRES=on&subregion=&leftlon=' + slon_source_left + '&rightlon=' + slon_source_right + '&toplat=' + slat_source_top + '&bottomlat=' + slat_source_bottom + '&dir=%2Fgfs.' + year_anl + month_anl + day_anl + '%2F' + anl + '%2Fatmos'
             urllib.request.urlopen(url)
             zoom = False
         except:
@@ -754,8 +784,8 @@ def gfs_retrieve(lon_source,lat_source, nfcst, time_in):
         urls.append(url)
         ifcst += 1
         wtfiles.append(wtfile)
-        wtfiles_int.append(wtfile_int)
         wtfiles_prof.append(wtfile_prof)
+        wtfiles_int.append(wtfile_int)
         zooms.append(zoom)
         lon_corners.append(lon_corner)
         lat_corners.append(lat_corner)
@@ -766,6 +796,11 @@ def gfs_retrieve(lon_source,lat_source, nfcst, time_in):
         pool.map(wtfile_download,urls,wtfiles)
     except:
         print('No new weather data downloaded')
+    try:
+        pool = ThreadingPool(nfcst)
+        pool.map(interpolate, slon_sources, slat_sources, lon_corners, lat_corners, zooms, wtfiles, wtfiles_int, wtfiles_prof)
+    except:
+        print('Error in weather data interpolation')
 
 def extract_station_data(station_data_files,  eastings, northings, zst, data_folder):
     global n_stations
@@ -964,6 +999,7 @@ def save_surface_data(tref, tsoil, press, data_folder):
             surface_data.write("{:02d}".format(i) + '00' + '\t' + str(tref[i]) + '\t' + str(tsoil[i]) + '\t' + str(press[i]) + '\n')
 
 def automatic_weather(analysis_start):
+    from shutil import copyfile
     analysis_start_s = str(analysis_start)
     year = analysis_start_s[0:4]
     month = analysis_start_s[5:7]
@@ -980,6 +1016,11 @@ def automatic_weather(analysis_start):
     if mode == 'forecast':
         print('Retrieving GFS data for day ' + str(analysis_start)[0:10])
         gfs_retrieve(volc_lon, volc_lat, 24, analysis_start) #for the moment nfcst set to 24 since the models can run for 24 hours
+        #files_to_copy = os.listdir(os.path.join(os.getcwd(),year+month+day+'_or'))
+        #for file in files_to_copy:
+        #    file_or = os.path.join(os.getcwd(),year+month+day+'_or',file)
+        #    file_dest = os.path.join(data_folder, file)
+        #    copyfile(file_or, file_dest)
     if ERA5_on:
         print('Retrieving ERA5 data for day ' + str(analysis_start)[0:10])
         era5_retrieve(volc_lon, volc_lat, analysis_start)

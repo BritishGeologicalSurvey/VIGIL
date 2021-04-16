@@ -52,32 +52,31 @@ def read_arguments():
     if mode != 'reanalysis' and mode != 'forecast':
         print('ERROR. Wrong value for variable -M --mode')
         sys.exit()
-    if ERA5_on == 'True':
+    if ERA5_on.lower() == 'true':
         ERA5_on = True
-        if mode == 'forecast':
-            print('ERROR. ERA5 cannot be on in forecast mode')
-            sys.exit()
-    elif ERA5_on == 'False':
+    elif ERA5_on.lower() == 'false':
         ERA5_on = False
-        if mode == 'reanalysis':
-            print('ERROR. ERA5 cannot be off in reanalysis mode')
-            sys.exit()
     else:
         print('ERROR. Wrong value for variable -ERA5 --ERA5')
         sys.exit()
-    if weather_station_on == 'True':
+    if weather_station_on.lower() == 'true':
         weather_station_on = True
-        if mode == 'forecast':
-            print('ERROR. Weather station data cannot be on in forecast mode')
-            sys.exit()
-    elif weather_station_on == 'False':
+    elif weather_station_on.lower() == 'false':
         weather_station_on = False
-        if mode == 'reanalysis':
-            print('ERROR. Weather station data cannot be off in reanalysis mode')
-            sys.exit()
     else:
         print('ERROR. Wrong value for variable --station')
         sys.exit()
+    if mode == 'reanalysis':
+        if not ERA5_on and not weather_station_on:
+            print('ERROR. Either ERA5 or weather station data should be activated in reanalysis mode')
+            sys.exit()
+    elif mode == 'forecast':
+        if ERA5_on:
+            print('WARNING. ERA5 data cannot be used in forecast mode. Turning ERA5 off')
+            ERA5_on = False
+        if weather_station_on:
+            print('WARNING. Weather station data cannot be used in forecast mode. Turning weather stations off')
+            weather_station_on = False
     if weather_station_on and ERA5_on:
         print('ERROR. It is currently not possible to use both reanalysis and weather station data')
         sys.exit()

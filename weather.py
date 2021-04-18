@@ -264,6 +264,8 @@ def prepare_diagno_files(data_folder, year, month, day):
             profile_data_files.append(file)
         if 'data_location_' in file:
             surface_data_files.append(file)
+    profile_data_files = sorted(profile_data_files)
+    surface_data_files = sorted(surface_data_files)
     wind_direction_string = ''
     wind_speed_string = ''
     heights_string = ''

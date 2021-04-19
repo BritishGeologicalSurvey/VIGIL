@@ -260,9 +260,9 @@ def prepare_diagno_files(data_folder, year, month, day):
     profile_data_files = []
     surface_data_files = []
     for file in files_list:
-        if 'profile_' in file:
+        if 'profile_' in file and 'profile_' + year + month + day + '.txt' != file:
             profile_data_files.append(file)
-        if 'data_location_' in file:
+        if 'data_location_' in file and 'data_location_' + year + month + day + '.txt' != file:
             surface_data_files.append(file)
     profile_data_files = sorted(profile_data_files)
     surface_data_files = sorted(surface_data_files)

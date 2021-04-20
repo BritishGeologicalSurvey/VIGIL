@@ -1,4 +1,4 @@
-HOW TO RUN EXAMPLE_2: Mefite Valle d’Ansanto (Italy)
+HOW TO RUN EXAMPLE_3: Mefite Valle d’Ansanto (Italy)
 
 python weather.py -S 01/01/1990 -E 01/01/2020 -LAT 40.97 -LON 15.13 -EL 600 -NS 1 -ERA5 True -N 100 -TD on
 

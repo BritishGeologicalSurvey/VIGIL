@@ -621,9 +621,9 @@ def run_twodee():
                 twodee_input_file = os.path.join(twodee_folder, 'twodee.inp')
                 twodee_log_file = os.path.join(twodee_folder, 'twodee_log_' + day + '.txt')
                 try:
-                    p = subprocess.Popen(['srun', '-n', '1', 'Twodee.2.2.x', twodee_input_file, twodee_log_file])
+                    p = subprocess.Popen(['srun', '-n', '1', 'twodee', twodee_input_file, twodee_log_file])
                 except:
-                    p = subprocess.Popen(['Twodee.2.2.x', twodee_input_file, twodee_log_file])
+                    p = subprocess.Popen(['twodee', twodee_input_file, twodee_log_file])
                 ps.append(p)
             for p in ps:
                 p.wait()

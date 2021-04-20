@@ -288,7 +288,7 @@ def pre_process():
         XF = float(lines[2].split(' ')[1].split('\n')[0])
         Y0 = float(lines[3].split(' ')[0])
         DX = round(((XF - X0) / NX), 1)
-        with open(os.path.join(infiles_twodee,'topography.grd'), 'w', encoding='utf-8') as twodee_grid:
+        with open(os.path.join(twodee_daily,'topography.grd'), 'w', encoding='utf-8') as twodee_grid:
             twodee_grid.write('nx ' + str(NX) + '\n')
             twodee_grid.write('ny ' + str(NY) + '\n')
             twodee_grid.write('xllcorner ' + str(X0) + '\n')
@@ -403,28 +403,23 @@ def pre_process():
                 shutil.move(path_f, diagno_daily)
             except:
                 print('File ' + f + ' already present in ' + diagno)
-        shutil.copy(topography_original, os.path.join(diagno_daily, 'topography.grd'))
+        shutil.copy(topography, os.path.join(diagno_daily, 'topography.grd'))
         # Set DISGAS folder
         if disgas_on:
             disgas_daily = os.path.join(disgas, str(day))
-            infiles = os.path.join(disgas_daily, 'infiles')
             outfiles = os.path.join(disgas_daily, 'outfiles')
             try:
                 os.mkdir(disgas_daily)
             except:
                 print('Folder ' + disgas_daily + ' already exists')
             try:
-                os.mkdir(infiles)
-            except:
-                print('Folder infiles already exists in ' + str(disgas_daily))
-            try:
                 os.mkdir(outfiles)
                 if not outfiles.endswith(os.path.sep):
                     outfiles += os.path.sep
             except:
                 print('Folder outfiles already exists in ' + str(disgas_daily))
-            disgas_input = os.path.join(infiles,'disgas.inp')
-            with open(os.path.join(infiles,'source.dat'), 'w', encoding="utf-8", errors="surrogateescape") as source_file:
+            disgas_input = os.path.join(disgas_daily,'disgas.inp')
+            with open(os.path.join(disgas_daily,'source.dat'), 'w', encoding="utf-8", errors="surrogateescape") as source_file:
                 for i in range(0, n_sources):
                     if source_emission != 999:
                         gas_flux = source_emission
@@ -438,10 +433,10 @@ def pre_process():
             source_file.close()
             roughness_file_exist = True
             try:
-                shutil.copyfile(os.path.join(root,'roughness_disgas.grd'),os.path.join(infiles,'roughness.grd'))
+                shutil.copyfile(os.path.join(root,'roughness_disgas.grd'),os.path.join(disgas_daily,'roughness.grd'))
             except:
                 roughness_file_exist = False
-            shutil.move(os.path.join(diagno_daily, 'surface_data.txt'), os.path.join(infiles, 'surface_data.txt'))
+            shutil.move(os.path.join(diagno_daily, 'surface_data.txt'), os.path.join(disgas_daily, 'surface_data.txt'))
             # read and memorize disgas.inp file
             disgas_input_records = []
             with open(disgas_original, 'r', encoding="utf-8", errors="surrogateescape") as disgas_or_input:
@@ -466,13 +461,13 @@ def pre_process():
                     elif 'TOPOGRAPHY_FILE_PATH' in record:
                         disgas_input.write('   TOPOGRAPHY_FILE_PATH   = ' + os.path.join(diagno_daily, 'topography.grd') + ' \n')
                     elif 'ROUGHNESS_FILE_PATH' in record:
-                        disgas_input.write('   ROUGHNESS_FILE_PATH   = ' + os.path.join(infiles, 'roughness.grd') + ' \n')
+                        disgas_input.write('   ROUGHNESS_FILE_PATH   = ' + os.path.join(disgas_daily, 'roughness.grd') + ' \n')
                     elif 'RESTART_FILE_PATH' in record:
-                        disgas_input.write('   RESTART_FILE_PATH   = ' + os.path.join(infiles, 'restart.dat') + ' \n')
+                        disgas_input.write('   RESTART_FILE_PATH   = ' + os.path.join(disgas_daily, 'restart.dat') + ' \n')
                     elif 'SOURCE_FILE_PATH' in record:
-                        disgas_input.write('   SOURCE_FILE_PATH   = ' + os.path.join(infiles, 'source.dat') + ' \n')
+                        disgas_input.write('   SOURCE_FILE_PATH   = ' + os.path.join(disgas_daily, 'source.dat') + ' \n')
                     elif 'WIND_FILE_PATH' in record:
-                        disgas_input.write('   WIND_FILE_PATH   = ' + os.path.join(infiles, 'winds.dat') + ' \n')
+                        disgas_input.write('   WIND_FILE_PATH   = ' + os.path.join(disgas_daily, 'winds.dat') + ' \n')
                     elif 'DIAGNO_FILE_PATH' in record:
                         disgas_input.write('   DIAGNO_FILE_PATH   = ' + os.path.join(diagno_daily, 'diagno.out') + ' \n')
                     elif 'OUTPUT_DIRECTORY' in record:
@@ -482,16 +477,11 @@ def pre_process():
             disgas_input.close()
         if twodee_on:
             twodee_daily = os.path.join(twodee, str(day))
-            infiles_twodee = os.path.join(twodee_daily, 'infiles')
             outfiles_twodee = os.path.join(twodee_daily, 'outfiles')
             try:
                 os.mkdir(twodee_daily)
             except:
                 print('Folder ' + twodee_daily + ' already exists')
-            try:
-                os.mkdir(infiles_twodee)
-            except:
-                print('Folder infiles already exists in ' + str(twodee_daily))
             try:
                 os.mkdir(outfiles_twodee)
                 if not outfiles_twodee.endswith(os.path.sep):
@@ -499,17 +489,18 @@ def pre_process():
             except:
                 print('Folder outfiles already exists in ' + str(twodee_daily))
             twodee_input = os.path.join(twodee_daily, 'twodee.inp')
-            topography_converter(topography_original)
-            shutil.move(os.path.join(diagno_daily,'surface_data.txt'),os.path.join(infiles_twodee,'surface_data.txt'))
+            shutil.move(os.path.join(diagno_daily,'surface_data.txt'),os.path.join(twodee_daily,'surface_data.txt'))
             try:
-                shutil.copyfile(os.path.join(root,'roughness_twodee.grd'),os.path.join(infiles_twodee,'roughness.grd'))
+                shutil.copyfile(topography,os.path.join(twodee_daily,'topography.grd'))
             except:
-                try:
-                    shutil.copyfile(os.path.join(root, 'roughness.grd'),os.path.join(infiles_twodee, 'roughness.grd'))
-                except:
-                    print('Unable to find a valid roughness file for TWODEE (valid names are roughness_twodee.grd or roughness.grd')
-                    sys.exit()
-            with open(os.path.join(infiles_twodee,'source.dat'), 'w', encoding="utf-8", errors="surrogateescape") as source_file:
+                print('Unable to find a valid topography file for TWODEE')
+                sys.exit()
+            try:
+                shutil.copyfile(os.path.join(root,'roughness.grd'),os.path.join(twodee_daily,'roughness.grd'))
+            except:
+                print('Unable to find a valid roughness file for TWODEE')
+                sys.exit()
+            with open(os.path.join(twodee_daily,'source.dat'), 'w', encoding="utf-8", errors="surrogateescape") as source_file:
                 for i in range(0, n_sources):
                     if source_emission != 999:
                         gas_flux = source_emission
@@ -536,7 +527,7 @@ def pre_process():
                     elif 'DAY' in record:
                         twodee_input.write('  DAY    = ' + day[6:8] + '\n')
                     elif 'INPUT_DIRECTORY' in record:
-                        twodee_input.write('   INPUT_DIRECTORY   = ' + infiles_twodee + ' \n')
+                        twodee_input.write('   INPUT_DIRECTORY   = ' + twodee_daily + ' \n')
                     elif 'OUTPUT_DIRECTORY' in record:
                         twodee_input.write('   OUTPUT_DIRECTORY   = ' + outfiles_twodee + ' \n')
                     else:
@@ -596,7 +587,7 @@ def run_disgas():
             end = len(days)
         try:
             for day in days[start:end]:
-                disgas_folder = os.path.join(root, 'simulations', 'disgas', day, 'infiles')
+                disgas_folder = os.path.join(root, 'simulations', 'disgas', day)
                 disgas_input_file = os.path.join(disgas_folder, 'disgas.inp')
                 disgas_log_file = os.path.join(disgas_folder, 'disgas_log_' + day + '.txt')
                 try:
@@ -626,7 +617,7 @@ def run_twodee():
             for day in days[start:end]:
                 diagno = os.path.join(root, 'simulations', 'diagno', day)
                 twodee_folder = os.path.join(root, 'simulations', 'twodee', day)
-                shutil.copyfile(os.path.join(diagno,'diagno.out'),os.path.join(twodee_folder,'infiles','diagno.out'))
+                shutil.copyfile(os.path.join(diagno,'diagno.out'),os.path.join(twodee_folder,'diagno.out'))
                 twodee_input_file = os.path.join(twodee_folder, 'twodee.inp')
                 twodee_log_file = os.path.join(twodee_folder, 'twodee_log_' + day + '.txt')
                 try:
@@ -647,7 +638,7 @@ def run_twodee():
 root = os.getcwd()
 disgas_original = os.path.join(root,'disgas.inp')
 twodee_original = os.path.join(root,'twodee.inp')
-topography_original = os.path.join(root,'topography.grd')
+topography = os.path.join(root,'topography.grd')
 
 max_number_processes, random_sources, nsources, sources_interval, source_easting, source_northing, source_el, \
 source_emission, random_emission, bottom_left_northing, bottom_left_easting, top_right_northing, top_right_easting, \

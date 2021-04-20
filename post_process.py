@@ -371,9 +371,8 @@ def converter(input_file, processed_file, specie_input, model):
             file_time_h = '{:02}{:02}'.format(hours_int, minutes_int)
             file_name = input_file.split(os.sep)[-1]
             file_folder = input_file.split(file_name)[0]
-            file_folder_infiles = file_folder.split('outfiles')[0] # To be changed when folder structures will change
-            file_folder_infiles = os.path.join(file_folder_infiles,'infiles')
-            surface_data = os.path.join(file_folder_infiles,'surface_data.txt')
+            file_folder_daily = file_folder.split('outfiles')[0]
+            surface_data = os.path.join(file_folder_daily,'surface_data.txt')
             with open(surface_data) as surface_data_file:
                 for line in surface_data_file:
                     try:
@@ -410,9 +409,8 @@ def converter(input_file, processed_file, specie_input, model):
             file_time_h = '{:02}{:02}'.format(hours_int, minutes_int)
             file_name = input_file.split(os.sep)[-1]
             file_folder = input_file.split(file_name)[0]
-            file_folder_infiles = file_folder.split('outfiles')[0]  # To be changed when folder structures will change
-            file_folder_infiles = os.path.join(file_folder_infiles, 'infiles')
-            surface_data = os.path.join(file_folder_infiles, 'surface_data.txt')
+            file_folder_daily = file_folder.split('outfiles')[0]  # To be changed when folder structures will change
+            surface_data = os.path.join(file_folder_daily, 'surface_data.txt')
             with open(surface_data) as surface_data_file:
                 for line in surface_data_file:
                     try:

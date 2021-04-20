@@ -528,9 +528,9 @@ def pre_process():
                         twodee_input.write('  DAY    = ' + day[6:8] + '\n')
                     elif 'OUTPUT_DIRECTORY' in record:
                         twodee_input.write('   OUTPUT_DIRECTORY   = ' + outfiles_twodee + ' \n')
-                    elif 'TOPOGRAPHY_FILE' in record:
+                    elif 'TOPOGRAPHY_FILE' in record and not 'TOPOGRAPHY_FILE_FORMAT' in record:
                         twodee_input.write('   TOPOGRAPHY_FILE   = ' + os.path.join(diagno_daily, 'topography.grd') + ' \n')
-                    elif 'ROUGHNESS_FILE' in record:
+                    elif 'ROUGHNESS_FILE' in record and not 'ROUGHNESS_FILE_FORMAT' in record:
                         twodee_input.write('   ROUGHNESS_FILE   = ' + os.path.join(twodee_daily, 'roughness.grd') + ' \n')
                     elif 'SOURCE_FILE' in record:
                         twodee_input.write('   SOURCE_FILE   = ' + os.path.join(twodee_daily,'source.dat') + ' \n')

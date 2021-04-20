@@ -1018,11 +1018,6 @@ def automatic_weather(analysis_start):
     if mode == 'forecast':
         print('Retrieving GFS data for day ' + str(analysis_start)[0:10])
         gfs_retrieve(volc_lon, volc_lat, 24, analysis_start) #for the moment nfcst set to 24 since the models can run for 24 hours
-        #files_to_copy = os.listdir(os.path.join(os.getcwd(),year+month+day+'_or'))
-        #for file in files_to_copy:
-        #    file_or = os.path.join(os.getcwd(),year+month+day+'_or',file)
-        #    file_dest = os.path.join(data_folder, file)
-        #    copyfile(file_or, file_dest)
     if ERA5_on:
         print('Retrieving ERA5 data for day ' + str(analysis_start)[0:10])
         era5_retrieve(volc_lon, volc_lat, analysis_start)

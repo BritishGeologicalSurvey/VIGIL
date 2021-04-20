@@ -53,8 +53,6 @@
    NC_VAR_T_NAME    = T-WRF                         (Name of the TPOT variable in the meteo NC file. Only used if wind model is MET_NC)
    !
  FILES  
-   KML_RESOURCES_DIRECTORY = /home/vulcanomod/twodee2/twodee-2.2/Resources                    
-   INPUT_DIRECTORY         = /home/vulcanomod/twodee2/twodee-2.2_dev/test2/infiles
    OUTPUT_DIRECTORY        = /home/vulcanomod/twodee2/twodee-2.2_dev/test2/outfiles
    ! 
    TOPOGRAPHY_FILE         = topography.grd 

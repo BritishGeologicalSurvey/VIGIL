@@ -489,12 +489,12 @@ def pre_process():
             except:
                 print('Folder outfiles already exists in ' + str(twodee_daily))
             twodee_input = os.path.join(twodee_daily, 'twodee.inp')
-            shutil.move(os.path.join(diagno_daily,'surface_data.txt'),os.path.join(twodee_daily,'surface_data.txt'))
-            try:
-                shutil.copyfile(topography,os.path.join(twodee_daily,'topography.grd'))
-            except:
-                print('Unable to find a valid topography file for TWODEE')
-                sys.exit()
+            #shutil.move(os.path.join(diagno_daily,'surface_data.txt'),os.path.join(twodee_daily,'surface_data.txt'))
+            #try:
+            #    shutil.copyfile(topography,os.path.join(twodee_daily,'topography.grd'))
+            #except:
+            #    print('Unable to find a valid topography file for TWODEE')
+            #    sys.exit()
             try:
                 shutil.copyfile(os.path.join(root,'roughness.grd'),os.path.join(twodee_daily,'roughness.grd'))
             except:
@@ -526,10 +526,18 @@ def pre_process():
                         twodee_input.write('  MONTH  = ' + day[4:6] + '\n')
                     elif 'DAY' in record:
                         twodee_input.write('  DAY    = ' + day[6:8] + '\n')
-                    elif 'INPUT_DIRECTORY' in record:
-                        twodee_input.write('   INPUT_DIRECTORY   = ' + twodee_daily + ' \n')
                     elif 'OUTPUT_DIRECTORY' in record:
                         twodee_input.write('   OUTPUT_DIRECTORY   = ' + outfiles_twodee + ' \n')
+                    elif 'TOPOGRAPHY_FILE' in record:
+                        twodee_input.write('   TOPOGRAPHY_FILE   = ' + os.path.join(diagno_daily, 'topography.grd') + ' \n')
+                    elif 'ROUGHNESS_FILE' in record:
+                        twodee_input.write('   ROUGHNESS_FILE   = ' + os.path.join(twodee_daily, 'roughness.grd') + ' \n')
+                    elif 'SOURCE_FILE' in record:
+                        twodee_input.write('   SOURCE_FILE   = ' + os.path.join(twodee_daily,'source.dat') + ' \n')
+                    elif 'SURF_DATA_FILE' in record:
+                        twodee_input.write('   SURF_DATA_FILE   = ' + os.path.join(diagno_daily, 'surface_data.txt') + ' \n')
+                    elif 'DIAGNO_FILE' in record:
+                        twodee_input.write('   DIAGNO_FILE   = ' + os.path.join(diagno_daily, 'diagno.out') + ' \n')
                     else:
                         twodee_input.write(record)
             twodee_input.close()

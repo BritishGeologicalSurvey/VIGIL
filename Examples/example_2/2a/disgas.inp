@@ -60,8 +60,3 @@ OUTPUT
   OUTPUT_W_VELOCITY = NO                   (YES/NO)
   OUTPUT_CONCENTRATION = YES               (YES/NO)
   OUTPUT_LAYERS = ALL                      (ALL/List_of_layers)
-  TRACK_POINTS = YES                       (YES/NO)
-  N_POINTS = 3                             (Number of tracking points)
-  POINTS_EASTING = 643545 643388 643489    (UTM easting coordinate of each tracking point)
-  POINTS_NORTHING = 1774499 1774541 1774441 (UTM northing coordinate of each tracking point)
-  POINTS_ELEVATION = 1 1 1                  (Meters above ground of each tracking point)

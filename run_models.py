@@ -19,7 +19,7 @@ def read_arguments():
     parser.add_argument('-SDUR', '--source_dur', default=0, help='Emission duration [s] of 1 single source. Option valid for Twodee only')
     parser.add_argument('-D','--domain',nargs='+', default=[], help='Coordinates type (UTM/GEO), coordinates (latitude/northing, longitude/easting) of the bottom left corner and top right corner of the domain')
     parser.add_argument('-SEM','--source_emission',default='999',help='Source emission rate [kg/s]. If specified, it is assigned to all the sources in the domain')
-    parser.add_argument('-RER','--random_emission',default='off',help='on: randomly assign emission rate for each source in the domain sampled from a flux.csv file. off: use specified emission rate')
+    parser.add_argument('-RER','--random_emission',default='off',help='on: randomly assign emission rate for each source in the domain sampled from a flux.txt file. off: use specified emission rate')
     parser.add_argument('-TD', '--twodee', default='off',help='on or off, to run Twodee')
     parser.add_argument('-DG', '--disgas', default='off', help='on or off, to run Disgas')
     args = parser.parse_args()
@@ -149,10 +149,10 @@ def read_arguments():
                         source_el = float(source_location[2])
     if random_emission == 'on':
         try:
-            sources_file = open('flux.csv', 'r')
+            sources_file = open('flux.txt', 'r')
             sources_file.close()
         except:
-            print('ERROR. File flux.csv not found')
+            print('ERROR. File flux.txt not found')
             sys.exit()
     elif random_emission != 'off':
         print('Valid options for -RER --random_sources are on and off')

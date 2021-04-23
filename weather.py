@@ -172,21 +172,23 @@ def extract_grib_data(folder, validity, wtfile_prof_step):
         while i < nrecords:
             if 'mb' in records1[i][4] and ' mb ' not in records1[i][4]:
                 if records1[i][3] == 'UGRD':
-                    u_tmp.append(records2[i][1])
+                    u_tmp.append(float(records2[i][1]))
                 elif records1[i][3] == 'VGRD':
-                    v_tmp.append(records2[i][1])
-                elif records1[i][3] == 'GP' or records1[i][3] == 'HGT':
-                    hgt_tmp.append(records2[i][1])
+                    v_tmp.append(float(records2[i][1]))
+                elif records1[i][3] == 'GP':
+                    hgt_tmp.append(float(records2[i][1]) / 9.8066)
+                elif records1[i][3] == 'HGT':
+                    hgt_tmp.append(float(records2[i][1]))
                 elif records1[i][3] == 'TMP':
-                    t_tmp.append(records2[i][1])
+                    t_tmp.append(float(records2[i][1]))
             i += 1
         j = 0
         for i in range(len(u_tmp)-1, -1, -1):
-            if float(hgt_tmp[i]) / 9.8066 > elevation:
-                hgt.append(float(hgt_tmp[i]) / 9.8066 - elevation)
-                u.append(float(u_tmp[i]))
-                v.append(float(v_tmp[i]))
-                t.append(float(t_tmp[i]))
+            if hgt_tmp[i] > elevation:
+                hgt.append(hgt_tmp[i] - elevation)
+                u.append(u_tmp[i])
+                v.append(v_tmp[i])
+                t.append(t_tmp[i])
                 wind.append((u[j] ** 2 + v[j] ** 2) ** 0.5)
                 wind_dir_degrees = atan2(u[j],v[j]) * 180/pi
                 direction.append(wind_dir_degrees + 180)

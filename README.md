@@ -12,9 +12,11 @@ The weather data can be either retrieved from ECMWF ERA5 database or from time s
 	+ Weather station data
 	In this mode, the script is design to extract weather data in the time interval specified by the user from selected weather data file. The script reads the number of files, file location and name from weather_stations.txt; the file data should be stored in the folder weather_stations.
 The following flags control the execution of weather.py:
-usage: weather.py [-h] [-S START_DATE] [-E END_DATE] [-SY SAMPLED_YEARS [SAMPLED_YEARS ...]] [-SM SAMPLED_MONTHS [SAMPLED_MONTHS ...]] [-SD SAMPLED_DAYS [SAMPLED_DAYS ...]] [-V VOLC] [-LAT LAT] [-LON LON]
+usage: weather.py [-h] [-M MODE] [-S START_DATE] [-E END_DATE] [-SY SAMPLED_YEARS [SAMPLED_YEARS ...]] [-SM SAMPLED_MONTHS [SAMPLED_MONTHS ...]] [-SD SAMPLED_DAYS [SAMPLED_DAYS ...]] [-V VOLC] [-LAT LAT] [-LON LON]
                   [-EL ELEV] [-NS SAMPLES] [-ERA5 ERA5] [-WST STATION] [-N NPROC] [-TD TWODEE] [-DG DISGAS]
   -h, --help            show this help message and exit
+  -M MODE, --mode MODE  Possible options: reanalysis, forecast. If reanalysis, either ERA5 or WST options should be
+                        on. If forecast, GFS data will be downloaded and processed
   -S START_DATE, --start_date START_DATE
                         Start date of the sampling period. Format: DD/MM/YYYY
   -E END_DATE, --end_date END_DATE

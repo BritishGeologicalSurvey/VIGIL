@@ -7,21 +7,89 @@ import numpy as np
 import sys
 import utm
 
+
 def read_arguments():
-    parser = argparse.ArgumentParser(description='Input data')
-    parser.add_argument('-N', '--nproc', default=1, help='Maximum number of allowed simultaneous processes')
-    parser.add_argument('-RS','--random_sources', default='off', help='on: randomly select NS locations from a probability map. off: fixed source locations from file sources_input.txt')
-    parser.add_argument('-NS','--nsources',default='random', help='Specify a number for a fixed number of sources. If random, then randomly select the number of sources from an interval')
-    parser.add_argument('-SINT','--sources_interval', nargs='+', default=[], help='Type the minimum and maximum number of sources')
-    parser.add_argument('-SLOC','--source_location',nargs='+', default=[], help='Coordinate type (UTM/GEO), latitude/northing, longitude/easting, elevation (above ground in m) of 1 fixed source')
-    parser.add_argument('-SDX','--source_dx', default=999999, help = 'Extension [m] along the X direction of 1 single source. Option valid for Twodee only')
-    parser.add_argument('-SDY', '--source_dy', default=999999, help='Extension [m] along the Y direction of 1 single source. Option valid for Twodee only')
-    parser.add_argument('-SDUR', '--source_dur', default=0, help='Emission duration [s] of 1 single source. Option valid for Twodee only')
-    parser.add_argument('-D','--domain',nargs='+', default=[], help='Coordinates type (UTM/GEO), coordinates (latitude/northing, longitude/easting) of the bottom left corner and top right corner of the domain')
-    parser.add_argument('-SEM','--source_emission',default='999',help='Source emission rate [kg/s]. If specified, it is assigned to all the sources in the domain')
-    parser.add_argument('-RER','--random_emission',default='off',help='on: randomly assign emission rate for each source in the domain sampled from a flux.txt file. off: use specified emission rate')
-    parser.add_argument('-TD', '--twodee', default='off',help='on or off, to run Twodee')
-    parser.add_argument('-DG', '--disgas', default='off', help='on or off, to run Disgas')
+    parser = argparse.ArgumentParser(description="Input data")
+    parser.add_argument(
+        "-N",
+        "--nproc",
+        default=1,
+        help="Maximum number of allowed simultaneous processes",
+    )
+    parser.add_argument(
+        "-RS",
+        "--random_sources",
+        default="off",
+        help="on: randomly select NS locations from a probability map. off: fixed source locations from file "
+             "sources_input.txt",
+    )
+    parser.add_argument(
+        "-NS",
+        "--nsources",
+        default="random",
+        help="Specify a number for a fixed number of sources. If random, then randomly select the number of sources "
+             "from an interval",
+    )
+    parser.add_argument(
+        "-SINT",
+        "--sources_interval",
+        nargs="+",
+        default=[],
+        help="Type the minimum and maximum number of sources",
+    )
+    parser.add_argument(
+        "-SLOC",
+        "--source_location",
+        nargs="+",
+        default=[],
+        help="Coordinate type (UTM/GEO), latitude/northing, longitude/easting, elevation (above ground in m) of 1 "
+             "fixed source",
+    )
+    parser.add_argument(
+        "-SDX",
+        "--source_dx",
+        default=999999,
+        help="Extension [m] along the X direction of 1 single source. Option valid for Twodee only",
+    )
+    parser.add_argument(
+        "-SDY",
+        "--source_dy",
+        default=999999,
+        help="Extension [m] along the Y direction of 1 single source. Option valid for Twodee only",
+    )
+    parser.add_argument(
+        "-SDUR",
+        "--source_dur",
+        default=0,
+        help="Emission duration [s] of 1 single source. Option valid for Twodee only",
+    )
+    parser.add_argument(
+        "-D",
+        "--domain",
+        nargs="+",
+        default=[],
+        help="Coordinates type (UTM/GEO), coordinates (latitude/northing, longitude/easting) of the bottom left corner "
+             "and top right corner of the domain",
+    )
+    parser.add_argument(
+        "-SEM",
+        "--source_emission",
+        default="999",
+        help="Source emission rate [kg/s]. If specified, it is assigned to all the sources in the domain",
+    )
+    parser.add_argument(
+        "-RER",
+        "--random_emission",
+        default="off",
+        help="on: randomly assign emission rate for each source in the domain sampled from a flux.txt file. off: use "
+             "specified emission rate",
+    )
+    parser.add_argument(
+        "-TD", "--twodee", default="off", help="on or off, to run Twodee"
+    )
+    parser.add_argument(
+        "-DG", "--disgas", default="off", help="on or off, to run Disgas"
+    )
     args = parser.parse_args()
     nproc = args.nproc
     random_sources = args.random_sources
@@ -41,178 +109,237 @@ def read_arguments():
     try:
         source_emission = float(source_emission)
     except:
-        print('Pleae provide a valid number for the emission rate of the source')
+        print("Please provide a valid number for the emission rate of the source")
         sys.exit()
     if len(domain) == 0 or len(domain) > 5:
-        print('ERROR. Please provide valid entries for -D --domain')
+        print("ERROR. Please provide valid entries for -D --domain")
         sys.exit()
     else:
         coordinates_type = domain[0]
-        if coordinates_type == 'GEO':
+        if coordinates_type == "GEO":
             bottom_left_1 = float(domain[1])
             bottom_left_2 = float(domain[2])
             top_right_1 = float(domain[3])
             top_right_2 = float(domain[4])
             if (-90 <= bottom_left_1 <= 90 and -180 <= bottom_left_2 <= 180) and (
-                    -90 <= top_right_1 <= 90 and -180 <= top_right_2 <= 180):  # identify valid geographic coordinates
+                -90 <= top_right_1 <= 90 and -180 <= top_right_2 <= 180
+            ):  # identify valid geographic coordinates
                 try:
                     out_utm = utm.from_latlon(bottom_left_1, bottom_left_2)
                     bottom_left_easting = float(out_utm[0])
                     bottom_left_northing = float(out_utm[1])
                 except:
-                    print('ERROR. Please provide valid coordinates for the bottom left corner of the domain')
+                    print(
+                        "ERROR. Please provide valid coordinates for the bottom left corner of the domain"
+                    )
                     sys.exit()
                 try:
                     out_utm = utm.from_latlon(top_right_1, top_right_2)
                     top_right_easting = float(out_utm[0])
                     top_right_northing = float(out_utm[1])
                 except:
-                    print('ERROR. Please provide valid coordinates for the top right corner of the domain')
+                    print(
+                        "ERROR. Please provide valid coordinates for the top right corner of the domain"
+                    )
                     sys.exit()
             else:
-                print('ERROR. Please provide valid coordinates')
+                print("ERROR. Please provide valid coordinates")
                 sys.exit()
-        elif coordinates_type == 'UTM':
+        elif coordinates_type == "UTM":
             bottom_left_northing = float(domain[1])
             bottom_left_easting = float(domain[2])
             top_right_northing = float(domain[3])
             top_right_easting = float(domain[4])
         else:
-            print('ERROR. Please provide a valide type of coordinates (UTM or GEO)')
+            print("ERROR. Please provide a valide type of coordinates (UTM or GEO)")
             sys.exit()
-        if bottom_left_northing == top_right_northing or bottom_left_easting == top_right_easting:
-            print('ERROR. Coordinates of the corners cannot coincide')
+        if (
+            bottom_left_northing == top_right_northing
+            or bottom_left_easting == top_right_easting
+        ):
+            print("ERROR. Coordinates of the corners cannot coincide")
             sys.exit()
-        if bottom_left_northing > top_right_northing and bottom_left_easting > top_right_easting:  # Check coordinates are in the proper order, otherwise swap
+        if (
+            bottom_left_northing > top_right_northing
+            and bottom_left_easting > top_right_easting
+        ):  # Check coordinates are in the proper order, otherwise swap
             temp = bottom_left_northing
             bottom_left_northing = top_right_northing
             top_right_northing = temp
             temp = bottom_left_easting
             bottom_left_easting = top_right_easting
             top_right_easting = temp
-    if random_sources == 'on':
+    if random_sources == "on":
         try:
-            np.loadtxt('probability_map.grd',skiprows=5)
+            np.loadtxt("probability_map.grd", skiprows=5)
         except:
-            print('Please provide a valid probability_map.grd file when random_sources option is on')
+            print(
+                "Please provide a valid probability_map.grd file when random_sources option is on"
+            )
             sys.exit()
-        if nsources == 'random':
+        if nsources == "random":
             if len(sources_interval) == 0 or len(sources_interval) > 2:
-                print('ERROR. Please specify the minimum and maximum number of sources with -SINT --sources_interval')
+                print(
+                    "ERROR. Please specify the minimum and maximum number of sources with -SINT --sources_interval"
+                )
                 sys.exit()
         else:
             try:
                 nsources = int(nsources)
             except:
-                print('Please provide a valid integer for -NS --nsources')
+                print("Please provide a valid integer for -NS --nsources")
                 sys.exit()
-        if random_emission == 'off' and source_emission == 999:
-            print('ERROR. random_sources set to on requires either random_emission set to on or a specified source_emission')
+        if random_emission == "off" and source_emission == 999:
+            print(
+                "ERROR. random_sources set to on requires either random_emission set to on or a specified source_emission"
+            )
             sys.exit()
     else:
-        if random_sources != 'off':
-            print('Valid options for -RS --random_sources are on and off')
+        if random_sources != "off":
+            print("Valid options for -RS --random_sources are on and off")
             sys.exit()
         else:
             try:
-                sources_file =  open('sources_input.txt','r')
+                sources_file = open("sources_input.txt", "r")
                 sources_file.close()
             except:
-                print('File sources_input.txt not found. Using one source from input data')
+                print(
+                    "File sources_input.txt not found. Using one source from input data"
+                )
                 if len(source_location) == 0 or len(source_location) > 4:
-                    print('ERROR. Please provide valid entries for -SLOC --sources_location')
+                    print(
+                        "ERROR. Please provide valid entries for -SLOC --sources_location"
+                    )
                     sys.exit()
                 else:
                     coordinates_type = source_location[0]
-                    if coordinates_type == 'GEO':
-                        if -90 <= float(source_location[1]) <= 90 and -180 <= float(source_location[2]) <= 180: #identify geographic coordinates
+                    if coordinates_type == "GEO":
+                        if (
+                            -90 <= float(source_location[1]) <= 90
+                            and -180 <= float(source_location[2]) <= 180
+                        ):  # identify geographic coordinates
                             try:
-                                out_utm = utm.from_latlon(float(source_location[1]), float(source_location[2]))
+                                out_utm = utm.from_latlon(
+                                    float(source_location[1]), float(source_location[2])
+                                )
                                 source_easting = float(out_utm[0])
                                 source_northing = float(out_utm[1])
                             except:
-                                print('Please provide valid coordinates of the source location')
+                                print(
+                                    "Please provide valid coordinates of the source location"
+                                )
                                 sys.exit()
-                    elif coordinates_type == 'UTM':
+                    elif coordinates_type == "UTM":
                         source_easting = float(source_location[1])
                         source_northing = float(source_location[0])
-                        if not bottom_left_easting <= source_easting <= top_right_easting or not bottom_left_northing <= source_northing <= top_right_northing:
-                            print('Location not within the domain')
+                        if (
+                            not bottom_left_easting
+                            <= source_easting
+                            <= top_right_easting
+                            or not bottom_left_northing
+                            <= source_northing
+                            <= top_right_northing
+                        ):
+                            print("Location not within the domain")
                             sys.exit()
                     else:
-                        print('ERROR. Please provide a valide type of coordinates (UTM or GEO)')
+                        print(
+                            "ERROR. Please provide a valide type of coordinates (UTM or GEO)"
+                        )
                         sys.exit()
                     if float(source_location[2]) < 0:
-                        print('Please provide a valid value for the source elevation in m above ground (>= 0 m)')
+                        print(
+                            "Please provide a valid value for the source elevation in m above ground (>= 0 m)"
+                        )
                         sys.exit()
                     else:
                         source_el = float(source_location[2])
-    if random_emission == 'on':
+    if random_emission == "on":
         try:
-            sources_file = open('flux.txt', 'r')
+            sources_file = open("flux.txt", "r")
             sources_file.close()
         except:
-            print('ERROR. File flux.txt not found')
+            print("ERROR. File flux.txt not found")
             sys.exit()
-    elif random_emission != 'off':
-        print('Valid options for -RER --random_sources are on and off')
+    elif random_emission != "off":
+        print("Valid options for -RER --random_sources are on and off")
         sys.exit()
-    if twodee.lower() == 'on':
+    if twodee.lower() == "on":
         twodee_on = True
-    elif twodee.lower() == 'off':
+    elif twodee.lower() == "off":
         twodee_on = False
     else:
-        print('Please provide a valid entry for the variable -TD --twodee')
+        print("Please provide a valid entry for the variable -TD --twodee")
         sys.exit()
-    if disgas.lower() == 'on':
+    if disgas.lower() == "on":
         disgas_on = True
-    elif disgas.lower() == 'off':
+    elif disgas.lower() == "off":
         disgas_on = False
     else:
-        print('Please provide a valid entry for the variable -DG --disgas')
+        print("Please provide a valid entry for the variable -DG --disgas")
         sys.exit()
     if source_dx != 999999:
         try:
             source_dx = float(source_dx)
         except:
-            print('Please provide a valid number for the variable -SDX --source_dx')
+            print("Please provide a valid number for the variable -SDX --source_dx")
             sys.exit()
     if source_dy != 999999:
         try:
             source_dy = float(source_dy)
         except:
-            print('Please provide a valid number for the variable -SDY --source_dy')
+            print("Please provide a valid number for the variable -SDY --source_dy")
             sys.exit()
     if source_dur != 0:
         try:
             source_dur = float(source_dur)
         except:
-            print('Please provide a valid number for the variable -SDUR --source_dur')
+            print("Please provide a valid number for the variable -SDUR --source_dur")
             sys.exit()
-    return max_number_processes, random_sources, nsources, sources_interval, source_easting, source_northing, source_el, \
-           source_emission, random_emission, bottom_left_northing, bottom_left_easting, top_right_northing, top_right_easting, \
-           source_dx, source_dy, source_dur, twodee_on, disgas_on
+    return (
+        max_number_processes,
+        random_sources,
+        nsources,
+        sources_interval,
+        source_easting,
+        source_northing,
+        source_el,
+        source_emission,
+        random_emission,
+        bottom_left_northing,
+        bottom_left_easting,
+        top_right_northing,
+        top_right_easting,
+        source_dx,
+        source_dy,
+        source_dur,
+        twodee_on,
+        disgas_on,
+    )
+
 
 def pre_process():
-    def sample_random_sources(n_sources, input_file, dur_min, dur_max, source_size_min, source_size_max):
+    def sample_random_sources(
+        n_sources, input_file, dur_min, dur_max, source_size_min, source_size_max
+    ):
         from random import choices
 
         with open(input_file) as probability_file:
             i = 1
             for line in probability_file:
                 if i == 2:
-                    nx = int(line.split(' ')[0])
-                    ny = int(line.split(' ')[1])
+                    nx = int(line.split(" ")[0])
+                    ny = int(line.split(" ")[1])
                     i += 1
                     continue
                 elif i == 3:
-                    xmin = float(line.split(' ')[0])
-                    xmax = float(line.split(' ')[1])
+                    xmin = float(line.split(" ")[0])
+                    xmax = float(line.split(" ")[1])
                     i += 1
                     continue
                 elif i == 4:
-                    ymin = float(line.split(' ')[0])
-                    ymax = float(line.split(' ')[1])
+                    ymin = float(line.split(" ")[0])
+                    ymax = float(line.split(" ")[1])
                     i += 1
                     continue
                 else:
@@ -257,44 +384,56 @@ def pre_process():
             random_elevations.append(0.0)
             random_probabilities.append(probability)
             random_fluxes.append(99999999)
-            random_dx.append(choices(dxs, k = 1)[0])
-            random_dy.append(choices(dys, k = 1)[0])
-            random_dur.append(choices(durs, k = 1)[0])
+            random_dx.append(choices(dxs, k=1)[0])
+            random_dy.append(choices(dys, k=1)[0])
+            random_dur.append(choices(durs, k=1)[0])
 
-        return random_eastings, random_northings, random_elevations, random_probabilities, random_fluxes, random_dx, random_dy, random_dur
+        return (
+            random_eastings,
+            random_northings,
+            random_elevations,
+            random_probabilities,
+            random_fluxes,
+            random_dx,
+            random_dy,
+            random_dur,
+        )
 
     def fluxes():
         import numpy as np
+
         fluxes_in = []
-        with open('flux.txt') as flux_file:
+        with open("flux.txt") as flux_file:
             for line in flux_file:
                 fluxes_in.append(float(line))
         flux_file.close()
         x = np.sort(fluxes_in)
         list_x = list(x)
-        sampled_flux = (sample(list_x, 1))
+        sampled_flux = sample(list_x, 1)
         return sampled_flux
 
     def topography_converter(original_topography_file):
         # To convert the DIAGNO-DISGAS topography file into a Twodee-readable topography file
-        with open(original_topography_file, 'r', encoding='utf-8') as diagno_grid:
+        with open(original_topography_file, "r", encoding="utf-8") as diagno_grid:
             line_number = 1
             lines = []
             for line in diagno_grid:
                 lines.append(line)
-        NX = int(lines[1].split(' ')[0])
-        NY = int(lines[1].split(' ')[1].split('\n')[0])
-        X0 = float(lines[2].split(' ')[0])
-        XF = float(lines[2].split(' ')[1].split('\n')[0])
-        Y0 = float(lines[3].split(' ')[0])
+        NX = int(lines[1].split(" ")[0])
+        NY = int(lines[1].split(" ")[1].split("\n")[0])
+        X0 = float(lines[2].split(" ")[0])
+        XF = float(lines[2].split(" ")[1].split("\n")[0])
+        Y0 = float(lines[3].split(" ")[0])
         DX = round(((XF - X0) / NX), 1)
-        with open(os.path.join(twodee_daily,'topography.grd'), 'w', encoding='utf-8') as twodee_grid:
-            twodee_grid.write('nx ' + str(NX) + '\n')
-            twodee_grid.write('ny ' + str(NY) + '\n')
-            twodee_grid.write('xllcorner ' + str(X0) + '\n')
-            twodee_grid.write('yllcorner ' + str(Y0) + '\n')
-            twodee_grid.write('dx ' + str(DX) + '\n')
-            twodee_grid.write('no 123\n')
+        with open(
+            os.path.join(twodee_daily, "topography.grd"), "w", encoding="utf-8"
+        ) as twodee_grid:
+            twodee_grid.write("nx " + str(NX) + "\n")
+            twodee_grid.write("ny " + str(NY) + "\n")
+            twodee_grid.write("xllcorner " + str(X0) + "\n")
+            twodee_grid.write("yllcorner " + str(Y0) + "\n")
+            twodee_grid.write("dx " + str(DX) + "\n")
+            twodee_grid.write("no 123\n")
             for line in range(5, len(lines)):
                 twodee_grid.write(lines[line])
 
@@ -311,14 +450,29 @@ def pre_process():
     dur_max = 86400
     source_size_min = 0.1
     source_size_max = 100
-    if random_sources == 'on':
-        if nsources == 'random':
-            Nsources = [*range(int(sources_interval[0]),int(sources_interval[1]) + 1)]
+    if random_sources == "on":
+        if nsources == "random":
+            Nsources = [*range(int(sources_interval[0]), int(sources_interval[1]) + 1)]
         else:
             Nsources = [nsources]
         n_random_sources = sample(Nsources, 1)[0]
-        random_eastings, random_northings, random_elevations, random_probabilities, random_fluxes, \
-        random_dx, random_dy, random_dur = sample_random_sources(n_random_sources, 'probability_map.grd', dur_min, dur_max, source_size_min, source_size_max)
+        (
+            random_eastings,
+            random_northings,
+            random_elevations,
+            random_probabilities,
+            random_fluxes,
+            random_dx,
+            random_dy,
+            random_dur,
+        ) = sample_random_sources(
+            n_random_sources,
+            "probability_map.grd",
+            dur_min,
+            dur_max,
+            source_size_min,
+            source_size_max,
+        )
     easting = random_eastings
     northing = random_northings
     elevations = random_elevations
@@ -329,10 +483,12 @@ def pre_process():
     dur = random_dur
     n_sources = 0
     try:
-        with open('sources_input.txt', 'r', encoding="utf-8", errors="surrogateescape") as locations_file:
+        with open(
+            "sources_input.txt", "r", encoding="utf-8", errors="surrogateescape"
+        ) as locations_file:
             for line in locations_file:
                 try:
-                    records = line.split('\t')
+                    records = line.split("\t")
                     easting.append(float(records[0]))
                     northing.append(float(records[1]))
                     elevations.append(float(records[2]))
@@ -345,7 +501,7 @@ def pre_process():
                 except:
                     continue
     except:
-        if random_sources != 'on':
+        if random_sources != "on":
             easting.append(source_easting)
             northing.append(source_northing)
             elevations.append(source_el)
@@ -356,193 +512,299 @@ def pre_process():
             dur.append(source_dur)
     n_sources = len(easting)
 
-    raw_days = [] # store the days as originally formatted
-    days = [] #store days in format YYYYMMDD as per folder name
+    raw_days = []  # store the days as originally formatted
+    days = []  # store days in format YYYYMMDD as per folder name
     # Set DIAGNO folder
-    diagno = os.path.join(root, 'simulations', 'diagno')
+    diagno = os.path.join(root, "simulations", "diagno")
     try:
         os.mkdir(diagno)
     except:
-        print('Folder ' + diagno + ' already exists')
+        print("Folder " + diagno + " already exists")
     if disgas_on:
         # Set DISGAS folder
-        disgas = os.path.join(root, 'simulations', 'disgas')
+        disgas = os.path.join(root, "simulations", "disgas")
         try:
             os.mkdir(disgas)
         except:
-            print('Folder ' + disgas + ' already exists')
+            print("Folder " + disgas + " already exists")
     if twodee_on:
         # Set DISGAS folder
-        twodee = os.path.join(root, 'simulations', 'twodee')
+        twodee = os.path.join(root, "simulations", "twodee")
         try:
             os.mkdir(twodee)
         except:
-            print('Folder ' + twodee + ' already exists')
+            print("Folder " + twodee + " already exists")
     # read days_list file
-    with open('days_list.txt','r',encoding="utf-8", errors="surrogateescape") as days_list_file:
+    with open(
+        "days_list.txt", "r", encoding="utf-8", errors="surrogateescape"
+    ) as days_list_file:
         for line in days_list_file:
             raw_days.append(line)
     days_list_file.close()
-    i=0
+    i = 0
     for day in raw_days:
-        temp = raw_days[i].split(' ')
-        temp = temp[0].split('-')
-        days.append(temp[0]+temp[1]+temp[2])
-        i+=1
+        temp = raw_days[i].split(" ")
+        temp = temp[0].split("-")
+        days.append(temp[0] + temp[1] + temp[2])
+        i += 1
     for day in days:
-        path = os.path.join(root,'simulations', str(day))
+        path = os.path.join(root, "simulations", str(day))
         files = os.listdir(path)
         diagno_daily = os.path.join(diagno, str(day))
         try:
             os.mkdir(diagno_daily)
         except:
-            print('Folder ' + diagno_daily + ' already exists')
+            print("Folder " + diagno_daily + " already exists")
         for f in files:
-            path_f = os.path.join(path,f)
+            path_f = os.path.join(path, f)
             try:
                 shutil.move(path_f, diagno_daily)
             except:
-                print('File ' + f + ' already present in ' + diagno)
-        shutil.copy(topography, os.path.join(diagno_daily, 'topography.grd'))
+                print("File " + f + " already present in " + diagno)
+        shutil.copy(topography, os.path.join(diagno_daily, "topography.grd"))
         # Set DISGAS folder
         if disgas_on:
             disgas_daily = os.path.join(disgas, str(day))
-            outfiles = os.path.join(disgas_daily, 'outfiles')
+            outfiles = os.path.join(disgas_daily, "outfiles")
             try:
                 os.mkdir(disgas_daily)
             except:
-                print('Folder ' + disgas_daily + ' already exists')
+                print("Folder " + disgas_daily + " already exists")
             try:
                 os.mkdir(outfiles)
                 if not outfiles.endswith(os.path.sep):
                     outfiles += os.path.sep
             except:
-                print('Folder outfiles already exists in ' + str(disgas_daily))
-            disgas_input = os.path.join(disgas_daily,'disgas.inp')
-            with open(os.path.join(disgas_daily,'source.dat'), 'w', encoding="utf-8", errors="surrogateescape") as source_file:
+                print("Folder outfiles already exists in " + str(disgas_daily))
+            disgas_input = os.path.join(disgas_daily, "disgas.inp")
+            with open(
+                os.path.join(disgas_daily, "source.dat"),
+                "w",
+                encoding="utf-8",
+                errors="surrogateescape",
+            ) as source_file:
                 for i in range(0, n_sources):
                     if source_emission != 999:
                         gas_flux = source_emission
                     else:
-                        if fluxes_input[i] == 99999999 and random_emission == 'on':
+                        if fluxes_input[i] == 99999999 and random_emission == "on":
                             gas_flux = fluxes()[0]
                         else:
                             gas_flux = fluxes_input[i]
-                    source_file.write('{0:7.3f}'.format(easting[i]) + ' ' + '{0:7.3f}'.format(northing[i]) + ' '
-                                      + '{0:7.2f}'.format(elevations[i]) + ' ' + '{0:7.3f}'.format(gas_flux) + '\n')
+                    source_file.write(
+                        "{0:7.3f}".format(easting[i])
+                        + " "
+                        + "{0:7.3f}".format(northing[i])
+                        + " "
+                        + "{0:7.2f}".format(elevations[i])
+                        + " "
+                        + "{0:7.3f}".format(gas_flux)
+                        + "\n"
+                    )
             source_file.close()
             roughness_file_exist = True
             try:
-                shutil.copyfile(os.path.join(root,'roughness_disgas.grd'),os.path.join(disgas_daily,'roughness.grd'))
+                shutil.copyfile(
+                    os.path.join(root, "roughness_disgas.grd"),
+                    os.path.join(disgas_daily, "roughness.grd"),
+                )
             except:
                 roughness_file_exist = False
-            shutil.move(os.path.join(diagno_daily, 'surface_data.txt'), os.path.join(disgas_daily, 'surface_data.txt'))
+            shutil.move(
+                os.path.join(diagno_daily, "surface_data.txt"),
+                os.path.join(disgas_daily, "surface_data.txt"),
+            )
             # read and memorize disgas.inp file
             disgas_input_records = []
-            with open(disgas_original, 'r', encoding="utf-8", errors="surrogateescape") as disgas_or_input:
+            with open(
+                disgas_original, "r", encoding="utf-8", errors="surrogateescape"
+            ) as disgas_or_input:
                 for line in disgas_or_input:
                     disgas_input_records.append(line)
             disgas_or_input.close()
-            with open(disgas_input,'w', encoding="utf-8", errors="surrogateescape") as disgas_input:
+            with open(
+                disgas_input, "w", encoding="utf-8", errors="surrogateescape"
+            ) as disgas_input:
                 for record in disgas_input_records:
-                    if 'ROUGHNESS_MODEL' in record:
-                        roughness_command = record.split('=')[1]
-                        roughness_command = roughness_command.split('(')[0]
-                        if 'MATRIX' in roughness_command:
+                    if "ROUGHNESS_MODEL" in record:
+                        roughness_command = record.split("=")[1]
+                        roughness_command = roughness_command.split("(")[0]
+                        if "MATRIX" in roughness_command:
                             if not roughness_file_exist:
-                                print('Warning! ROUGHNESS_MODEL set to MATRIX in disgas.inp and roughness file does not exist')
-                                print('Setting ROUGHNESS_MODEL to UNIFORM')
-                    if 'YEAR' in record:
-                        disgas_input.write('  YEAR   = ' + day[0:4] + '\n')
-                    elif 'MONTH' in record:
-                        disgas_input.write('  MONTH  = ' + day[4:6] + '\n')
-                    elif 'DAY' in record:
-                        disgas_input.write('  DAY    = ' + day[6:8] + '\n')
-                    elif 'TOPOGRAPHY_FILE_PATH' in record:
-                        disgas_input.write('   TOPOGRAPHY_FILE_PATH   = ' + os.path.join(diagno_daily, 'topography.grd') + ' \n')
-                    elif 'ROUGHNESS_FILE_PATH' in record:
-                        disgas_input.write('   ROUGHNESS_FILE_PATH   = ' + os.path.join(disgas_daily, 'roughness.grd') + ' \n')
-                    elif 'RESTART_FILE_PATH' in record:
-                        disgas_input.write('   RESTART_FILE_PATH   = ' + os.path.join(disgas_daily, 'restart.dat') + ' \n')
-                    elif 'SOURCE_FILE_PATH' in record:
-                        disgas_input.write('   SOURCE_FILE_PATH   = ' + os.path.join(disgas_daily, 'source.dat') + ' \n')
-                    elif 'WIND_FILE_PATH' in record:
-                        disgas_input.write('   WIND_FILE_PATH   = ' + os.path.join(disgas_daily, 'winds.dat') + ' \n')
-                    elif 'DIAGNO_FILE_PATH' in record:
-                        disgas_input.write('   DIAGNO_FILE_PATH   = ' + os.path.join(diagno_daily, 'diagno.out') + ' \n')
-                    elif 'OUTPUT_DIRECTORY' in record:
-                        disgas_input.write('   OUTPUT_DIRECTORY    = ' + outfiles + ' \n')
+                                print(
+                                    "Warning! ROUGHNESS_MODEL set to MATRIX in disgas.inp and roughness file does not exist"
+                                )
+                                print("Setting ROUGHNESS_MODEL to UNIFORM")
+                    if "YEAR" in record:
+                        disgas_input.write("  YEAR   = " + day[0:4] + "\n")
+                    elif "MONTH" in record:
+                        disgas_input.write("  MONTH  = " + day[4:6] + "\n")
+                    elif "DAY" in record:
+                        disgas_input.write("  DAY    = " + day[6:8] + "\n")
+                    elif "TOPOGRAPHY_FILE_PATH" in record:
+                        disgas_input.write(
+                            "   TOPOGRAPHY_FILE_PATH   = "
+                            + os.path.join(diagno_daily, "topography.grd")
+                            + " \n"
+                        )
+                    elif "ROUGHNESS_FILE_PATH" in record:
+                        disgas_input.write(
+                            "   ROUGHNESS_FILE_PATH   = "
+                            + os.path.join(disgas_daily, "roughness.grd")
+                            + " \n"
+                        )
+                    elif "RESTART_FILE_PATH" in record:
+                        disgas_input.write(
+                            "   RESTART_FILE_PATH   = "
+                            + os.path.join(disgas_daily, "restart.dat")
+                            + " \n"
+                        )
+                    elif "SOURCE_FILE_PATH" in record:
+                        disgas_input.write(
+                            "   SOURCE_FILE_PATH   = "
+                            + os.path.join(disgas_daily, "source.dat")
+                            + " \n"
+                        )
+                    elif "WIND_FILE_PATH" in record:
+                        disgas_input.write(
+                            "   WIND_FILE_PATH   = "
+                            + os.path.join(disgas_daily, "winds.dat")
+                            + " \n"
+                        )
+                    elif "DIAGNO_FILE_PATH" in record:
+                        disgas_input.write(
+                            "   DIAGNO_FILE_PATH   = "
+                            + os.path.join(diagno_daily, "diagno.out")
+                            + " \n"
+                        )
+                    elif "OUTPUT_DIRECTORY" in record:
+                        disgas_input.write(
+                            "   OUTPUT_DIRECTORY    = " + outfiles + " \n"
+                        )
                     else:
                         disgas_input.write(record)
             disgas_input.close()
         if twodee_on:
             twodee_daily = os.path.join(twodee, str(day))
-            outfiles_twodee = os.path.join(twodee_daily, 'outfiles')
+            outfiles_twodee = os.path.join(twodee_daily, "outfiles")
             try:
                 os.mkdir(twodee_daily)
             except:
-                print('Folder ' + twodee_daily + ' already exists')
+                print("Folder " + twodee_daily + " already exists")
             try:
                 os.mkdir(outfiles_twodee)
                 if not outfiles_twodee.endswith(os.path.sep):
                     outfiles_twodee += os.path.sep
             except:
-                print('Folder outfiles already exists in ' + str(twodee_daily))
-            twodee_input = os.path.join(twodee_daily, 'twodee.inp')
-            #shutil.move(os.path.join(diagno_daily,'surface_data.txt'),os.path.join(twodee_daily,'surface_data.txt'))
-            #try:
+                print("Folder outfiles already exists in " + str(twodee_daily))
+            twodee_input = os.path.join(twodee_daily, "twodee.inp")
+            # shutil.move(os.path.join(diagno_daily,'surface_data.txt'),os.path.join(twodee_daily,'surface_data.txt'))
+            # try:
             #    shutil.copyfile(topography,os.path.join(twodee_daily,'topography.grd'))
-            #except:
+            # except:
             #    print('Unable to find a valid topography file for TWODEE')
             #    sys.exit()
             try:
-                shutil.copyfile(os.path.join(root,'roughness.grd'),os.path.join(twodee_daily,'roughness.grd'))
+                shutil.copyfile(
+                    os.path.join(root, "roughness.grd"),
+                    os.path.join(twodee_daily, "roughness.grd"),
+                )
             except:
-                print('Unable to find a valid roughness file for TWODEE')
+                print("Unable to find a valid roughness file for TWODEE")
                 sys.exit()
-            with open(os.path.join(twodee_daily,'source.dat'), 'w', encoding="utf-8", errors="surrogateescape") as source_file:
+            with open(
+                os.path.join(twodee_daily, "source.dat"),
+                "w",
+                encoding="utf-8",
+                errors="surrogateescape",
+            ) as source_file:
                 for i in range(0, n_sources):
                     if source_emission != 999:
                         gas_flux = source_emission
                     else:
-                        if fluxes_input[i] == 99999999 and random_emission == 'on':
+                        if fluxes_input[i] == 99999999 and random_emission == "on":
                             gas_flux = fluxes()[0]
                         else:
                             gas_flux = fluxes_input[i]
-                    source_file.write('{0:7.3f}'.format(easting[i]) + ' ' + '{0:7.3f}'.format(northing[i]) + ' ' + '{0:7.3f}'.format(gas_flux) + ' '
-                                      + '{0:7.2f}'.format(dx[i]) + ' ' + '{0:7.2f}'.format(dy[i]) + ' KG_SEC 0 ' + '{0:7.3f}'.format(dur[i]) + '\n')
+                    source_file.write(
+                        "{0:7.3f}".format(easting[i])
+                        + " "
+                        + "{0:7.3f}".format(northing[i])
+                        + " "
+                        + "{0:7.3f}".format(gas_flux)
+                        + " "
+                        + "{0:7.2f}".format(dx[i])
+                        + " "
+                        + "{0:7.2f}".format(dy[i])
+                        + " KG_SEC 0 "
+                        + "{0:7.3f}".format(dur[i])
+                        + "\n"
+                    )
             source_file.close()
             # read and memorize twodee.inp file
             twodee_input_records = []
-            with open(twodee_original, 'r', encoding="utf-8", errors="surrogateescape") as twodee_or_input:
+            with open(
+                twodee_original, "r", encoding="utf-8", errors="surrogateescape"
+            ) as twodee_or_input:
                 for line in twodee_or_input:
                     twodee_input_records.append(line)
             twodee_or_input.close()
-            with open(twodee_input, 'w', encoding="utf-8", errors="surrogateescape") as twodee_input:
+            with open(
+                twodee_input, "w", encoding="utf-8", errors="surrogateescape"
+            ) as twodee_input:
                 for record in twodee_input_records:
-                    if 'YEAR' in record:
-                        twodee_input.write('  YEAR   = ' + day[0:4] + '\n')
-                    elif 'MONTH' in record:
-                        twodee_input.write('  MONTH  = ' + day[4:6] + '\n')
-                    elif 'DAY' in record:
-                        twodee_input.write('  DAY    = ' + day[6:8] + '\n')
-                    elif 'OUTPUT_DIRECTORY' in record:
-                        twodee_input.write('   OUTPUT_DIRECTORY   = ' + outfiles_twodee + ' \n')
-                    elif 'TOPOGRAPHY_FILE' in record and not 'TOPOGRAPHY_FILE_FORMAT' in record:
-                        twodee_input.write('   TOPOGRAPHY_FILE   = ' + os.path.join(diagno_daily, 'topography.grd') + ' \n')
-                    elif 'ROUGHNESS_FILE' in record and not 'ROUGHNESS_FILE_FORMAT' in record:
-                        twodee_input.write('   ROUGHNESS_FILE   = ' + os.path.join(twodee_daily, 'roughness.grd') + ' \n')
-                    elif 'SOURCE_FILE' in record:
-                        twodee_input.write('   SOURCE_FILE   = ' + os.path.join(twodee_daily,'source.dat') + ' \n')
-                    elif 'SURF_DATA_FILE' in record:
-                        twodee_input.write('   SURF_DATA_FILE   = ' + os.path.join(diagno_daily, 'surface_data.txt') + ' \n')
-                    elif 'DIAGNO_FILE' in record:
-                        twodee_input.write('   DIAGNO_FILE   = ' + os.path.join(diagno_daily, 'diagno.out') + ' \n')
+                    if "YEAR" in record:
+                        twodee_input.write("  YEAR   = " + day[0:4] + "\n")
+                    elif "MONTH" in record:
+                        twodee_input.write("  MONTH  = " + day[4:6] + "\n")
+                    elif "DAY" in record:
+                        twodee_input.write("  DAY    = " + day[6:8] + "\n")
+                    elif "OUTPUT_DIRECTORY" in record:
+                        twodee_input.write(
+                            "   OUTPUT_DIRECTORY   = " + outfiles_twodee + " \n"
+                        )
+                    elif (
+                        "TOPOGRAPHY_FILE" in record
+                        and not "TOPOGRAPHY_FILE_FORMAT" in record
+                    ):
+                        twodee_input.write(
+                            "   TOPOGRAPHY_FILE   = "
+                            + os.path.join(diagno_daily, "topography.grd")
+                            + " \n"
+                        )
+                    elif (
+                        "ROUGHNESS_FILE" in record
+                        and not "ROUGHNESS_FILE_FORMAT" in record
+                    ):
+                        twodee_input.write(
+                            "   ROUGHNESS_FILE   = "
+                            + os.path.join(twodee_daily, "roughness.grd")
+                            + " \n"
+                        )
+                    elif "SOURCE_FILE" in record:
+                        twodee_input.write(
+                            "   SOURCE_FILE   = "
+                            + os.path.join(twodee_daily, "source.dat")
+                            + " \n"
+                        )
+                    elif "SURF_DATA_FILE" in record:
+                        twodee_input.write(
+                            "   SURF_DATA_FILE   = "
+                            + os.path.join(diagno_daily, "surface_data.txt")
+                            + " \n"
+                        )
+                    elif "DIAGNO_FILE" in record:
+                        twodee_input.write(
+                            "   DIAGNO_FILE   = "
+                            + os.path.join(diagno_daily, "diagno.out")
+                            + " \n"
+                        )
                     else:
                         twodee_input.write(record)
             twodee_input.close()
         shutil.rmtree(path)
     return days
+
 
 def run_diagno():
     n_elaborated_days = 0
@@ -554,36 +816,37 @@ def run_diagno():
             end = len(days)
         try:
             for day in days[start:end]:
-                diagno_folder = os.path.join(root, 'simulations', 'diagno', day)
+                diagno_folder = os.path.join(root, "simulations", "diagno", day)
                 os.chdir(diagno_folder)
                 try:
-                    p = subprocess.Popen(['srun', '-n', '1', 'presfc','&'])
+                    p = subprocess.Popen(["srun", "-n", "1", "presfc", "&"])
                 except:
-                    p = subprocess.Popen(['presfc'])
+                    p = subprocess.Popen(["presfc"])
                 p.wait()
                 ps.append(p)
                 try:
-                    p = subprocess.Popen(['srun', '-n', '1', 'preupr','&'])
+                    p = subprocess.Popen(["srun", "-n", "1", "preupr", "&"])
                 except:
-                    p = subprocess.Popen(['preupr'])
+                    p = subprocess.Popen(["preupr"])
                 p.wait()
                 ps.append(p)
                 try:
-                    p = subprocess.Popen(['srun', '-n', '1', 'diagno','&'])
+                    p = subprocess.Popen(["srun", "-n", "1", "diagno", "&"])
                 except:
-                    p = subprocess.Popen(['diagno'])
+                    p = subprocess.Popen(["diagno"])
                 ps.append(p)
             for p in ps:
                 p.wait()
         except:
-            print('Unable to process weather data with Diagno')
+            print("Unable to process weather data with Diagno")
             sys.exit()
-        print('DIAGNO successfully processed days ' + str(days[start:end]))
+        print("DIAGNO successfully processed days " + str(days[start:end]))
         n_elaborated_days = end
         if n_elaborated_days == len(days):
             break
-    print('All weather data have been successfully processed with Diagno')
+    print("All weather data have been successfully processed with Diagno")
     os.chdir(root)
+
 
 def run_disgas():
     n_elaborated_days = 0
@@ -595,23 +858,35 @@ def run_disgas():
             end = len(days)
         try:
             for day in days[start:end]:
-                disgas_folder = os.path.join(root, 'simulations', 'disgas', day)
-                disgas_input_file = os.path.join(disgas_folder, 'disgas.inp')
-                disgas_log_file = os.path.join(disgas_folder, 'disgas_log_' + day + '.txt')
+                disgas_folder = os.path.join(root, "simulations", "disgas", day)
+                disgas_input_file = os.path.join(disgas_folder, "disgas.inp")
+                disgas_log_file = os.path.join(
+                    disgas_folder, "disgas_log_" + day + ".txt"
+                )
                 try:
-                    p = subprocess.Popen(['srun', '-n', '1', 'disgas', disgas_input_file, disgas_log_file])
+                    p = subprocess.Popen(
+                        [
+                            "srun",
+                            "-n",
+                            "1",
+                            "disgas",
+                            disgas_input_file,
+                            disgas_log_file,
+                        ]
+                    )
                 except:
-                    p = subprocess.Popen(['disgas', disgas_input_file, disgas_log_file])
+                    p = subprocess.Popen(["disgas", disgas_input_file, disgas_log_file])
                 ps.append(p)
             for p in ps:
                 p.wait()
         except:
-            print('Unable to run DISGAS')
+            print("Unable to run DISGAS")
             sys.exit()
-        print('DISGAS successfully processed days ' + str(days[start:end]))
+        print("DISGAS successfully processed days " + str(days[start:end]))
         n_elaborated_days = end
         if n_elaborated_days == len(days):
             break
+
 
 def run_twodee():
     n_elaborated_days = 0
@@ -623,37 +898,69 @@ def run_twodee():
             end = len(days)
         try:
             for day in days[start:end]:
-                diagno = os.path.join(root, 'simulations', 'diagno', day)
-                twodee_folder = os.path.join(root, 'simulations', 'twodee', day)
-                shutil.copyfile(os.path.join(diagno,'diagno.out'),os.path.join(twodee_folder,'diagno.out'))
-                twodee_input_file = os.path.join(twodee_folder, 'twodee.inp')
-                twodee_log_file = os.path.join(twodee_folder, 'twodee_log_' + day + '.txt')
+                diagno = os.path.join(root, "simulations", "diagno", day)
+                twodee_folder = os.path.join(root, "simulations", "twodee", day)
+                shutil.copyfile(
+                    os.path.join(diagno, "diagno.out"),
+                    os.path.join(twodee_folder, "diagno.out"),
+                )
+                twodee_input_file = os.path.join(twodee_folder, "twodee.inp")
+                twodee_log_file = os.path.join(
+                    twodee_folder, "twodee_log_" + day + ".txt"
+                )
                 try:
-                    p = subprocess.Popen(['srun', '-n', '1', 'twodee', twodee_input_file, twodee_log_file])
+                    p = subprocess.Popen(
+                        [
+                            "srun",
+                            "-n",
+                            "1",
+                            "twodee",
+                            twodee_input_file,
+                            twodee_log_file,
+                        ]
+                    )
                 except:
-                    p = subprocess.Popen(['twodee', twodee_input_file, twodee_log_file])
+                    p = subprocess.Popen(["twodee", twodee_input_file, twodee_log_file])
                 ps.append(p)
             for p in ps:
                 p.wait()
         except:
-            print('Unable to run TWODEE')
+            print("Unable to run TWODEE")
             sys.exit()
-        print('TWODEE successfully processed days ' + str(days[start:end]))
+        print("TWODEE successfully processed days " + str(days[start:end]))
         n_elaborated_days = end
         if n_elaborated_days == len(days):
             break
 
+
 root = os.getcwd()
-disgas_original = os.path.join(root,'disgas.inp')
-twodee_original = os.path.join(root,'twodee.inp')
-topography = os.path.join(root,'topography.grd')
+disgas_original = os.path.join(root, "disgas.inp")
+twodee_original = os.path.join(root, "twodee.inp")
+topography = os.path.join(root, "topography.grd")
 
-max_number_processes, random_sources, nsources, sources_interval, source_easting, source_northing, source_el, \
-source_emission, random_emission, bottom_left_northing, bottom_left_easting, top_right_northing, top_right_easting, \
-source_dx, source_dy, source_dur, twodee_on, disgas_on = read_arguments()
+(
+    max_number_processes,
+    random_sources,
+    nsources,
+    sources_interval,
+    source_easting,
+    source_northing,
+    source_el,
+    source_emission,
+    random_emission,
+    bottom_left_northing,
+    bottom_left_easting,
+    top_right_northing,
+    top_right_easting,
+    source_dx,
+    source_dy,
+    source_dur,
+    twodee_on,
+    disgas_on,
+) = read_arguments()
 
-if disgas_on == 'off' and twodee_on == 'off':
-    print('Both DISGAS and TWODEE are turned off')
+if disgas_on == "off" and twodee_on == "off":
+    print("Both DISGAS and TWODEE are turned off")
     sys.exit()
 
 days = pre_process()
@@ -665,4 +972,3 @@ if disgas_on:
 
 if twodee_on:
     run_twodee()
-

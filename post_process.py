@@ -4,7 +4,8 @@
 import numpy as np
 import pandas as pd
 import random
-import sys, os
+import sys
+import os
 from pathos.multiprocessing import ThreadingPool
 from io import StringIO
 import argparse
@@ -91,13 +92,15 @@ def read_arguments():
         "--plot_limits",
         nargs="+",
         default=[],
-        help="Minimum and maximum value of concentration to display. If unspecified, they are obtained from all the outputs",
+        help="Minimum and maximum value of concentration to display. If unspecified, they are obtained from all "
+             "the outputs",
     )
     parser.add_argument(
         "-TA",
         "--time_av",
         default=None,
-        help="Generate time-averaged outputs. Specify the time-averaging interval (in hours), or 0 for averaging over the whole duration",
+        help="Generate time-averaged outputs. Specify the time-averaging interval (in hours), or 0 for averaging "
+             "over the whole duration",
     )
     parser.add_argument(
         "-OF",
@@ -190,23 +193,27 @@ def read_arguments():
         sys.exit()
     try:
         units = units.lower()
-        if units != "ppm" and units != "kg/m3":
-            print("ERROR. Wrong value for variable -U --units")
-            sys.exit()
-    except:
+    except AttributeError:
         print("Please provide an option for -U --units")
         sys.exit()
-    if time_av != None:
-        try:
-            time_av = int(time_av)
-        except:
-            print("ERROR. Please specify a valid time-averaging interval")
+    if units != "ppm" and units != "kg/m3":
+        print("ERROR. Wrong value for variable -U --units")
+        sys.exit()
+    try:
+        time_av = int(time_av)
+    except AttributeError:
+        print("Please provide an option for -TA --time_av")
+        sys.exit()
+    try:
+        time_av = int(time_av)
+    except TypeError:
+        print("ERROR. Please specify a valid time-averaging interval")
     min_con = max_con = -1.0
     if len(plot_limits) > 0:
         try:
             min_con = float(plot_limits[0])
             max_con = float(plot_limits[1])
-        except:
+        except ValueError:
             print(
                 "ERROR. Please specify valid minimum and maximum concentration -PL --plot_limits"
             )
@@ -227,7 +234,7 @@ def read_arguments():
         sys.exit()
     try:
         plot_resolution = int(plot_resolution)
-    except:
+    except ValueError:
         print("ERROR. Please provide a valid number for -PR --plot_resolution")
         sys.exit()
     return (
@@ -284,7 +291,7 @@ def folder_structure():
             print("Folder " + disgas_outputs + " already exists")
         try:
             os.mkdir(disgas_processed_output_folder)
-        except:
+        except FileExistsError:
             print("Folder " + disgas_processed_output_folder + " already exists")
             list_temp = os.listdir(disgas_processed_output_folder)
             for item in list_temp:
@@ -293,7 +300,7 @@ def folder_structure():
                         os.path.join(disgas_processed_output_folder, item),
                         ignore_errors=True,
                     )
-                except:
+                except FileNotFoundError:
                     print(
                         "Unable to remove "
                         + item
@@ -302,13 +309,13 @@ def folder_structure():
                     )
         try:
             os.mkdir(disgas_ecdf)
-        except:
+        except FileExistsError:
             print("Folder " + disgas_ecdf + " already exists")
             list_temp = os.listdir(disgas_ecdf)
             for item in list_temp:
                 try:
                     rmtree(os.path.join(disgas_ecdf, item), ignore_errors=True)
-                except:
+                except FileNotFoundError:
                     print("Unable to remove " + item + " in " + disgas_ecdf)
     if models == "twodee" or models == "all":
         try:
@@ -317,7 +324,7 @@ def folder_structure():
             print("Folder " + twodee_outputs + " already exists")
         try:
             os.mkdir(twodee_processed_output_folder)
-        except:
+        except FileExistsError:
             print("Folder " + twodee_processed_output_folder + " already exists")
             list_temp = os.listdir(twodee_processed_output_folder)
             for item in list_temp:
@@ -326,7 +333,7 @@ def folder_structure():
                         os.path.join(twodee_processed_output_folder, item),
                         ignore_errors=True,
                     )
-                except:
+                except FileNotFoundError:
                     print(
                         "Unable to remove "
                         + item
@@ -335,13 +342,13 @@ def folder_structure():
                     )
         try:
             os.mkdir(twodee_ecdf)
-        except:
+        except FileExistsError:
             print("Folder " + twodee_ecdf + " already exists")
             list_temp = os.listdir(twodee_ecdf)
             for item in list_temp:
                 try:
                     rmtree(os.path.join(twodee_ecdf, item), ignore_errors=True)
-                except:
+                except FileNotFoundError:
                     print("Unable to remove " + item + " in " + twodee_ecdf)
     twodee_input_file = os.path.join(root, "twodee.inp")
     twodee_output_time_step = 0
@@ -389,7 +396,7 @@ def gas_properties():
     gas_properties_file = os.path.join(root, "gas_properties.csv")
     try:
         open(gas_properties_file, "r")
-    except:
+    except FileNotFoundError:
         print("File " + gas_properties_file + " not present")
         sys.exit()
     molar_ratios = []
@@ -438,7 +445,7 @@ def domain(model):
                         y0 = float(temp[0])
                     elif "OUTPUT_INTERVAL_(SEC)" in record_splitted[0]:
                         dt = float(temp[0])
-                except:
+                except ValueError:
                     continue
     else:
         with open(file="twodee.inp") as input_file:
@@ -473,7 +480,7 @@ def domain(model):
                         output_levels = sorted(output_levels)
                     elif "OUTPUT_INTERVAL_(SEC)" in record_splitted[0]:
                         dt = float(temp[0])
-                except:
+                except ValueError:
                     continue
     yf = y0 + ny * dy
     xf = x0 + nx * dx
@@ -519,7 +526,9 @@ def converter(input_file, processed_file, specie_input, model):
                 hours_int += 1
             if (
                 hours_int > 23
-            ):  # First order approximation for the last time step. To be modified if simulations > 24 hours are to be implemented
+            ):
+                # First order approximation for the last time step. To be modified if simulations > 24 hours are to be
+                # implemented
                 hours_int = 23
             file_time_h = "{:02}{:02}".format(hours_int, minutes_int)
             file_name = input_file.split(os.sep)[-1]
@@ -530,7 +539,7 @@ def converter(input_file, processed_file, specie_input, model):
                 for line in surface_data_file:
                     try:
                         records = line.split("\t")
-                    except:
+                    except BaseException:
                         continue
                     if file_time_h == records[0]:
                         t2m = float(records[2])
@@ -561,7 +570,9 @@ def converter(input_file, processed_file, specie_input, model):
                 hours_int += 1
             if (
                 hours_int > 23
-            ):  # First order approximation for the last time step. To be modified if simulations > 24 hours are to be implemented
+            ):
+                # First order approximation for the last time step. To be modified if simulations > 24 hours are to be
+                # implemented
                 hours_int = 23
             file_time_h = "{:02}{:02}".format(hours_int, minutes_int)
             file_name = input_file.split(os.sep)[-1]
@@ -574,7 +585,7 @@ def converter(input_file, processed_file, specie_input, model):
                 for line in surface_data_file:
                     try:
                         records = line.split("\t")
-                    except:
+                    except BaseException:
                         continue
                     if file_time_h == records[0]:
                         t2m = float(records[2])
@@ -599,9 +610,7 @@ def converter(input_file, processed_file, specie_input, model):
             processed_file.write(
                 str(np.amin(Z_converted)) + "  " + str(np.amax(Z_converted)) + "\n"
             )
-        # if specie_input == 'original_specie':
-        #    np.savetxt(processed_file, Z_converted, fmt='%.2e')
-        if convert == False:
+        if not convert:
             np.savetxt(processed_file, Z_converted, fmt="%.2e")
         else:
             for specie in species_properties:
@@ -651,7 +660,7 @@ def elaborate_day(day_input, model):
         )
     try:
         os.mkdir(model_processed_output_folder_daily)
-    except:
+    except FileExistsError:
         print("Folder " + model_processed_output_folder_daily + " already exists")
     for specie in species:
         model_processed_output_folder_specie = os.path.join(
@@ -696,7 +705,7 @@ def elaborate_day(day_input, model):
                 file_level = float(file_level.split("cm")[0]) / 100
                 try:
                     file_level_index = output_levels.index(file_level)
-                except:
+                except BaseException:
                     print(
                         "Cannot find the expected TWODEE output file at the level "
                         + str(file_level)
@@ -712,9 +721,9 @@ def elaborate_day(day_input, model):
                 file_level = file_name_splitted[1]
                 file_time_step = file_name_splitted[2]
                 file_time_step = file_time_step.split(".")[0]
-            if not file_level in levels:
+            if file_level not in levels:
                 levels.append(file_level)
-            if not file_time_step in time_steps:
+            if file_time_step not in time_steps:
                 time_steps.append(int(file_time_step))
             converted_file = file
             converted_files.append(converted_file)
@@ -746,13 +755,13 @@ def elaborate_day(day_input, model):
                 species_list[start:end],
                 models[start:end],
             )
-        except:
+        except BaseException:
             print("Unable to convert files")
             sys.exit()
         n_elaborated_files = end
         if n_elaborated_files == len(files_list_path):
             break
-    if time_av != None:
+    if time_av is not None:
         averaged_files = []
         time_min = min(time_steps)
         if time_av == 0:
@@ -841,7 +850,7 @@ def probabilistic_output(model):
                     + "{:06d}".format(int(time_step))
                     + ".grd"
                 )
-            except:
+            except ValueError:
                 file_name = (
                     "c_" + "{:03d}".format(int(level)) + "_" + time_step + ".grd"
                 )
@@ -858,7 +867,7 @@ def probabilistic_output(model):
                 + "{:06d}".format(int(time_step))
                 + ".grd",
             )
-        except:
+        except ValueError:
             ecdf_output_file = os.path.join(
                 ecdf_folder,
                 str(ex_prob),
@@ -871,7 +880,7 @@ def probabilistic_output(model):
         for file in output_files:
             try:
                 input_file = open(file)
-            except:
+            except FileNotFoundError:
                 print("File " + file + " not found")
                 files_not_available.append(file)
                 continue
@@ -915,13 +924,13 @@ def probabilistic_output(model):
         prob_folder = os.path.join(ecdf_folder, str(probability))
         try:
             os.mkdir(prob_folder)
-        except:
+        except FileExistsError:
             print("Folder " + prob_folder + " already exists")
         for specie in species:
             specie_folder = os.path.join(ecdf_folder, prob_folder, specie)
             try:
                 os.mkdir(specie_folder)
-            except:
+            except FileExistsError:
                 print("Folder " + specie_folder + " already exists")
     indexes = []
     pools_ecdfs = []
@@ -986,7 +995,7 @@ def probabilistic_output(model):
             try:
                 pools_ecdfs_tavg[n_pool_tavg] = ThreadingPool(max_number_processes)
                 pools_ecdfs_tavg[n_pool_tavg].map(ecdf, indexes_tavg[start:end])
-            except:
+            except BaseException:
                 print("Unable to elaborate days")
                 sys.exit()
             n_completed_processes = end
@@ -1003,7 +1012,6 @@ def save_plots(model, min_con, max_con):
 
         matplotlib.use("Agg")
         from matplotlib import pyplot as plt
-        from matplotlib.ticker import FormatStrFormatter
         from mpl_toolkits.axes_grid1 import make_axes_locatable, axes_size
 
         if plot_topography_layer:
@@ -1033,7 +1041,6 @@ def save_plots(model, min_con, max_con):
                 dz = (max_z - min_z) / n_levels
                 dz_lines = (max_z - min_z) / n_levels_lines
                 levels_top = np.arange(min_z + 0.0000001, max_z, dz)
-                levels_line = np.arange(min_z + 0.0000001, max_z, dz_lines)
             topography_file.close()
         with open(input) as input_file:
             if output_format == "grd":
@@ -1047,9 +1054,6 @@ def save_plots(model, min_con, max_con):
         if plot_topography_layer:
             top = ax.contourf(
                 X_top, Y_top, Z_top, levels_top, cmap="Greys", extend="max"
-            )
-            top_lines = ax.contour(
-                X_top, Y_top, Z_top, levels_line, colors="black", linewidths=0.05
             )
             top_cbar = fig.colorbar(
                 top, orientation="horizontal", format="%.1f", shrink=0.75
@@ -1105,7 +1109,7 @@ def save_plots(model, min_con, max_con):
             for item_2 in list_temp_2:
                 try:
                     rmtree(os.path.join(os.path.join(graphical_outputs, item), item_2))
-                except:
+                except FileNotFoundError:
                     print(
                         "Unable to remove "
                         + item_2
@@ -1397,7 +1401,7 @@ root = os.getcwd()
 
 try:
     max_number_processes = int(os.environ["SLURM_NPROCS"])
-except:
+except KeyError:
     max_number_processes = int(nproc)
 
 (

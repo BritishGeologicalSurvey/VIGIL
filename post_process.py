@@ -1037,9 +1037,7 @@ def save_plots(model, min_con, max_con):
                 X_top = np.linspace(x0_top, xf_top, num=nx_top)
                 Y_top = np.linspace(y0_top, yf_top, num=ny_top)
                 n_levels = 100
-                n_levels_lines = 10
                 dz = (max_z - min_z) / n_levels
-                dz_lines = (max_z - min_z) / n_levels_lines
                 levels_top = np.arange(min_z + 0.0000001, max_z, dz)
             topography_file.close()
         with open(input) as input_file:

@@ -108,7 +108,7 @@ def read_arguments():
     source_easting = source_northing = source_el = 0
     try:
         source_emission = float(source_emission)
-    except:
+    except ValueError:
         print("Please provide a valid number for the emission rate of the source")
         sys.exit()
     if len(domain) == 0 or len(domain) > 5:
@@ -128,7 +128,7 @@ def read_arguments():
                     out_utm = utm.from_latlon(bottom_left_1, bottom_left_2)
                     bottom_left_easting = float(out_utm[0])
                     bottom_left_northing = float(out_utm[1])
-                except:
+                except ValueError:
                     print(
                         "ERROR. Please provide valid coordinates for the bottom left corner of the domain"
                     )
@@ -137,7 +137,7 @@ def read_arguments():
                     out_utm = utm.from_latlon(top_right_1, top_right_2)
                     top_right_easting = float(out_utm[0])
                     top_right_northing = float(out_utm[1])
-                except:
+                except ValueError:
                     print(
                         "ERROR. Please provide valid coordinates for the top right corner of the domain"
                     )
@@ -172,7 +172,7 @@ def read_arguments():
     if random_sources == "on":
         try:
             np.loadtxt("probability_map.grd", skiprows=5)
-        except:
+        except ValueError:
             print(
                 "Please provide a valid probability_map.grd file when random_sources option is on"
             )
@@ -186,12 +186,13 @@ def read_arguments():
         else:
             try:
                 nsources = int(nsources)
-            except:
+            except ValueError:
                 print("Please provide a valid integer for -NS --nsources")
                 sys.exit()
         if random_emission == "off" and source_emission == 999:
             print(
-                "ERROR. random_sources set to on requires either random_emission set to on or a specified source_emission"
+                "ERROR. random_sources set to on requires either random_emission set to on or a "
+                "specified source_emission"
             )
             sys.exit()
     else:
@@ -202,7 +203,7 @@ def read_arguments():
             try:
                 sources_file = open("sources_input.txt", "r")
                 sources_file.close()
-            except:
+            except FileNotFoundError:
                 print(
                     "File sources_input.txt not found. Using one source from input data"
                 )
@@ -224,7 +225,7 @@ def read_arguments():
                                 )
                                 source_easting = float(out_utm[0])
                                 source_northing = float(out_utm[1])
-                            except:
+                            except ValueError:
                                 print(
                                     "Please provide valid coordinates of the source location"
                                 )
@@ -258,7 +259,7 @@ def read_arguments():
         try:
             sources_file = open("flux.txt", "r")
             sources_file.close()
-        except:
+        except FileNotFoundError:
             print("ERROR. File flux.txt not found")
             sys.exit()
     elif random_emission != "off":
@@ -281,19 +282,19 @@ def read_arguments():
     if source_dx != 999999:
         try:
             source_dx = float(source_dx)
-        except:
+        except ValueError:
             print("Please provide a valid number for the variable -SDX --source_dx")
             sys.exit()
     if source_dy != 999999:
         try:
             source_dy = float(source_dy)
-        except:
+        except ValueError:
             print("Please provide a valid number for the variable -SDY --source_dy")
             sys.exit()
     if source_dur != 0:
         try:
             source_dur = float(source_dur)
-        except:
+        except ValueError:
             print("Please provide a valid number for the variable -SDUR --source_dur")
             sys.exit()
     return (
@@ -415,7 +416,6 @@ def pre_process():
     def topography_converter(original_topography_file):
         # To convert the DIAGNO-DISGAS topography file into a Twodee-readable topography file
         with open(original_topography_file, "r", encoding="utf-8") as diagno_grid:
-            line_number = 1
             lines = []
             for line in diagno_grid:
                 lines.append(line)
@@ -498,9 +498,9 @@ def pre_process():
                     dy.append(float(records[6]))
                     dur.append(float(records[7]))
                     n_sources += 1
-                except:
+                except ValueError:
                     continue
-    except:
+    except BaseException:
         if random_sources != "on":
             easting.append(source_easting)
             northing.append(source_northing)
@@ -518,21 +518,21 @@ def pre_process():
     diagno = os.path.join(root, "simulations", "diagno")
     try:
         os.mkdir(diagno)
-    except:
+    except FileExistsError:
         print("Folder " + diagno + " already exists")
     if disgas_on:
         # Set DISGAS folder
         disgas = os.path.join(root, "simulations", "disgas")
         try:
             os.mkdir(disgas)
-        except:
+        except FileExistsError:
             print("Folder " + disgas + " already exists")
     if twodee_on:
         # Set DISGAS folder
         twodee = os.path.join(root, "simulations", "twodee")
         try:
             os.mkdir(twodee)
-        except:
+        except FileExistsError:
             print("Folder " + twodee + " already exists")
     # read days_list file
     with open(
@@ -553,13 +553,13 @@ def pre_process():
         diagno_daily = os.path.join(diagno, str(day))
         try:
             os.mkdir(diagno_daily)
-        except:
+        except FileExistsError:
             print("Folder " + diagno_daily + " already exists")
         for f in files:
             path_f = os.path.join(path, f)
             try:
                 shutil.move(path_f, diagno_daily)
-            except:
+            except BaseException:
                 print("File " + f + " already present in " + diagno)
         shutil.copy(topography, os.path.join(diagno_daily, "topography.grd"))
         # Set DISGAS folder
@@ -568,13 +568,13 @@ def pre_process():
             outfiles = os.path.join(disgas_daily, "outfiles")
             try:
                 os.mkdir(disgas_daily)
-            except:
+            except FileExistsError:
                 print("Folder " + disgas_daily + " already exists")
             try:
                 os.mkdir(outfiles)
                 if not outfiles.endswith(os.path.sep):
                     outfiles += os.path.sep
-            except:
+            except FileExistsError:
                 print("Folder outfiles already exists in " + str(disgas_daily))
             disgas_input = os.path.join(disgas_daily, "disgas.inp")
             with open(
@@ -608,7 +608,7 @@ def pre_process():
                     os.path.join(root, "roughness_disgas.grd"),
                     os.path.join(disgas_daily, "roughness.grd"),
                 )
-            except:
+            except FileExistsError:
                 roughness_file_exist = False
             shutil.move(
                 os.path.join(diagno_daily, "surface_data.txt"),
@@ -632,7 +632,8 @@ def pre_process():
                         if "MATRIX" in roughness_command:
                             if not roughness_file_exist:
                                 print(
-                                    "Warning! ROUGHNESS_MODEL set to MATRIX in disgas.inp and roughness file does not exist"
+                                    "Warning! ROUGHNESS_MODEL set to MATRIX in disgas.inp and roughness file "
+                                    "does not exist"
                                 )
                                 print("Setting ROUGHNESS_MODEL to UNIFORM")
                     if "YEAR" in record:
@@ -689,27 +690,21 @@ def pre_process():
             outfiles_twodee = os.path.join(twodee_daily, "outfiles")
             try:
                 os.mkdir(twodee_daily)
-            except:
+            except FileExistsError:
                 print("Folder " + twodee_daily + " already exists")
             try:
                 os.mkdir(outfiles_twodee)
                 if not outfiles_twodee.endswith(os.path.sep):
                     outfiles_twodee += os.path.sep
-            except:
+            except FileExistsError:
                 print("Folder outfiles already exists in " + str(twodee_daily))
             twodee_input = os.path.join(twodee_daily, "twodee.inp")
-            # shutil.move(os.path.join(diagno_daily,'surface_data.txt'),os.path.join(twodee_daily,'surface_data.txt'))
-            # try:
-            #    shutil.copyfile(topography,os.path.join(twodee_daily,'topography.grd'))
-            # except:
-            #    print('Unable to find a valid topography file for TWODEE')
-            #    sys.exit()
             try:
                 shutil.copyfile(
                     os.path.join(root, "roughness.grd"),
                     os.path.join(twodee_daily, "roughness.grd"),
                 )
-            except:
+            except FileNotFoundError:
                 print("Unable to find a valid roughness file for TWODEE")
                 sys.exit()
             with open(
@@ -765,7 +760,7 @@ def pre_process():
                         )
                     elif (
                         "TOPOGRAPHY_FILE" in record
-                        and not "TOPOGRAPHY_FILE_FORMAT" in record
+                        and "TOPOGRAPHY_FILE_FORMAT" not in record
                     ):
                         twodee_input.write(
                             "   TOPOGRAPHY_FILE   = "
@@ -774,7 +769,7 @@ def pre_process():
                         )
                     elif (
                         "ROUGHNESS_FILE" in record
-                        and not "ROUGHNESS_FILE_FORMAT" in record
+                        and "ROUGHNESS_FILE_FORMAT" not in record
                     ):
                         twodee_input.write(
                             "   ROUGHNESS_FILE   = "
@@ -820,24 +815,24 @@ def run_diagno():
                 os.chdir(diagno_folder)
                 try:
                     p = subprocess.Popen(["srun", "-n", "1", "presfc", "&"])
-                except:
+                except BaseException:
                     p = subprocess.Popen(["presfc"])
                 p.wait()
                 ps.append(p)
                 try:
                     p = subprocess.Popen(["srun", "-n", "1", "preupr", "&"])
-                except:
+                except BaseException:
                     p = subprocess.Popen(["preupr"])
                 p.wait()
                 ps.append(p)
                 try:
                     p = subprocess.Popen(["srun", "-n", "1", "diagno", "&"])
-                except:
+                except BaseException:
                     p = subprocess.Popen(["diagno"])
                 ps.append(p)
             for p in ps:
                 p.wait()
-        except:
+        except BaseException:
             print("Unable to process weather data with Diagno")
             sys.exit()
         print("DIAGNO successfully processed days " + str(days[start:end]))
@@ -874,12 +869,12 @@ def run_disgas():
                             disgas_log_file,
                         ]
                     )
-                except:
+                except BaseException:
                     p = subprocess.Popen(["disgas", disgas_input_file, disgas_log_file])
                 ps.append(p)
             for p in ps:
                 p.wait()
-        except:
+        except BaseException:
             print("Unable to run DISGAS")
             sys.exit()
         print("DISGAS successfully processed days " + str(days[start:end]))
@@ -919,12 +914,12 @@ def run_twodee():
                             twodee_log_file,
                         ]
                     )
-                except:
+                except BaseException:
                     p = subprocess.Popen(["twodee", twodee_input_file, twodee_log_file])
                 ps.append(p)
             for p in ps:
                 p.wait()
-        except:
+        except BaseException:
             print("Unable to run TWODEE")
             sys.exit()
         print("TWODEE successfully processed days " + str(days[start:end]))

@@ -201,7 +201,7 @@ def read_arguments():
         sys.exit()
     try:
         time_av = int(time_av)
-    except AttributeError:
+    except TypeError:
         print("Please provide an option for -TA --time_av")
         sys.exit()
     try:

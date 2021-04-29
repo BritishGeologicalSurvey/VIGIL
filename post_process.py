@@ -446,7 +446,7 @@ def domain(model):
                         y0 = float(temp[0])
                     elif "OUTPUT_INTERVAL_(SEC)" in record_splitted[0]:
                         dt = float(temp[0])
-                except ValueError:
+                except (IndexError, ValueError):
                     continue
     else:
         with open(file="twodee.inp") as input_file:
@@ -481,7 +481,7 @@ def domain(model):
                         output_levels = sorted(output_levels)
                     elif "OUTPUT_INTERVAL_(SEC)" in record_splitted[0]:
                         dt = float(temp[0])
-                except ValueError:
+                except (IndexError, ValueError):
                     continue
     yf = y0 + ny * dy
     xf = x0 + nx * dx

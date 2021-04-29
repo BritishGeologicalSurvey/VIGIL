@@ -605,10 +605,10 @@ def pre_process():
             roughness_file_exist = True
             try:
                 shutil.copyfile(
-                    os.path.join(root, "roughness_disgas.grd"),
+                    os.path.join(root, "roughness.grd"),
                     os.path.join(disgas_daily, "roughness.grd"),
                 )
-            except FileExistsError:
+            except (FileExistsError, FileNotFoundError):
                 roughness_file_exist = False
             shutil.move(
                 os.path.join(diagno_daily, "surface_data.txt"),

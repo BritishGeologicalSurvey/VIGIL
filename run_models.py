@@ -610,10 +610,10 @@ def pre_process():
                 )
             except (FileExistsError, FileNotFoundError):
                 roughness_file_exist = False
-            shutil.move(
-                os.path.join(diagno_daily, "surface_data.txt"),
-                os.path.join(disgas_daily, "surface_data.txt"),
-            )
+#            shutil.move(
+#                os.path.join(diagno_daily, "surface_data.txt"),
+#                os.path.join(disgas_daily, "surface_data.txt"),
+#            )
             # read and memorize disgas.inp file
             disgas_input_records = []
             with open(

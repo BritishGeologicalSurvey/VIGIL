@@ -1310,7 +1310,7 @@ def extract_station_data(station_data_files, eastings, northings, zst, data_fold
                 records.append(line.split(","))
             n_line += 1
         jj = 0
-        for i in range(0, n_line):
+        for i in range(0, len(records)):
             try:
                 time_record = records[i][0][0:8]
                 day_record = datetime.datetime.strptime(time_record, "%Y%m%d")

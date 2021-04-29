@@ -202,12 +202,13 @@ def read_arguments():
     try:
         time_av = int(time_av)
     except TypeError:
-        print("Please provide an option for -TA --time_av")
-        sys.exit()
-    try:
-        time_av = int(time_av)
-    except TypeError:
-        print("ERROR. Please specify a valid time-averaging interval")
+        time_av = None
+    except ValueError:
+        try:
+            time_av = int(float(time_av))
+        except ValueError:
+            print("ERROR. Please specify a valid time-averaging interval")
+            sys.exit()
     min_con = max_con = -1.0
     if len(plot_limits) > 0:
         try:

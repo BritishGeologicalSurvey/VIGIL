@@ -413,30 +413,6 @@ def pre_process():
         sampled_flux = sample(list_x, 1)
         return sampled_flux
 
-    def topography_converter(original_topography_file):
-        # To convert the DIAGNO-DISGAS topography file into a Twodee-readable topography file
-        with open(original_topography_file, "r", encoding="utf-8") as diagno_grid:
-            lines = []
-            for line in diagno_grid:
-                lines.append(line)
-        NX = int(lines[1].split(" ")[0])
-        NY = int(lines[1].split(" ")[1].split("\n")[0])
-        X0 = float(lines[2].split(" ")[0])
-        XF = float(lines[2].split(" ")[1].split("\n")[0])
-        Y0 = float(lines[3].split(" ")[0])
-        DX = round(((XF - X0) / NX), 1)
-        with open(
-            os.path.join(twodee_daily, "topography.grd"), "w", encoding="utf-8"
-        ) as twodee_grid:
-            twodee_grid.write("nx " + str(NX) + "\n")
-            twodee_grid.write("ny " + str(NY) + "\n")
-            twodee_grid.write("xllcorner " + str(X0) + "\n")
-            twodee_grid.write("yllcorner " + str(Y0) + "\n")
-            twodee_grid.write("dx " + str(DX) + "\n")
-            twodee_grid.write("no 123\n")
-            for line in range(5, len(lines)):
-                twodee_grid.write(lines[line])
-
     # Set source files for DISGAS and TWODEE. TWODEE also needs source start and stop time, to be generalized
     random_eastings = []
     random_northings = []

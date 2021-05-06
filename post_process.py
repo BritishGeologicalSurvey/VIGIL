@@ -386,12 +386,14 @@ def folder_structure():
 def gas_properties():
     def extract_gas_properties(specie):
         data = pd.read_csv(gas_properties_file, error_bad_lines=False)
-        x = np.sort(data[specie + "/H2O"])
+        molar_ratio = None
+        if convert:
+            x = np.sort(data[specie + "/H2O"])
+            list_x = list(x)
+            samples = random.sample(list_x, 1)
+            molar_ratio = samples[0]
         y = np.sort(data[specie])
         molar_weight = list(y)[0]
-        list_x = list(x)
-        samples = random.sample(list_x, 1)
-        molar_ratio = samples[0]
         return molar_ratio, molar_weight
 
     gas_properties_file = os.path.join(root, "gas_properties.csv")

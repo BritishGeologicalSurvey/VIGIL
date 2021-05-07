@@ -85,6 +85,10 @@ def read_arguments():
              "specified emission rate",
     )
     parser.add_argument(
+        "-DI", "--diagno", default="on", help="on or off, to run Diagno. Turn it off only if Diagno has already "
+                                              "been run"
+    )
+    parser.add_argument(
         "-TD", "--twodee", default="off", help="on or off, to run Twodee"
     )
     parser.add_argument(
@@ -102,6 +106,7 @@ def read_arguments():
     max_number_processes = int(nproc)
     twodee = args.twodee
     disgas = args.disgas
+    diagno = args.diagno
     source_dx = args.source_dx
     source_dy = args.source_dy
     source_dur = args.source_dur
@@ -279,6 +284,13 @@ def read_arguments():
     else:
         print("Please provide a valid entry for the variable -DG --disgas")
         sys.exit()
+    if diagno.lower() == "on":
+        diagno_on = True
+    elif diagno.lower() == "off":
+        diagno_on = False
+    else:
+        print("Please provide a valid entry for the variable -DI --diagno")
+        sys.exit()
     if source_dx != 999999:
         try:
             source_dx = float(source_dx)
@@ -314,10 +326,32 @@ def read_arguments():
         source_dx,
         source_dy,
         source_dur,
+        diagno_on,
         twodee_on,
         disgas_on,
     )
 
+
+def prepare_days():
+    try:
+        raw_days = []  # store the days as originally formatted
+        days = []  # store days in format YYYYMMDD as per folder name
+        # read days_list file
+        with open(
+            os.path.join(root,"days_list.txt"), "r", encoding="utf-8", errors="surrogateescape"
+        ) as days_list_file:
+            for line in days_list_file:
+                raw_days.append(line)
+    except FileNotFoundError:
+        print('ERROR. Unable to find days_list.txt file. Please restart activating DIAGNO')
+        sys.exit()
+    i = 0
+    for day in raw_days:
+        temp = raw_days[i].split(" ")
+        temp = temp[0].split("-")
+        days.append(temp[0] + temp[1] + temp[2])
+        i += 1
+    return days
 
 def pre_process():
     def sample_random_sources(
@@ -488,8 +522,6 @@ def pre_process():
             dur.append(source_dur)
     n_sources = len(easting)
 
-    raw_days = []  # store the days as originally formatted
-    days = []  # store days in format YYYYMMDD as per folder name
     # Set DIAGNO folder
     diagno = os.path.join(root, "simulations", "diagno")
     try:
@@ -510,19 +542,7 @@ def pre_process():
             os.mkdir(twodee)
         except FileExistsError:
             print("Folder " + twodee + " already exists")
-    # read days_list file
-    with open(
-        "days_list.txt", "r", encoding="utf-8", errors="surrogateescape"
-    ) as days_list_file:
-        for line in days_list_file:
-            raw_days.append(line)
-    days_list_file.close()
-    i = 0
-    for day in raw_days:
-        temp = raw_days[i].split(" ")
-        temp = temp[0].split("-")
-        days.append(temp[0] + temp[1] + temp[2])
-        i += 1
+    days = prepare_days()
     for day in days:
         path = os.path.join(root, "simulations", str(day))
         files = os.listdir(path)
@@ -837,6 +857,13 @@ def run_disgas():
                 disgas_log_file = os.path.join(
                     disgas_folder, "disgas_log_" + day + ".txt"
                 )
+                if not diagno_on:
+                    disgas_output_folder = os.path.join(disgas_folder, 'outfiles')
+                    try:
+                        os.mkdir(disgas_output_folder)
+                    except FileExistsError:
+                        shutil.rmtree(disgas_output_folder)
+                        os.mkdir(disgas_output_folder)
                 try:
                     p = subprocess.Popen(
                         [
@@ -882,6 +909,13 @@ def run_twodee():
                 twodee_log_file = os.path.join(
                     twodee_folder, "twodee_log_" + day + ".txt"
                 )
+                if not diagno_on:
+                    twodee_output_folder = os.path.join(twodee_folder, 'outfiles')
+                    try:
+                        os.mkdir(twodee_output_folder)
+                    except FileExistsError:
+                        shutil.rmtree(twodee_output_folder)
+                        os.mkdir(twodee_output_folder)
                 try:
                     p = subprocess.Popen(
                         [
@@ -929,6 +963,7 @@ topography = os.path.join(root, "topography.grd")
     source_dx,
     source_dy,
     source_dur,
+    diagno_on,
     twodee_on,
     disgas_on,
 ) = read_arguments()
@@ -937,9 +972,16 @@ if disgas_on == "off" and twodee_on == "off":
     print("Both DISGAS and TWODEE are turned off")
     sys.exit()
 
-days = pre_process()
+if diagno_on:
+    try:
+        days = pre_process()
+    except BaseException:
+        print('ERROR. DIAGNO activated but it seems it has been already run. Please restart switching DIAGNO off')
+        sys.exit()
 
-run_diagno()
+    run_diagno()
+else:
+    days = prepare_days()
 
 if disgas_on:
     run_disgas()

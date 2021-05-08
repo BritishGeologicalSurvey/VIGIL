@@ -94,6 +94,8 @@ usage: run_models.py [-h] [-N NPROC] [-RS RANDOM_SOURCES] [-NS NSOURCES]
                         on: randomly assign emission rate for each source in
                         the domain sampled from a flux.csv file. off: use
                         specified emission rate
+  -DI DIAGNO, --diagno DIAGNO
+                        on or off, to run Diagno. Turn it off only if Diagno has already been run
   -TD TWODEE, --twodee TWODEE
                         on or off, to run Twodee
   -DG DISGAS, --disgas DISGAS
@@ -158,6 +160,12 @@ usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB] [-EX EX_PROB [EX_PROB .
 
 ### DEPENDENCIES AND INSTALLATION INSTRUCTIONS ###
 The following software are required:
+- DIAGNO v1.1.1: the diagnostic wind model (Douglas et al., 1990)
+  Link: http://datasim.ov.ingv.it/models/diagno.html
+- DISGAS v2.1: the dilute gas dispersion simulation tool (Costa et al., 2005; Costa and Macedonio, 2016)
+  Link: http://datasim.ov.ingv.it/models/disgas.html
+- TWODEE v2.3: the dense gas dispersion simulation tool (Hankin and Britter, 1999; Folch et al., 2009)
+  Link: http://datasim.ov.ingv.it/models/twodee.html 
 - wgrib2
   Link: http://www.cpc.ncep.noaa.gov/products/wesley/wgrib2/ 
   The script assumes the executable is in the system PATH
@@ -181,3 +189,10 @@ Instructions for setting the Conda environment:
 	`conda activate name_of_environment`
 3) to exit from the environment:
 	`conda deactivate`
+
+### REFERENCES ###
+Costa, A., Macedonio, G., Chiodini, G., 2005. Numerical model of gas dispersion emitted from volcanic sources. Annals of Geophysics, vol. 48, n.4/5.
+Costa, A. and Macedonio, G., 2016. DISGAS-2.0: a model for passive DISpersion of GAS. Rapporti tecnici INGV. Istituto Nazionale Di Geofisica e Vulcanologia, Italy, 332, 2039e7941.
+Douglas, S.G., Kessler, R.C., and Carr, E.L., 1990. User's guide for the Urban Airshed Model. Volume 3. User's manual for the Diagnostic Wind Model (No. PB-91-131243/XAB). Systems Applications, Inc., San Rafael, CA (USA).
+Folch, A., Costa, A., and Hankin, R.K., 2009. TWODEE-2: a shallow layer model for dense gas dispersion on complex topography. Computers & Geosciences, 35(3), 667-674.
+Hankin, R.K.S., and Britter, R.E., 1999. Twodee: the Health and Safety Laboratory's shallow layer model for heavy gas dispersion Part 3: Experimental validation (Thorney Island). Journal of hazardous materials, 66(3), 239-261.

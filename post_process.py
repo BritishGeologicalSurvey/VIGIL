@@ -64,6 +64,9 @@ def read_arguments():
         "-S", "--species", nargs="+", default=[], help="List of gas species (e.g. CO2)"
     )
     parser.add_argument(
+        "-TS", "--tracking_specie", default=None, help="The original emitted specie that is tracked in the simulation"
+    )
+    parser.add_argument(
         "-N",
         "--nproc",
         default=1,
@@ -125,6 +128,7 @@ def read_arguments():
     levels = args.levels
     days_plot = args.days_plot
     species = args.species
+    original_specie = args.tracking_specie
     nproc = args.nproc
     convert = args.convert
     models = args.models
@@ -164,8 +168,14 @@ def read_arguments():
         if len(levels) == 0:
             print("ERROR. Please specify at least one level to plot")
             sys.exit()
+    if original_specie == None:
+        print('ERROR. Please specify the name of the tracked specie')
+        sys.exit()
     if len(species) == 0:
         print("ERROR. Please specify at least one gas specie name")
+        sys.exit()
+    if original_specie not in species:
+        print('ERROR. The original tracked specie should be included in the list of species -S --species')
         sys.exit()
     if convert.lower() == "true":
         convert = True
@@ -245,6 +255,7 @@ def read_arguments():
         levels,
         days_plot,
         species,
+        original_specie,
         exceedance_probabilities,
         nproc,
         convert,
@@ -620,8 +631,10 @@ def converter(input_file, processed_file, specie_input, model):
                 if specie["specie_name"] == specie_input:
                     mol_ratio = specie["molar_ratio"]
                     molar_weight = specie["molar_weight"]
-            Z_converted = np.multiply(Z, mol_ratio)
-            Z_converted = np.divide(Z_converted, molar_weight / (44.64 * 1000000000))
+                    specie_conversion_factor = mol_ratio * ((44.64 * 1000000000) / molar_weight)
+                    if specie == original_specie:
+                        specie_conversion_factor = 1.0
+            Z_converted = np.multiply(Z, specie_conversion_factor)
             np.savetxt(processed_file, Z_converted, fmt="%.2e")
     processed_file.close()
 
@@ -1386,6 +1399,7 @@ root = os.getcwd()
     levels,
     days_plot,
     species,
+    original_specie,
     exceedance_probabilities,
     nproc,
     convert,

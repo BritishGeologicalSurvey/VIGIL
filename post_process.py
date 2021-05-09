@@ -639,7 +639,7 @@ def converter(input_file, processed_file, specie_input, model):
             for specie in species_properties:
                 if specie["specie_name"] == specie_input:
                     molar_ratio = specie["molar_ratio"]
-            Z_converted = np.multiply(Z, molar_ratio)
+            Z_converted = np.multiply(Z_converted, molar_ratio)
             processed_file.write(
                 str(np.amin(Z_converted)) + "  " + str(np.amax(Z_converted)) + "\n"
             )

@@ -138,6 +138,8 @@ usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB] [-EX EX_PROB [EX_PROB .
                         If True, convert output concentration into other species listed with the command -S (--species)
   -S SPECIES [SPECIES ...], --species SPECIES [SPECIES ...]
                         List of gas species (e.g. CO2)
+  -TS TRACKING_SPECIE, --tracking_specie TRACKING_SPECIE
+                        The original emitted specie that is tracked in the simulation
   -N NPROC, --nproc NPROC
                         Maximum number of allowed simultaneous processes
   -M MODELS, --models MODELS

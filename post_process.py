@@ -630,16 +630,19 @@ def converter(input_file, processed_file, specie_input, model):
             processed_file.write(str(nx) + "  " + str(ny) + "\n")
             processed_file.write(str(x0) + "  " + str(xf) + "\n")
             processed_file.write(str(y0) + "  " + str(yf) + "\n")
+        if not convert:
             processed_file.write(
                 str(np.amin(Z_converted)) + "  " + str(np.amax(Z_converted)) + "\n"
             )
-        if not convert:
             np.savetxt(processed_file, Z_converted, fmt="%.2e")
         else:
             for specie in species_properties:
                 if specie["specie_name"] == specie_input:
                     molar_ratio = specie["molar_ratio"]
             Z_converted = np.multiply(Z, molar_ratio)
+            processed_file.write(
+                str(np.amin(Z_converted)) + "  " + str(np.amax(Z_converted)) + "\n"
+            )
             np.savetxt(processed_file, Z_converted, fmt="%.2e")
     processed_file.close()
 
@@ -1059,7 +1062,9 @@ def save_plots(model, min_con, max_con):
                 Y_top = np.linspace(y0_top, yf_top, num=ny_top)
                 n_levels = 100
                 dz = (max_z - min_z) / n_levels
+                dz_lines = (max_z - min_z) / (n_levels / 10)
                 levels_top = np.arange(min_z + 0.0000001, max_z, dz)
+                levels_top_lines = np.arange(min_z, max_z, dz_lines)
             topography_file.close()
         with open(input) as input_file:
             if output_format == "grd":
@@ -1074,6 +1079,8 @@ def save_plots(model, min_con, max_con):
             top = ax.contourf(
                 X_top, Y_top, Z_top, levels_top, cmap="Greys", extend="max"
             )
+            top_lines = ax.contour(top, levels=levels_top_lines, colors='black', linewidths=0.1)
+            ax.clabel(top_lines, inline=True, fontsize=2, fmt='%1.0f')
             top_cbar = fig.colorbar(
                 top, orientation="horizontal", format="%.1f", shrink=0.75
             )

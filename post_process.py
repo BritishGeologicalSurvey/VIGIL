@@ -174,9 +174,6 @@ def read_arguments():
     if len(species) == 0:
         print("ERROR. Please specify at least one gas specie name")
         sys.exit()
-    if original_specie not in species:
-        print('ERROR. The original tracked specie should be included in the list of species -S --species')
-        sys.exit()
     if convert.lower() == "true":
         convert = True
     elif convert.lower() == "false":

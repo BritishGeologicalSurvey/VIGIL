@@ -398,13 +398,25 @@ def gas_properties():
     def extract_gas_properties(specie):
         data = pd.read_csv(gas_properties_file, error_bad_lines=False)
         molar_ratio = None
+        molar_weight = None
         if convert:
-            x = np.sort(data[specie + "/H2O"])
-            list_x = list(x)
-            samples = random.sample(list_x, 1)
-            molar_ratio = samples[0]
-        y = np.sort(data[specie])
-        molar_weight = list(y)[0]
+            if specie == original_specie:
+                molar_ratio = 1
+            else:
+                try:
+                    x = np.sort(data[specie + '/' + original_specie])
+                    list_x = list(x)
+                    samples = random.sample(list_x, 1)
+                    molar_ratio = samples[0]
+                except KeyError:
+                    print('ERROR. Molar ratio ' + specie + '/' + original_specie + ' not found in gas_properties.csv')
+                    exit()
+        try:
+            y = np.sort(data[specie])
+            molar_weight = list(y)[0]
+        except KeyError:
+            print('ERROR. Molar weight of ' + specie + ' not found in gas_properties.csv')
+            exit()
         return molar_ratio, molar_weight
 
     gas_properties_file = os.path.join(root, "gas_properties.csv")
@@ -629,12 +641,8 @@ def converter(input_file, processed_file, specie_input, model):
         else:
             for specie in species_properties:
                 if specie["specie_name"] == specie_input:
-                    mol_ratio = specie["molar_ratio"]
-                    molar_weight = specie["molar_weight"]
-                    specie_conversion_factor = mol_ratio * ((44.64 * 1000000000) / molar_weight)
-                    if specie == original_specie:
-                        specie_conversion_factor = 1.0
-            Z_converted = np.multiply(Z, specie_conversion_factor)
+                    molar_ratio = specie["molar_ratio"]
+            Z_converted = np.multiply(Z, molar_ratio)
             np.savetxt(processed_file, Z_converted, fmt="%.2e")
     processed_file.close()
 

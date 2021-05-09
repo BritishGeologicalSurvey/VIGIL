@@ -399,6 +399,8 @@ def gas_properties():
         if convert:
             if specie == original_specie:
                 molar_ratio = 1
+                print('WARNING. Conversion activated but chosen species coincides with the tracked species')
+                print('Setting molar ratio to 1')
             else:
                 try:
                     x = np.sort(data[specie + '/' + original_specie])

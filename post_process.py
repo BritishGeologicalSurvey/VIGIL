@@ -1040,6 +1040,9 @@ def save_plots(model, min_con, max_con):
         from matplotlib import pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable, axes_size
 
+        def myround(x, prec=2, base=100):
+            return round(base * round(float(x) / base), prec)
+
         if plot_topography_layer:
             with open("topography.grd") as topography_file:
                 for i, line in enumerate(topography_file):
@@ -1064,7 +1067,7 @@ def save_plots(model, min_con, max_con):
                 Y_top = np.linspace(y0_top, yf_top, num=ny_top)
                 n_levels = 100
                 dz = (max_z - min_z) / n_levels
-                dz_lines = (max_z - min_z) / (n_levels / 10)
+                dz_lines = myround((max_z - min_z) / (n_levels / 10))
                 levels_top = np.arange(min_z + 0.0000001, max_z, dz)
                 levels_top_lines = np.arange(min_z, max_z, dz_lines)
             topography_file.close()
@@ -1081,7 +1084,7 @@ def save_plots(model, min_con, max_con):
             top = ax.contourf(
                 X_top, Y_top, Z_top, levels_top, cmap="Greys", extend="max"
             )
-            top_lines = ax.contour(top, levels=levels_top_lines, colors='black', linewidths=0.1)
+            top_lines = ax.contour(top, levels=levels_top_lines, colors='black', linewidths=0.05)
             ax.clabel(top_lines, inline=True, fontsize=2, fmt='%1.0f')
             top_cbar = fig.colorbar(
                 top, orientation="horizontal", format="%.1f", shrink=0.75

@@ -221,6 +221,10 @@ Example 1 runs DIAGNO against forecast data and can be run without an API key.
 Change to the `example_1` directory and run the commands in `commands.txt` in
 order.
 
+Ensure that the `simulations` directory is empty before running `weather.py`.
+
+At the end, plots can be found in `post_processing` directory.
+
 
 
 ### REFERENCES ###

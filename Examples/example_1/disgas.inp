@@ -11,14 +11,14 @@ TIME
   RESET_TIME  = NO
 
 GRID
-  NX     = 321
-  NY     = 281
-  NZ     = 8
-  Z_LAYERS_(M) = 0. 0.5  1.5  5. 15. 30. 50. 75.
-  DX_(M) = 25.
-  DY_(M) = 25.
-  X_ORIGIN_(UTM_M) = 425450
-  Y_ORIGIN_(UTM_M) = 4516000
+  NX     = 51
+  NY     = 51
+  NZ     = 6
+  Z_LAYERS_(M) = 0. 0.5  1.5  5. 15. 30.
+  DX_(M) = 100.
+  DY_(M) = 100.
+  X_ORIGIN_(UTM_M) = 426000
+  Y_ORIGIN_(UTM_M) = 4517000
 
 PROPERTIES
   DISPERSION_TYPE = GAS            (GAS/PARTICLES)
@@ -59,4 +59,9 @@ OUTPUT
   OUTPUT_V_VELOCITY = NO                 (YES/NO)
   OUTPUT_W_VELOCITY = NO                  (YES/NO)
   OUTPUT_CONCENTRATION = YES               (YES/NO)
-  OUTPUT_LAYERS = ALL                      (ALL/List_of_layers)
+  OUTPUT_LAYERS = ALL                    (ALL/List_of_layers)
+  TRACK_POINTS = NO                       (YES/NO)
+  N_POINTS = 2                             (Number of tracking points)
+  POINTS_EASTING = 643080 641000           (UTM easting coordinate of each tracking point)
+  POINTS_NORTHING = 1774150 1774250        (UTM northing coordinate of each tracking point)
+  POINTS_ELEVATION = 1 1                   (Meters above ground of each tracking point)

@@ -1,13 +1,12 @@
 ﻿# VIGIL - automatic probabilistic VolcanIc Gas dIspersion modeLling
-Fabio Dioguardi. British Geological Survey, The Lyell Centre, Edinburgh, United Kingdom. Email: fabiod@bgs.ac.uk
-Silvia Massaro. Istituto Nazionale di Geofisica e Vulcanologia, Sezione di Bologna, Bologna, Italy. Email: silvia.massaro@ingv.it
 
 > A collection of Python scripts for automating workflow of gas dispersion
 > modelling (weather data download and processing; running DISGAS and TWODEE
 > models; post-process and plot results) for use in gas pollution modelling.
 
 
-### PACKAGE CONTENT AND DESCRIPTION ###
+## Package content and description
+
 The package contains the following files:
 
 - weather.py
@@ -167,7 +166,7 @@ usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB] [-EX EX_PROB [EX_PROB .
                         Specify plot resolution in dpi
 ```
 
-### DEPENDENCIES AND INSTALLATION INSTRUCTIONS
+### Dependencies and installation instructions
 
 #### System dependencies
 
@@ -225,9 +224,20 @@ Ensure that the `simulations` directory is empty before running `weather.py`.
 
 At the end, plots can be found in `post_processing` directory.
 
+## Developers
 
+`VIGIL` was created by and is maintained by:
 
-### REFERENCES ###
++ Fabio Dioguardi. British Geological Survey, The Lyell Centre, Edinburgh, United Kingdom. Email: fabiod@bgs.ac.uk
++ Silvia Massaro. Istituto Nazionale di Geofisica e Vulcanologia, Sezione di Bologna, Bologna, Italy. Email: silvia.massaro@ingv.it
++ John A Stevenson (@volcan01010). British Geological Survey, The Lyell Centre, Edinburgh, United Kingdom.
+
+## Licence
+
+VIGIL is distributed under the GPL v3.0 licence. Copyright: © BGS / UKRI 2021
+
+## References
+
 Costa, A., Macedonio, G., Chiodini, G., 2005. Numerical model of gas dispersion emitted from volcanic sources. Annals of Geophysics, vol. 48, n.4/5.
 Costa, A. and Macedonio, G., 2016. DISGAS-2.0: a model for passive DISpersion of GAS. Rapporti tecnici INGV. Istituto Nazionale Di Geofisica e Vulcanologia, Italy, 332, 2039e7941.
 Douglas, S.G., Kessler, R.C., and Carr, E.L., 1990. User's guide for the Urban Airshed Model. Volume 3. User's manual for the Diagnostic Wind Model (No. PB-91-131243/XAB). Systems Applications, Inc., San Rafael, CA (USA).

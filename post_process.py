@@ -64,6 +64,9 @@ def read_arguments():
         "-S", "--species", nargs="+", default=[], help="List of gas species (e.g. CO2)"
     )
     parser.add_argument(
+        "-TS", "--tracking_specie", default=None, help="The original emitted specie that is tracked in the simulation"
+    )
+    parser.add_argument(
         "-N",
         "--nproc",
         default=1,
@@ -125,6 +128,7 @@ def read_arguments():
     levels = args.levels
     days_plot = args.days_plot
     species = args.species
+    original_specie = args.tracking_specie
     nproc = args.nproc
     convert = args.convert
     models = args.models
@@ -164,6 +168,9 @@ def read_arguments():
         if len(levels) == 0:
             print("ERROR. Please specify at least one level to plot")
             sys.exit()
+    if original_specie == None:
+        print('ERROR. Please specify the name of the tracked specie')
+        sys.exit()
     if len(species) == 0:
         print("ERROR. Please specify at least one gas specie name")
         sys.exit()
@@ -245,6 +252,7 @@ def read_arguments():
         levels,
         days_plot,
         species,
+        original_specie,
         exceedance_probabilities,
         nproc,
         convert,
@@ -387,13 +395,27 @@ def gas_properties():
     def extract_gas_properties(specie):
         data = pd.read_csv(gas_properties_file, error_bad_lines=False)
         molar_ratio = None
+        molar_weight = None
         if convert:
-            x = np.sort(data[specie + "/H2O"])
-            list_x = list(x)
-            samples = random.sample(list_x, 1)
-            molar_ratio = samples[0]
-        y = np.sort(data[specie])
-        molar_weight = list(y)[0]
+            if specie == original_specie:
+                molar_ratio = 1
+                print('WARNING. Conversion activated but chosen species coincides with the tracked species')
+                print('Setting molar ratio to 1')
+            else:
+                try:
+                    x = np.sort(data[specie + '/' + original_specie])
+                    list_x = list(x)
+                    samples = random.sample(list_x, 1)
+                    molar_ratio = samples[0]
+                except KeyError:
+                    print('ERROR. Molar ratio ' + specie + '/' + original_specie + ' not found in gas_properties.csv')
+                    exit()
+        try:
+            y = np.sort(data[specie])
+            molar_weight = list(y)[0]
+        except KeyError:
+            print('ERROR. Molar weight of ' + specie + ' not found in gas_properties.csv')
+            exit()
         return molar_ratio, molar_weight
 
     gas_properties_file = os.path.join(root, "gas_properties.csv")
@@ -610,18 +632,19 @@ def converter(input_file, processed_file, specie_input, model):
             processed_file.write(str(nx) + "  " + str(ny) + "\n")
             processed_file.write(str(x0) + "  " + str(xf) + "\n")
             processed_file.write(str(y0) + "  " + str(yf) + "\n")
+        if not convert:
             processed_file.write(
                 str(np.amin(Z_converted)) + "  " + str(np.amax(Z_converted)) + "\n"
             )
-        if not convert:
             np.savetxt(processed_file, Z_converted, fmt="%.2e")
         else:
             for specie in species_properties:
                 if specie["specie_name"] == specie_input:
-                    mol_ratio = specie["molar_ratio"]
-                    molar_weight = specie["molar_weight"]
-            Z_converted = np.multiply(Z, mol_ratio)
-            Z_converted = np.divide(Z_converted, molar_weight / (44.64 * 1000000000))
+                    molar_ratio = specie["molar_ratio"]
+            Z_converted = np.multiply(Z_converted, molar_ratio)
+            processed_file.write(
+                str(np.amin(Z_converted)) + "  " + str(np.amax(Z_converted)) + "\n"
+            )
             np.savetxt(processed_file, Z_converted, fmt="%.2e")
     processed_file.close()
 
@@ -1017,6 +1040,9 @@ def save_plots(model, min_con, max_con):
         from matplotlib import pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable, axes_size
 
+        def myround(x, prec=2, base=100):
+            return round(base * round(float(x) / base), prec)
+
         if plot_topography_layer:
             with open("topography.grd") as topography_file:
                 for i, line in enumerate(topography_file):
@@ -1041,7 +1067,9 @@ def save_plots(model, min_con, max_con):
                 Y_top = np.linspace(y0_top, yf_top, num=ny_top)
                 n_levels = 100
                 dz = (max_z - min_z) / n_levels
+                dz_lines = myround((max_z - min_z) / (n_levels / 10))
                 levels_top = np.arange(min_z + 0.0000001, max_z, dz)
+                levels_top_lines = np.arange(min_z, max_z, dz_lines)
             topography_file.close()
         with open(input) as input_file:
             if output_format == "grd":
@@ -1056,6 +1084,8 @@ def save_plots(model, min_con, max_con):
             top = ax.contourf(
                 X_top, Y_top, Z_top, levels_top, cmap="Greys", extend="max"
             )
+            top_lines = ax.contour(top, levels=levels_top_lines, colors='black', linewidths=0.05)
+            ax.clabel(top_lines, inline=True, fontsize=2, fmt='%1.0f')
             top_cbar = fig.colorbar(
                 top, orientation="horizontal", format="%.1f", shrink=0.75
             )
@@ -1386,6 +1416,7 @@ root = os.getcwd()
     levels,
     days_plot,
     species,
+    original_specie,
     exceedance_probabilities,
     nproc,
     convert,

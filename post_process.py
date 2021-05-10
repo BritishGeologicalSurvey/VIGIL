@@ -118,6 +118,12 @@ def read_arguments():
         help="Plot topography layer (True or False). Warning, it can be time-consuming!",
     )
     parser.add_argument(
+        "-TI",
+        "--topography_isolines",
+        default=100,
+        help="Topography height a.s.l. contour lines spatial resolution (in m). Used only if -PT True",
+    )
+    parser.add_argument(
         "-PR", "--plot_resolution", default=600, help="Specify plot resolution in dpi"
     )
     args = parser.parse_args()
@@ -138,6 +144,7 @@ def read_arguments():
     time_av = args.time_av
     output_format = args.output_format
     plot_topography = args.plot_topography
+    dz_lines_res = args.topography_isolines
     plot_resolution = args.plot_resolution
     if plot.lower() == "true":
         plot = True
@@ -240,6 +247,11 @@ def read_arguments():
     else:
         print("ERROR. Wrong value for variable -PT --plot_topography")
         sys.exit()
+    if plot_topography_layer:
+        try:
+            dz_lines_res = float(dz_lines_res)
+        except ValueError:
+            dz_lines_res = 100
     try:
         plot_resolution = int(plot_resolution)
     except ValueError:
@@ -264,6 +276,7 @@ def read_arguments():
         max_con,
         output_format,
         plot_topography_layer,
+        dz_lines_res,
         plot_resolution,
     )
 
@@ -1033,7 +1046,7 @@ def probabilistic_output(model):
 def save_plots(model, min_con, max_con):
     import re
 
-    def plot_file(input, output):
+    def plot_file(input, output, dz_lines_res):
         import matplotlib
 
         matplotlib.use("Agg")
@@ -1067,7 +1080,10 @@ def save_plots(model, min_con, max_con):
                 Y_top = np.linspace(y0_top, yf_top, num=ny_top)
                 n_levels = 100
                 dz = (max_z - min_z) / n_levels
-                dz_lines = myround((max_z - min_z) / (n_levels / 10))
+                if dz_lines_res >= max_z:
+                    dz_lines_res = max_z
+                n_levels_lines = int((max_z - min_z) / dz_lines_res)
+                dz_lines = myround((max_z - min_z) / (n_levels_lines))
                 levels_top = np.arange(min_z + 0.0000001, max_z, dz)
                 levels_top_lines = np.arange(min_z, max_z, dz_lines)
             topography_file.close()
@@ -1403,7 +1419,7 @@ def save_plots(model, min_con, max_con):
         i = 0
         for file_to_plot in files_to_plot:
             print("plotting " + file_to_plot)
-            plot_file(file_to_plot, output_files[i])
+            plot_file(file_to_plot, output_files[i], dz_lines_res)
             i += 1
 
 
@@ -1428,6 +1444,7 @@ root = os.getcwd()
     max_con,
     output_format,
     plot_topography_layer,
+    dz_lines_res,
     plot_resolution,
 ) = read_arguments()
 

@@ -217,6 +217,9 @@ If required, the name of the environment can be changed by editing
 
 ### Running an example case
 
+Example 1 runs DIAGNO against forecast data and can be run without an API key.
+Change to the `example_1` directory and run the commands in `commands.txt` in
+order.
 
 
 

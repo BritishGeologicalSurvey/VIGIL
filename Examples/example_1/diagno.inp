@@ -1,12 +1,12 @@
 ﻿Campi Flegrei
-  335      NX
-  300      NY
-  7       NZ
+ 220      NX
+ 220      NY
+  5       NZ
   0.02496    DXK (km)
   0.02496    DYK (km)
-0. 0.5  1.5  5. 15. 30. 50. 75. CELLZB(1:NZ+1) (m)
-  425.3721      UTMXOR   (km)
- 4515.7131      UTMYOR   (km)
+0. 0.5  1.5  5. 15. 30.  CELLZB(1:NZ+1) (m)
+  426.000      UTMXOR   (km)
+ 4517.000      UTMYOR   (km)
   0000        TSTART   (24-hours: HHMM)
   2300        TEND     (24-hours: HHMM)
     1         TINC     (hours)

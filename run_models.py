@@ -504,9 +504,10 @@ def pre_process():
                     elevations.append(float(records[2]))
                     probabilities.append(float(records[3]))
                     fluxes_input.append(float(records[4]))
-                    dx.append(float(records[5]))
-                    dy.append(float(records[6]))
-                    dur.append(float(records[7]))
+                    if twodee_on:
+                        dx.append(float(records[5]))
+                        dy.append(float(records[6]))
+                        dur.append(float(records[7]))
                     n_sources += 1
                 except ValueError:
                     continue

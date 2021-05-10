@@ -1,7 +1,7 @@
 HOW TO RUN EXAMPLE_1:  Campi Flegrei Solfatara (Italy)
 
-python weather.py -S 01/01/1990 -E 01/01/2020 -SM 12 1 2 -V 211010 -NS 50 -ERA5 True -N 50 -DG on
+python weather.py -S 10/05/2021 -E 10/05/2021 -V 211010 -NS 1 -M forecast -N 1 -DG on
 
-python run_models.py -RS off -D UTM 455450 4516000 433450 4523000 -N 50 -DG on
+python run_models.py -RS off -D UTM 455450 4516000 433450 4523000 -N 1 -DG on
 
-python post_process.py -P true -PE True -EX 0.5 0.05 0.01 -T all -L 3 -D all -C False -N 50 -M disgas -MO False -U ppm -TS CO2 -S CO2 -PT True -PL 350 10000
+python post_process.py -P true -T all -L all -D all -C False -N 1 -M disgas -MO False -U ppm -TS CO2 -S CO2 -PT True -PL 350 10000

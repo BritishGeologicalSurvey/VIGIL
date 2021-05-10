@@ -121,7 +121,7 @@ def read_arguments():
         "-TI",
         "--topography_isolines",
         default=100,
-        help="Topography height a.s.l. contour lines spatial resolution (in m). Used only if -PT True",
+        help="Topography height contour lines spatial resolution (in m a.s.l.). Used only if -PT True",
     )
     parser.add_argument(
         "-PR", "--plot_resolution", default=600, help="Specify plot resolution in dpi"
@@ -1056,37 +1056,74 @@ def save_plots(model, min_con, max_con):
         def myround(x, prec=2, base=100):
             return round(base * round(float(x) / base), prec)
 
+        def resize_topography(bottom_left_easting, top_right_easting, bottom_left_northing, top_right_northing, topography):
+            import numpy as np
+            info_records = []
+            with open(topography) as original_topography:
+                lines_to_save = []
+                for line in original_topography:
+                    if len(line.split(' ')) <= 2:
+                        info_records.append(line.split(' '))
+                        lines_to_save.append(line)
+            nx = float(info_records[1][0])
+            ny = float(info_records[1][1])
+            x0 = float(info_records[2][0])
+            xf = float(info_records[2][1])
+            y0 = float(info_records[3][0])
+            yf = float(info_records[3][1])
+            dx = (xf - x0) / nx
+            dy = (yf - y0) / ny
+            i_bottom_left = 0
+            j_bottom_left = 0
+            i_top_right = 0
+            j_top_right = 0
+            x = x0
+            y = y0
+            if bottom_left_easting < x0 or bottom_left_northing < y0 or top_right_easting > xf or top_right_northing > yf:
+                print('ERROR. Specified domain is not consistent with the topography.grd file')
+                print('Topography domain limits')
+                print('(X0,XF),(Y0,YF)')
+                print('(' + str(x0) + ',' + str(xf) + '),(' + str(y0) + ',' + str(yf) + ')')
+                print('Specified domain limits')
+                print('(X0,XF),(Y0,YF)')
+                print('(' + str(bottom_left_easting) + ',' + str(top_right_easting) + '),(' + str(bottom_left_northing) + ','
+              + str(top_right_northing) + ')')
+                exit()
+            while x <= bottom_left_easting:
+                i_bottom_left += 1
+                i_top_right += 1
+                x += dx
+            while x <= top_right_easting:
+                i_top_right += 1
+                x += dx
+            while y <= bottom_left_northing:
+                j_bottom_left += 1
+                j_top_right += 1
+                y += dy
+            while y <= top_right_northing:
+                j_top_right += 1
+                y += dy
+            Z_top = np.loadtxt("topography.grd", skiprows=5)
+            Z_resized = Z_top[j_bottom_left:j_top_right, i_bottom_left:i_top_right]
+            nx_resized = i_top_right - i_bottom_left
+            ny_resized = j_top_right - j_bottom_left
+            z_min = np.amin(Z_resized)
+            z_max = np.amax(Z_resized)
+            return x0, xf, y0, yf, nx_resized, ny_resized, z_min, z_max, Z_resized
+
         if plot_topography_layer:
-            with open("topography.grd") as topography_file:
-                for i, line in enumerate(topography_file):
-                    if i == 1:
-                        nx_top = int(line.split(" ")[0])
-                        ny_top = int(line.split(" ")[1])
-                    if i == 2:
-                        x0_top = float(line.split(" ")[0])
-                        xf_top = float(line.split(" ")[1])
-                    if i == 3:
-                        y0_top = float(line.split(" ")[0])
-                        yf_top = float(line.split(" ")[1])
-                    if i == 4:
-                        min_z = float(line.split(" ")[0])
-                        if min_z < 0:
-                            min_z = 0
-                        max_z = float(line.split(" ")[1])
-            with open("topography.grd") as topography_file:
-                if output_format == "grd":
-                    Z_top = np.loadtxt("topography.grd", skiprows=5)
-                X_top = np.linspace(x0_top, xf_top, num=nx_top)
-                Y_top = np.linspace(y0_top, yf_top, num=ny_top)
-                n_levels = 100
-                dz = (max_z - min_z) / n_levels
-                if dz_lines_res >= max_z:
-                    dz_lines_res = max_z
-                n_levels_lines = int((max_z - min_z) / dz_lines_res)
-                dz_lines = myround((max_z - min_z) / (n_levels_lines))
-                levels_top = np.arange(min_z + 0.0000001, max_z, dz)
-                levels_top_lines = np.arange(min_z, max_z, dz_lines)
-            topography_file.close()
+            x0_top, xf_top, y0_top, yf_top, nx_top, ny_top, min_z, max_z, Z_top = resize_topography(x0, xf, y0, yf,
+                                                                                                    "topography.grd")
+            X_top = np.linspace(x0_top, xf_top, num=nx_top)
+            Y_top = np.linspace(y0_top, yf_top, num=ny_top)
+            n_levels = 100
+            dz = (max_z - min_z) / n_levels
+            if dz_lines_res >= max_z:
+                dz_lines_res = max_z
+            n_levels_lines = int((max_z - min_z) / dz_lines_res)
+            dz_lines = myround((max_z - min_z) / (n_levels_lines))
+            levels_top = np.arange(min_z + 0.0000001, max_z, dz)
+            levels_top_lines = np.arange(min_z, max_z, dz_lines)
         with open(input) as input_file:
             if output_format == "grd":
                 Z = np.loadtxt(input, skiprows=5)

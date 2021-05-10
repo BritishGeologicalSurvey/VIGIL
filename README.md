@@ -156,6 +156,8 @@ usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB] [-EX EX_PROB [EX_PROB .
                         Select format of the processed output files. Valid options are: GRD
   -PT PLOT_TOPOGRAPHY, --plot_topography PLOT_TOPOGRAPHY
                         Plot topography layer (True or False). Warning, it can be time-consuming!
+  -TI TOPOGRAPHY_ISOLINES, --topography_isolines TOPOGRAPHY_ISOLINES
+                        Topography height a.s.l. contour lines spatial resolution (in m). Used only if -PT True
   -PR PLOT_RESOLUTION, --plot_resolution PLOT_RESOLUTION
                         Specify plot resolution in dpi
 ```

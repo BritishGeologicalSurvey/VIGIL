@@ -610,10 +610,10 @@ def converter(input_file, processed_file, specie_input, model):
             processed_file.write(str(nx) + "  " + str(ny) + "\n")
             processed_file.write(str(x0) + "  " + str(xf) + "\n")
             processed_file.write(str(y0) + "  " + str(yf) + "\n")
-        if not convert:
             processed_file.write(
                 str(np.amin(Z_converted)) + "  " + str(np.amax(Z_converted)) + "\n"
             )
+        if not convert:
             np.savetxt(processed_file, Z_converted, fmt="%.2e")
         else:
             for specie in species_properties:
@@ -622,9 +622,6 @@ def converter(input_file, processed_file, specie_input, model):
                     molar_weight = specie["molar_weight"]
             Z_converted = np.multiply(Z, mol_ratio)
             Z_converted = np.divide(Z_converted, molar_weight / (44.64 * 1000000000))
-            processed_file.write(
-                str(np.amin(Z_converted)) + "  " + str(np.amax(Z_converted)) + "\n"
-            )
             np.savetxt(processed_file, Z_converted, fmt="%.2e")
     processed_file.close()
 

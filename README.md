@@ -2,6 +2,11 @@
 Fabio Dioguardi. British Geological Survey, The Lyell Centre, Edinburgh, United Kingdom. Email: fabiod@bgs.ac.uk
 Silvia Massaro. Istituto Nazionale di Geofisica e Vulcanologia, Sezione di Bologna, Bologna, Italy. Email: silvia.massaro@ingv.it
 
+> A collection of Python scripts for automating workflow of gas dispersion
+> modelling (weather data download and processing; running DISGAS and TWODEE
+> models; post-process and plot results) for use in gas pollution modelling.
+
+
 ### PACKAGE CONTENT AND DESCRIPTION ###
 The package contains the following files:
 
@@ -162,37 +167,50 @@ usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB] [-EX EX_PROB [EX_PROB .
                         Specify plot resolution in dpi
 ```
 
-### DEPENDENCIES AND INSTALLATION INSTRUCTIONS ###
-The following software are required:
+### DEPENDENCIES AND INSTALLATION INSTRUCTIONS
+
+
+The following software are required (and should be available on the system
+$PATH):
+
+Gas modelling software:
+
 - DIAGNO v1.1.1: the diagnostic wind model (Douglas et al., 1990)
   Link: http://datasim.ov.ingv.it/models/diagno.html
 - DISGAS v2.1: the dilute gas dispersion simulation tool (Costa et al., 2005; Costa and Macedonio, 2016)
   Link: http://datasim.ov.ingv.it/models/disgas.html
 - TWODEE v2.3: the dense gas dispersion simulation tool (Hankin and Britter, 1999; Folch et al., 2009)
-  Link: http://datasim.ov.ingv.it/models/twodee.html 
+  Link: http://datasim.ov.ingv.it/models/twodee.html
+
+Weather data software:
+
 - wgrib2
   Link: http://www.cpc.ncep.noaa.gov/products/wesley/wgrib2/ 
   The script assumes the executable is in the system PATH
 - grib-tools
-  Windows: use chocolatey to install it. https://chocolatey.org/packages/grib-tools
-  Linux: Install eccodes
-  In both cases, add the binaries folder to the system PATH
-- Additional python packages needed
-  utm, cdsapi, pandas, pathos, openpyxl
+  Linux: Distributed as part of `eccodes` (required for ERA5 data and reanalysis mode)
+
+
 - CDSAPI client key
   The user needs to register to: https://cds.climate.copernicus.eu/cdsapp#!/home
   Once the registration is approved, to get the data follow the instructions here: https://confluence.ecmwf.int/display/CKB/How+to+download+ERA5
   The user needs to install the personal key in a .cdsapirc file, to save in different locations depending on the OS. Please read the instructions.
 
-With Conda, it is possible to set a virtual environmnent with all the required dependencies specific for APVGDM. This simplifies the 
+With Conda, it is possible to set a virtual environmnent with all the required dependencies specific for VIGIL. This simplifies the 
 installation of the different packages and the management of the Python installation in the system.
+
 Instructions for setting the Conda environment:
+
 1) create the environment with all the needed additional packages:
-	`conda create --name name_of_environment python=3.8 utm cdsapi pandas pathos openpyxl matplotlib`
+	`conda create -f environment.yml`
 2) activate the environment with:
-	`conda activate name_of_environment`
+	`conda activate vigil`
 3) to exit from the environment:
 	`conda deactivate`
+
+If required, the name of the environment can be changed by editing
+`environment.yml`.
+
 
 ### REFERENCES ###
 Costa, A., Macedonio, G., Chiodini, G., 2005. Numerical model of gas dispersion emitted from volcanic sources. Annals of Geophysics, vol. 48, n.4/5.

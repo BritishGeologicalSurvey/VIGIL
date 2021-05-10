@@ -169,6 +169,7 @@ usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB] [-EX EX_PROB [EX_PROB .
 
 ### DEPENDENCIES AND INSTALLATION INSTRUCTIONS
 
+#### System dependencies
 
 The following software are required (and should be available on the system
 $PATH):
@@ -191,10 +192,13 @@ Weather data software:
   Linux: Distributed as part of `eccodes` (required for ERA5 data and reanalysis mode)
 
 
-- CDSAPI client key
+- CDSAPI client key (required for ERA5 data and reanalysis mode)
   The user needs to register to: https://cds.climate.copernicus.eu/cdsapp#!/home
   Once the registration is approved, to get the data follow the instructions here: https://confluence.ecmwf.int/display/CKB/How+to+download+ERA5
   The user needs to install the personal key in a .cdsapirc file, to save in different locations depending on the OS. Please read the instructions.
+
+
+#### Python dependencies
 
 With Conda, it is possible to set a virtual environmnent with all the required dependencies specific for VIGIL. This simplifies the 
 installation of the different packages and the management of the Python installation in the system.
@@ -210,6 +214,10 @@ Instructions for setting the Conda environment:
 
 If required, the name of the environment can be changed by editing
 `environment.yml`.
+
+### Running an example case
+
+
 
 
 ### REFERENCES ###

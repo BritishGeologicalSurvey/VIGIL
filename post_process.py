@@ -412,8 +412,6 @@ def gas_properties():
         if convert:
             if specie == original_specie:
                 molar_ratio = 1
-                print('WARNING. Conversion activated but chosen species coincides with the tracked species')
-                print('Setting molar ratio to 1')
             else:
                 try:
                     x = np.sort(data[specie + '/' + original_specie])
@@ -426,9 +424,12 @@ def gas_properties():
         try:
             y = np.sort(data[specie])
             molar_weight = list(y)[0]
+            if molar_weight != molar_weight:
+                print('ERROR. Molar weight of ' + specie + ' not found in gas_properties.csv')
+                sys.exit()
         except KeyError:
             print('ERROR. Molar weight of ' + specie + ' not found in gas_properties.csv')
-            exit()
+            sys.exit()
         return molar_ratio, molar_weight
 
     gas_properties_file = os.path.join(root, "gas_properties.csv")
@@ -443,6 +444,9 @@ def gas_properties():
         molar_ratio, molar_weight = extract_gas_properties(specie)
         molar_ratios.append(molar_ratio)
         molar_weights.append(molar_weight)
+    molar_ratio, molar_weight = extract_gas_properties(original_specie)
+    molar_ratios_tracking_specie = molar_ratio
+    molar_weights_tracking_specie = molar_weight
     species_properties = []
     for i in range(0, len(species)):
         gas_specie = {}
@@ -450,6 +454,11 @@ def gas_properties():
         gas_specie["molar_ratio"] = molar_ratios[i]
         gas_specie["molar_weight"] = molar_weights[i]
         species_properties.append(gas_specie)
+    gas_specie = {}
+    gas_specie["specie_name"] = original_specie
+    gas_specie["molar_ratio"] = molar_ratios_tracking_specie
+    gas_specie["molar_weight"] = molar_weights_tracking_specie
+    species_properties.append(gas_specie)
     return species_properties
 
 
@@ -654,7 +663,16 @@ def converter(input_file, processed_file, specie_input, model):
             for specie in species_properties:
                 if specie["specie_name"] == specie_input:
                     molar_ratio = specie["molar_ratio"]
-            Z_converted = np.multiply(Z_converted, molar_ratio)
+                    if units == 'ppm':
+                        species_conversion_factor = molar_ratio
+                    elif units == 'kg/m3':
+                        for specie in species_properties:
+                            if specie["specie_name"] == specie_input:
+                                molar_weight = specie["molar_weight"]
+                            if specie["specie_name"] == original_specie:
+                                molar_weight_tracking_specie = specie["molar_weight"]
+                        species_conversion_factor = molar_ratio * (molar_weight / molar_weight_tracking_specie)
+            Z_converted = np.multiply(Z_converted, species_conversion_factor)
             processed_file.write(
                 str(np.amin(Z_converted)) + "  " + str(np.amax(Z_converted)) + "\n"
             )

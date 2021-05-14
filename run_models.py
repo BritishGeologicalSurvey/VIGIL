@@ -639,7 +639,6 @@ def pre_process():
             ) as disgas_or_input:
                 for line in disgas_or_input:
                     disgas_input_records.append(line)
-            disgas_or_input.close()
             with open(
                 disgas_input, "w", encoding="utf-8", errors="surrogateescape"
             ) as disgas_input_file:
@@ -722,8 +721,13 @@ def pre_process():
                     else:
                         disgas_input_file.write(record)
             if shutdown_restart:
-                with open(disgas_input, 'w', encoding="utf-8", errors="surrogateescape"
-                ) as disgas_input_file:
+                disgas_input_records = []
+                with open(
+                        disgas_input, "r", encoding="utf-8", errors="surrogateescape"
+                ) as disgas_or_input:
+                    for line in disgas_or_input:
+                        disgas_input_records.append(line)
+                with open(disgas_input, 'w', encoding="utf-8", errors="surrogateescape") as disgas_input_file:
                     for record in disgas_input_records:
                         if 'RESTART_RUN' in record:
                             disgas_input_file.write("  RESTART_RUN = NO\n")
@@ -789,7 +793,6 @@ def pre_process():
             ) as twodee_or_input:
                 for line in twodee_or_input:
                     twodee_input_records.append(line)
-            twodee_or_input.close()
             with open(
                 twodee_input, "w", encoding="utf-8", errors="surrogateescape"
             ) as twodee_input_file:
@@ -863,6 +866,11 @@ def pre_process():
                     else:
                         twodee_input_file.write(record)
             if shutdown_restart:
+                twodee_input_records = []
+                with open(
+                        twodee_input, "r", encoding="utf-8", errors="surrogateescape") as twodee_or_input:
+                    for line in twodee_or_input:
+                        twodee_input_records.append(line)
                 with open(twodee_input, "w", encoding="utf-8", errors="surrogateescape") as twodee_input_file:
                     for record in twodee_input_records:
                         if 'RESTART_RUN' in record:

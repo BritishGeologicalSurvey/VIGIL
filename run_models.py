@@ -632,6 +632,7 @@ def pre_process():
             except (FileExistsError, FileNotFoundError):
                 print('ERROR with surface_data.txt')
             # read and memorize disgas.inp file
+            shutdown_restart = False
             disgas_input_records = []
             with open(
                 disgas_original, "r", encoding="utf-8", errors="surrogateescape"
@@ -641,7 +642,7 @@ def pre_process():
             disgas_or_input.close()
             with open(
                 disgas_input, "w", encoding="utf-8", errors="surrogateescape"
-            ) as disgas_input:
+            ) as disgas_input_file:
                 for record in disgas_input_records:
                     if "ROUGHNESS_MODEL" in record:
                         roughness_command = record.split("=")[1]
@@ -654,29 +655,29 @@ def pre_process():
                                 )
                                 print("Setting ROUGHNESS_MODEL to UNIFORM")
                     if "YEAR" in record:
-                        disgas_input.write("  YEAR   = " + day[0:4] + "\n")
+                        disgas_input_file.write("  YEAR   = " + day[0:4] + "\n")
                     elif "MONTH" in record:
-                        disgas_input.write("  MONTH  = " + day[4:6] + "\n")
+                        disgas_input_file.write("  MONTH  = " + day[4:6] + "\n")
                     elif "DAY" in record:
-                        disgas_input.write("  DAY    = " + day[6:8] + "\n")
+                        disgas_input_file.write("  DAY    = " + day[6:8] + "\n")
                     elif 'RESTART_RUN' in record:
                         if run_type == 'restart':
-                            disgas_input.write("  RESTART_RUN = YES\n")
+                            disgas_input_file.write("  RESTART_RUN = YES\n")
                         else:
-                            disgas_input.write("  RESTART_RUN = NO\n")
+                            disgas_input_file.write("  RESTART_RUN = NO\n")
                     elif 'RESET_TIME' in record:
                         if run_type == 'restart':
-                            disgas_input.write("  RESET_TIME = YES\n")
+                            disgas_input_file.write("  RESET_TIME = YES\n")
                         else:
-                            disgas_input.write("  RESET_TIME = NO\n")
+                            disgas_input_file.write("  RESET_TIME = NO\n")
                     elif "TOPOGRAPHY_FILE_PATH" in record:
-                        disgas_input.write(
+                        disgas_input_file.write(
                             "   TOPOGRAPHY_FILE_PATH   = "
                             + os.path.join(diagno_daily, "topography.grd")
                             + " \n"
                         )
                     elif "ROUGHNESS_FILE_PATH" in record:
-                        disgas_input.write(
+                        disgas_input_file.write(
                             "   ROUGHNESS_FILE_PATH   = "
                             + os.path.join(disgas_daily, "roughness.grd")
                             + " \n"
@@ -687,39 +688,45 @@ def pre_process():
                                 shutil.copyfile(os.path.join(disgas_previous_day, "restart.dat"),
                                                 os.path.join(disgas_daily, "restart.dat"))
                             except FileNotFoundError:
-                                print('ERROR. Restart run requested but file ' +
+                                print('WARNING. Restart run requested but file ' +
                                       os.path.join(disgas_previous_day, "restart.dat") + ' not found')
-                                sys.exit()
-                        disgas_input.write(
+                                print('Changing back to a new simulation')
+                                shutdown_restart = True
+                        disgas_input_file.write(
                                 "   RESTART_FILE_PATH   = "
                                 + os.path.join(disgas_daily, "restart.dat")
                                 + " \n"
                             )
                     elif "SOURCE_FILE_PATH" in record:
-                        disgas_input.write(
+                        disgas_input_file.write(
                             "   SOURCE_FILE_PATH   = "
                             + os.path.join(disgas_daily, "source.dat")
                             + " \n"
                         )
                     elif "WIND_FILE_PATH" in record:
-                        disgas_input.write(
+                        disgas_input_file.write(
                             "   WIND_FILE_PATH   = "
                             + os.path.join(disgas_daily, "winds.dat")
                             + " \n"
                         )
                     elif "DIAGNO_FILE_PATH" in record:
-                        disgas_input.write(
+                        disgas_input_file.write(
                             "   DIAGNO_FILE_PATH   = "
                             + os.path.join(diagno_daily, "diagno.out")
                             + " \n"
                         )
                     elif "OUTPUT_DIRECTORY" in record:
-                        disgas_input.write(
+                        disgas_input_file.write(
                             "   OUTPUT_DIRECTORY    = " + outfiles + " \n"
                         )
                     else:
-                        disgas_input.write(record)
-            disgas_input.close()
+                        disgas_input_file.write(record)
+            if shutdown_restart:
+                with open(disgas_input, 'w', encoding="utf-8", errors="surrogateescape"
+                ) as disgas_input_file:
+                    for record in disgas_input_records:
+                        if 'RESTART_RUN' in record:
+                            disgas_input_file.write("  RESTART_RUN = NO\n")
         if twodee_on:
             twodee_daily = os.path.join(twodee, str(day))
             twodee_previous_day = os.path.join(twodee, str(previous_day))
@@ -773,6 +780,7 @@ def pre_process():
                     )
             source_file.close()
             # read and memorize twodee.inp file
+            shutdown_restart = False
             twodee_input_records = []
             with open(
                 twodee_original, "r", encoding="utf-8", errors="surrogateescape"
@@ -782,28 +790,28 @@ def pre_process():
             twodee_or_input.close()
             with open(
                 twodee_input, "w", encoding="utf-8", errors="surrogateescape"
-            ) as twodee_input:
+            ) as twodee_input_file:
                 for record in twodee_input_records:
                     if "YEAR" in record:
-                        twodee_input.write("  YEAR   = " + day[0:4] + "\n")
+                        twodee_input_file.write("  YEAR   = " + day[0:4] + "\n")
                     elif "MONTH" in record:
-                        twodee_input.write("  MONTH  = " + day[4:6] + "\n")
+                        twodee_input_file.write("  MONTH  = " + day[4:6] + "\n")
                     elif "DAY" in record:
-                        twodee_input.write("  DAY    = " + day[6:8] + "\n")
+                        twodee_input_file.write("  DAY    = " + day[6:8] + "\n")
                     elif 'RESTART_RUN' in record:
                         if run_type == 'restart':
-                            twodee_input.write("  RESTART_RUN = YES\n")
+                            twodee_input_file.write("  RESTART_RUN = YES\n")
                         else:
-                            twodee_input.write("  RESTART_RUN = NO\n")
+                            twodee_input_file.write("  RESTART_RUN = NO\n")
                     elif "OUTPUT_DIRECTORY" in record:
-                        twodee_input.write(
+                        twodee_input_file.write(
                             "   OUTPUT_DIRECTORY   = " + outfiles_twodee + " \n"
                         )
                     elif (
                         "TOPOGRAPHY_FILE" in record
                         and "TOPOGRAPHY_FILE_FORMAT" not in record
                     ):
-                        twodee_input.write(
+                        twodee_input_file.write(
                             "   TOPOGRAPHY_FILE   = "
                             + os.path.join(diagno_daily, "topography.grd")
                             + " \n"
@@ -812,25 +820,25 @@ def pre_process():
                         "ROUGHNESS_FILE" in record
                         and "ROUGHNESS_FILE_FORMAT" not in record
                     ):
-                        twodee_input.write(
+                        twodee_input_file.write(
                             "   ROUGHNESS_FILE   = "
                             + os.path.join(twodee_daily, "roughness.grd")
                             + " \n"
                         )
                     elif "SOURCE_FILE" in record:
-                        twodee_input.write(
+                        twodee_input_file.write(
                             "   SOURCE_FILE   = "
                             + os.path.join(twodee_daily, "source.dat")
                             + " \n"
                         )
                     elif "SURF_DATA_FILE" in record:
-                        twodee_input.write(
+                        twodee_input_file.write(
                             "   SURF_DATA_FILE   = "
                             + os.path.join(diagno_daily, "surface_data.txt")
                             + " \n"
                         )
                     elif "DIAGNO_FILE" in record:
-                        twodee_input.write(
+                        twodee_input_file.write(
                             "   DIAGNO_FILE   = "
                             + os.path.join(diagno_daily, "diagno.out")
                             + " \n"
@@ -841,17 +849,23 @@ def pre_process():
                                 shutil.copyfile(os.path.join(twodee_previous_day, "restart.dat"),
                                                 os.path.join(twodee_daily, "restart.dat"))
                             except FileNotFoundError:
-                                print('ERROR. Restart run requested but file ' +
+                                print('WARNING. Restart run requested but file ' +
                                       os.path.join(twodee_previous_day, "restart.dat") + ' not found')
-                                sys.exit()
-                        twodee_input.write(
+                                print('Changing back to a new simulation')
+                                shutdown_restart = True
+                        twodee_input_file.write(
                                 "   RESTART_FILE   = "
                                 + os.path.join(twodee_daily, "restart.dat")
                                 + " \n"
                             )
                     else:
-                        twodee_input.write(record)
-            twodee_input.close()
+                        twodee_input_file.write(record)
+            if shutdown_restart:
+                with open(twodee_input, "w", encoding="utf-8", errors="surrogateescape"
+                    ) as twodee_input_file:
+                    for record in twodee_input_records:
+                        if 'RESTART_RUN' in record:
+                            twodee_input_file.write("  RESTART_RUN = NO\n")
         shutil.rmtree(path)
     return days
 

@@ -727,6 +727,8 @@ def pre_process():
                     for record in disgas_input_records:
                         if 'RESTART_RUN' in record:
                             disgas_input_file.write("  RESTART_RUN = NO\n")
+                        else:
+                            disgas_input_file.write(record)
         if twodee_on:
             twodee_daily = os.path.join(twodee, str(day))
             twodee_previous_day = os.path.join(twodee, str(previous_day))
@@ -861,11 +863,12 @@ def pre_process():
                     else:
                         twodee_input_file.write(record)
             if shutdown_restart:
-                with open(twodee_input, "w", encoding="utf-8", errors="surrogateescape"
-                    ) as twodee_input_file:
+                with open(twodee_input, "w", encoding="utf-8", errors="surrogateescape") as twodee_input_file:
                     for record in twodee_input_records:
                         if 'RESTART_RUN' in record:
                             twodee_input_file.write("  RESTART_RUN = NO\n")
+                        else:
+                            twodee_input_file.write(record)
         shutil.rmtree(path)
     return days
 

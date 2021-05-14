@@ -16,6 +16,8 @@ def read_arguments():
         default=1,
         help="Maximum number of allowed simultaneous processes",
     )
+    parser.add_argument('-RT', '--run_type', default='new', help='Specify if the simulation is a new one or a restart.'
+                                                                 'Possible options are: new, restart')
     parser.add_argument(
         "-RS",
         "--random_sources",
@@ -96,6 +98,7 @@ def read_arguments():
     )
     args = parser.parse_args()
     nproc = args.nproc
+    run_type = args.run_type
     random_sources = args.random_sources
     nsources = args.nsources
     source_location = args.source_location
@@ -115,6 +118,10 @@ def read_arguments():
         source_emission = float(source_emission)
     except ValueError:
         print("Please provide a valid number for the emission rate of the source")
+        sys.exit()
+    run_type = run_type.lower()
+    if run_type != 'new' and run_type != 'restart':
+        print('ERROR. Please provide a valid entry for -RT --run_type')
         sys.exit()
     if len(domain) == 0 or len(domain) > 5:
         print("ERROR. Please provide valid entries for -D --domain")
@@ -310,6 +317,7 @@ def read_arguments():
             print("Please provide a valid number for the variable -SDUR --source_dur")
             sys.exit()
     return (
+        run_type,
         max_number_processes,
         random_sources,
         nsources,
@@ -351,9 +359,10 @@ def prepare_days():
         temp = temp[0].split("-")
         days.append(temp[0] + temp[1] + temp[2])
         i += 1
-    return days
+    return sorted(days)
 
 def pre_process():
+    import datetime
     def sample_random_sources(
         n_sources, input_file, dur_min, dur_max, source_size_min, source_size_max
     ):
@@ -544,7 +553,14 @@ def pre_process():
         except FileExistsError:
             print("Folder " + twodee + " already exists")
     days = prepare_days()
-    for day in days:
+    for i in range(0, len(days)):
+        day = days[i]
+        if i == 0:
+            current_day = datetime.datetime.strptime(days[i], '%Y%m%d')
+            previous_day = current_day - datetime.timedelta(days=1)
+            previous_day = previous_day.strftime('%Y%m%d')
+        else:
+            previous_day = days[i-1]
         path = os.path.join(root, "simulations", str(day))
         files = os.listdir(path)
         diagno_daily = os.path.join(diagno, str(day))
@@ -562,6 +578,7 @@ def pre_process():
         # Set DISGAS folder
         if disgas_on:
             disgas_daily = os.path.join(disgas, str(day))
+            disgas_previous_day = os.path.join(disgas, str(previous_day))
             outfiles = os.path.join(disgas_daily, "outfiles")
             try:
                 os.mkdir(disgas_daily)
@@ -642,6 +659,16 @@ def pre_process():
                         disgas_input.write("  MONTH  = " + day[4:6] + "\n")
                     elif "DAY" in record:
                         disgas_input.write("  DAY    = " + day[6:8] + "\n")
+                    elif 'RESTART_RUN' in record:
+                        if run_type == 'restart':
+                            disgas_input.write("  RESTART_RUN = YES\n")
+                        else:
+                            disgas_input.write("  RESTART_RUN = NO\n")
+                    elif 'RESET_TIME' in record:
+                        if run_type == 'restart':
+                            disgas_input.write("  RESET_TIME = YES\n")
+                        else:
+                            disgas_input.write("  RESET_TIME = NO\n")
                     elif "TOPOGRAPHY_FILE_PATH" in record:
                         disgas_input.write(
                             "   TOPOGRAPHY_FILE_PATH   = "
@@ -655,11 +682,19 @@ def pre_process():
                             + " \n"
                         )
                     elif "RESTART_FILE_PATH" in record:
+                        if run_type == 'restart':
+                            try:
+                                shutil.copyfile(os.path.join(disgas_previous_day, "restart.dat"),
+                                                os.path.join(disgas_daily, "restart.dat"))
+                            except FileNotFoundError:
+                                print('ERROR. Restart run requested but file ' +
+                                      os.path.join(disgas_previous_day, "restart.dat") + ' not found')
+                                sys.exit()
                         disgas_input.write(
-                            "   RESTART_FILE_PATH   = "
-                            + os.path.join(disgas_daily, "restart.dat")
-                            + " \n"
-                        )
+                                "   RESTART_FILE_PATH   = "
+                                + os.path.join(disgas_daily, "restart.dat")
+                                + " \n"
+                            )
                     elif "SOURCE_FILE_PATH" in record:
                         disgas_input.write(
                             "   SOURCE_FILE_PATH   = "
@@ -687,6 +722,7 @@ def pre_process():
             disgas_input.close()
         if twodee_on:
             twodee_daily = os.path.join(twodee, str(day))
+            twodee_previous_day = os.path.join(twodee, str(previous_day))
             outfiles_twodee = os.path.join(twodee_daily, "outfiles")
             try:
                 os.mkdir(twodee_daily)
@@ -754,6 +790,11 @@ def pre_process():
                         twodee_input.write("  MONTH  = " + day[4:6] + "\n")
                     elif "DAY" in record:
                         twodee_input.write("  DAY    = " + day[6:8] + "\n")
+                    elif 'RESTART_RUN' in record:
+                        if run_type == 'restart':
+                            twodee_input.write("  RESTART_RUN = YES\n")
+                        else:
+                            twodee_input.write("  RESTART_RUN = NO\n")
                     elif "OUTPUT_DIRECTORY" in record:
                         twodee_input.write(
                             "   OUTPUT_DIRECTORY   = " + outfiles_twodee + " \n"
@@ -794,6 +835,20 @@ def pre_process():
                             + os.path.join(diagno_daily, "diagno.out")
                             + " \n"
                         )
+                    elif "RESTART_FILE" in record:
+                        if run_type == 'restart':
+                            try:
+                                shutil.copyfile(os.path.join(twodee_previous_day, "restart.dat"),
+                                                os.path.join(twodee_daily, "restart.dat"))
+                            except FileNotFoundError:
+                                print('ERROR. Restart run requested but file ' +
+                                      os.path.join(twodee_previous_day, "restart.dat") + ' not found')
+                                sys.exit()
+                        twodee_input.write(
+                                "   RESTART_FILE   = "
+                                + os.path.join(twodee_daily, "restart.dat")
+                                + " \n"
+                            )
                     else:
                         twodee_input.write(record)
             twodee_input.close()
@@ -948,6 +1003,7 @@ twodee_original = os.path.join(root, "twodee.inp")
 topography = os.path.join(root, "topography.grd")
 
 (
+    run_type,
     max_number_processes,
     random_sources,
     nsources,

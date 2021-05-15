@@ -10,6 +10,7 @@ from pathos.multiprocessing import ThreadingPool
 from io import StringIO
 import argparse
 from shutil import rmtree
+import datetime
 
 
 def read_arguments():
@@ -52,7 +53,7 @@ def read_arguments():
         "--days_plot",
         nargs="+",
         default=[],
-        help="List of days to plot (YYYYMMDD). Type all to plot all the days",
+        help="List of days to plot (DD/MM/YYYY). Type all to plot all the days",
     )
     parser.add_argument(
         "-C",
@@ -146,11 +147,23 @@ def read_arguments():
     plot_topography = args.plot_topography
     dz_lines_res = args.topography_isolines
     plot_resolution = args.plot_resolution
+    days_to_plot_in = []
     if plot.lower() == "true":
         plot = True
         if len(days_plot) == 0:
             print("ERROR. Please specify at least one day to plot when --plot==True")
             sys.exit()
+        else:
+            for day in days_plot:
+                if day == 'all':
+                    days_to_plot_in.append(day)
+                else:
+                    try:
+                        day_datetime = datetime.datetime.strptime(day, '%d/%m/%Y')
+                        days_to_plot_in.append(day_datetime.strftime('%Y%m%d'))
+                    except ValueError:
+                        print('ERROR. Wrong format for -D -days_plot')
+                        sys.exit()
     elif plot.lower() == "false":
         plot = False
     else:
@@ -262,7 +275,7 @@ def read_arguments():
         plot_ex_prob,
         time_steps,
         levels,
-        days_plot,
+        days_to_plot_in,
         species,
         original_specie,
         exceedance_probabilities,
@@ -545,10 +558,10 @@ def extract_days():
             day_temp = day_temp.split("-")
             day = day_temp[0] + day_temp[1] + day_temp[2]
             days.append(day)
-            if days_plot[0] == "all":
+            if days_to_plot_in[0] == "all":
                 days_to_plot.append(day)
             else:
-                for day_to_plot in days_plot:
+                for day_to_plot in days_to_plot_in:
                     if day_to_plot == day:
                         days_to_plot.append(day_to_plot)
     return days, days_to_plot
@@ -1485,7 +1498,7 @@ root = os.getcwd()
     plot_ex_prob,
     time_steps,
     levels,
-    days_plot,
+    days_to_plot_in,
     species,
     original_specie,
     exceedance_probabilities,

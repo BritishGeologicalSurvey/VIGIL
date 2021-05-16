@@ -17,7 +17,7 @@ def read_arguments():
         help="Maximum number of allowed simultaneous processes",
     )
     parser.add_argument('-RT', '--run_type', default='new', help='Specify if the simulation is a new one or a restart.'
-                                                                 'Possible options are: new, restart')
+                                                                 ' Possible options are: new, restart')
     parser.add_argument(
         "-RS",
         "--random_sources",

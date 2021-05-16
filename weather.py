@@ -35,7 +35,7 @@ def read_arguments():
         help="Start date of the sampling period. Format: DD/MM/YYYY",
     )
     parser.add_argument('-RT', '--run_type', default='new', help='Specify if the simulation is a new one or a restart.'
-                                                                 'Possible options are: new, restart')
+                                                                 ' Possible options are: new, restart')
     parser.add_argument(
         "-SY",
         "--sampled_years",

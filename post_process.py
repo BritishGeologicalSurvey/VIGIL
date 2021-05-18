@@ -1087,7 +1087,8 @@ def save_plots(model, min_con, max_con):
         def myround(x, prec=2, base=100):
             return round(base * round(float(x) / base), prec)
 
-        def resize_topography(bottom_left_easting, top_right_easting, bottom_left_northing, top_right_northing, topography):
+        def resize_topography(bottom_left_easting, top_right_easting, bottom_left_northing, top_right_northing,
+                              topography):
             import numpy as np
             info_records = []
             with open(topography) as original_topography:
@@ -1096,30 +1097,31 @@ def save_plots(model, min_con, max_con):
                     if len(line.split(' ')) <= 2:
                         info_records.append(line.split(' '))
                         lines_to_save.append(line)
-            nx = float(info_records[1][0])
-            ny = float(info_records[1][1])
-            x0 = float(info_records[2][0])
-            xf = float(info_records[2][1])
-            y0 = float(info_records[3][0])
-            yf = float(info_records[3][1])
-            dx = (xf - x0) / nx
-            dy = (yf - y0) / ny
+            nx_or_top = float(info_records[1][0])
+            ny_or_top = float(info_records[1][1])
+            x0_or_top = float(info_records[2][0])
+            xf_or_top = float(info_records[2][1])
+            y0_or_top = float(info_records[3][0])
+            yf_or_top = float(info_records[3][1])
+            dx = (xf_or_top - x0_or_top) / (nx_or_top - 1)
+            dy = (yf_or_top - y0_or_top) / (ny_or_top - 1)
             i_bottom_left = 0
             j_bottom_left = 0
             i_top_right = 0
             j_top_right = 0
-            x = x0
-            y = y0
-            if bottom_left_easting < x0 or bottom_left_northing < y0 or top_right_easting > xf or top_right_northing > yf:
+            x = x0_or_top
+            y = y0_or_top
+            if bottom_left_easting < x0_or_top or bottom_left_northing < y0_or_top or top_right_easting > xf_or_top or \
+                    top_right_northing > yf_or_top:
                 print('ERROR. Specified domain is not consistent with the topography.grd file')
                 print('Topography domain limits')
                 print('(X0,XF),(Y0,YF)')
-                print('(' + str(x0) + ',' + str(xf) + '),(' + str(y0) + ',' + str(yf) + ')')
+                print('(' + str(x0_or_top) + ',' + str(xf_or_top) + '),(' + str(y0_or_top) + ',' + str(yf_or_top) + ')')
                 print('Specified domain limits')
                 print('(X0,XF),(Y0,YF)')
-                print('(' + str(bottom_left_easting) + ',' + str(top_right_easting) + '),(' + str(bottom_left_northing) + ','
-              + str(top_right_northing) + ')')
-                exit()
+                print('(' + str(bottom_left_easting) + ',' + str(top_right_easting) + '),(' + str(bottom_left_northing)
+                      + ',' + str(top_right_northing) + ')')
+                sys.exit()
             while x <= bottom_left_easting:
                 i_bottom_left += 1
                 i_top_right += 1
@@ -1140,13 +1142,12 @@ def save_plots(model, min_con, max_con):
             ny_resized = j_top_right - j_bottom_left
             z_min = np.amin(Z_resized)
             z_max = np.amax(Z_resized)
-            return x0, xf, y0, yf, nx_resized, ny_resized, z_min, z_max, Z_resized
+            return nx_resized, ny_resized, z_min, z_max, Z_resized
 
         if plot_topography_layer:
-            x0_top, xf_top, y0_top, yf_top, nx_top, ny_top, min_z, max_z, Z_top = resize_topography(x0, xf, y0, yf,
-                                                                                                    "topography.grd")
-            X_top = np.linspace(x0_top, xf_top, num=nx_top)
-            Y_top = np.linspace(y0_top, yf_top, num=ny_top)
+            nx_top, ny_top, min_z, max_z, Z_top = resize_topography(x0, xf, y0, yf, "topography.grd")
+            X_top = np.linspace(x0, xf, num=nx_top)
+            Y_top = np.linspace(y0, yf, num=ny_top)
             n_levels = 100
             dz = (max_z - min_z) / n_levels
             if dz_lines_res >= max_z:

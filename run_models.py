@@ -16,8 +16,6 @@ def read_arguments():
         default=1,
         help="Maximum number of allowed simultaneous processes",
     )
-    parser.add_argument('-RT', '--run_type', default='new', help='Specify if the simulation is a new one or a restart.'
-                                                                 ' Possible options are: new, restart')
     parser.add_argument(
         "-RS",
         "--random_sources",
@@ -35,15 +33,13 @@ def read_arguments():
     parser.add_argument(
         "-SINT",
         "--sources_interval",
-        nargs="+",
-        default=[],
+        default='',
         help="Type the minimum and maximum number of sources",
     )
     parser.add_argument(
         "-SLOC",
         "--source_location",
-        nargs="+",
-        default=[],
+        default='',
         help="Coordinate type (UTM/GEO), latitude/northing, longitude/easting, elevation (above ground in m) of 1 "
              "fixed source",
     )
@@ -68,8 +64,7 @@ def read_arguments():
     parser.add_argument(
         "-D",
         "--domain",
-        nargs="+",
-        default=[],
+        default='',
         help="Coordinates type (UTM/GEO), coordinates (latitude/northing, longitude/easting) of the bottom left corner "
              "and top right corner of the domain",
     )
@@ -98,12 +93,11 @@ def read_arguments():
     )
     args = parser.parse_args()
     nproc = args.nproc
-    run_type = args.run_type
     random_sources = args.random_sources
     nsources = args.nsources
-    source_location = args.source_location
-    sources_interval = args.sources_interval
-    domain = args.domain
+    source_location_in = args.source_location
+    sources_interval_in = args.sources_interval
+    domain_in = args.domain
     source_emission = args.source_emission
     random_emission = args.random_emission
     max_number_processes = int(nproc)
@@ -114,16 +108,15 @@ def read_arguments():
     source_dy = args.source_dy
     source_dur = args.source_dur
     source_easting = source_northing = source_el = 0
+    sources_interval = sources_interval_in.split(',')
+    source_location = source_location_in.split(',')
+    domain = domain_in.split(',')
     try:
         source_emission = float(source_emission)
     except ValueError:
         print("Please provide a valid number for the emission rate of the source")
         sys.exit()
-    run_type = run_type.lower()
-    if run_type != 'new' and run_type != 'restart':
-        print('ERROR. Please provide a valid entry for -RT --run_type')
-        sys.exit()
-    if len(domain) == 0 or len(domain) > 5:
+    if len(domain) != 5:
         print("ERROR. Please provide valid entries for -D --domain")
         sys.exit()
     else:
@@ -190,7 +183,7 @@ def read_arguments():
             )
             sys.exit()
         if nsources == "random":
-            if len(sources_interval) == 0 or len(sources_interval) > 2:
+            if len(sources_interval) != 2:
                 print(
                     "ERROR. Please specify the minimum and maximum number of sources with -SINT --sources_interval"
                 )
@@ -219,7 +212,7 @@ def read_arguments():
                 print(
                     "File sources_input.txt not found. Using one source from input data"
                 )
-                if len(source_location) == 0 or len(source_location) > 4:
+                if len(source_location) != 4:
                     print(
                         "ERROR. Please provide valid entries for -SLOC --sources_location"
                     )
@@ -317,7 +310,6 @@ def read_arguments():
             print("Please provide a valid number for the variable -SDUR --source_dur")
             sys.exit()
     return (
-        run_type,
         max_number_processes,
         random_sources,
         nsources,

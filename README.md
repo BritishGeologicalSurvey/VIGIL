@@ -19,9 +19,8 @@ The weather data can be either retrieved from ECMWF ERA5 database or from time s
 	+ Weather station data
 	In this mode, the script is design to extract weather data in the time interval specified by the user from selected weather data file. The script reads the number of files, file location and name from weather_stations.txt; the file data should be stored in the folder weather_stations.
 The following flags control the execution of weather.py:
-usage: weather.py [-h] [-M MODE] [-S START_DATE] [-E END_DATE] [-RT RUN_TYPE] [-SY SAMPLED_YEARS [SAMPLED_YEARS ...]]
-                  [-SM SAMPLED_MONTHS [SAMPLED_MONTHS ...]] [-SD SAMPLED_DAYS [SAMPLED_DAYS ...]] [-V VOLC] [-LAT LAT]
-                  [-LON LON] [-EL ELEV] [-NS SAMPLES] [-ERA5 ERA5] [-WST STATION] [-N NPROC] [-TD TWODEE] [-DG DISGAS]
+usage: weather.py [-h] [-M MODE] [-S START_DATE] [-E END_DATE] [-SY SAMPLED_YEARS [SAMPLED_YEARS ...]] [-SM SAMPLED_MONTHS [SAMPLED_MONTHS ...]] [-SD SAMPLED_DAYS [SAMPLED_DAYS ...]] [-V VOLC] [-LAT LAT] [-LON LON]
+                  [-EL ELEV] [-NS SAMPLES] [-ERA5 ERA5] [-WST STATION] [-N NPROC] [-TD TWODEE] [-DG DISGAS]
   -h, --help            show this help message and exit
   -M MODE, --mode MODE  Possible options: reanalysis, forecast. If reanalysis, either ERA5 or WST options should be
                         on. If forecast, GFS data will be downloaded and processed
@@ -29,14 +28,12 @@ usage: weather.py [-h] [-M MODE] [-S START_DATE] [-E END_DATE] [-RT RUN_TYPE] [-
                         Start date of the sampling period. Format: DD/MM/YYYY
   -E END_DATE, --end_date END_DATE
                         Start date of the sampling period. Format: DD/MM/YYYY
-  -RT RUN_TYPE, --run_type RUN_TYPE
-                        Specify if the simulation is a new one or a restart. Possible options are: new, restart
   -SY SAMPLED_YEARS [SAMPLED_YEARS ...], --sampled_years SAMPLED_YEARS [SAMPLED_YEARS ...]
-                        Specify years to sample from the time interval
+                        Specify years to sample from the time interval (comma separated values)
   -SM SAMPLED_MONTHS [SAMPLED_MONTHS ...], --sampled_months SAMPLED_MONTHS [SAMPLED_MONTHS ...]
-                        Specify months to sample from the time interval
+                        Specify months to sample from the time interval (comma separated values)
   -SD SAMPLED_DAYS [SAMPLED_DAYS ...], --sampled_days SAMPLED_DAYS [SAMPLED_DAYS ...]
-                        Specify days to sample from the time interval
+                        Specify days to sample from the time interval (comma separated values)
   -V VOLC, --volc VOLC  This is the volcano ID based on the Smithsonian
                         Institute IDs
   -LAT LAT, --lat LAT   Volcano latitude
@@ -64,15 +61,13 @@ usage: weather.py [-h] [-M MODE] [-S START_DATE] [-E END_DATE] [-RT RUN_TYPE] [-
 ```bash
 Python script to run Diagno and DISGAS for the days sampled with weather.py. 
 The following flags control the execution of hazard_fumaroles.py:
-usage: run_models.py [-h] [-N NPROC] [-RT RUN_TYPE] [-RS RANDOM_SOURCES] [-NS NSOURCES]
+usage: run_models.py [-h] [-N NPROC] [-RS RANDOM_SOURCES] [-NS NSOURCES]
                      [-SINT SOURCES_INTERVAL [SOURCES_INTERVAL ...]] [-SLOC SOURCE_LOCATION [SOURCE_LOCATION ...]]
                      [-SDX SOURCE_DX] [-SDY SOURCE_DY] [-SDUR SOURCE_DUR] [-D DOMAIN [DOMAIN ...]]
-                     [-SEM SOURCE_EMISSION] [-RER RANDOM_EMISSION] [-DI DIAGNO] [-TD TWODEE] [-DG DISGAS]
+                     [-SEM SOURCE_EMISSION] [-RER RANDOM_EMISSION] [-TD TWODEE] [-DG DISGAS]
   -h, --help            show this help message and exit
   -N NPROC, --nproc NPROC
                         Maximum number of allowed simultaneous processes
-  -RT RUN_TYPE, --run_type RUN_TYPE
-                        Specify if the simulation is a new one or a restart.Possible options are: new, restart
   -RS RANDOM_SOURCES, --random_sources RANDOM_SOURCES
                         on: randomly select NS locations from a probability
                         map. off: fixed source locations
@@ -81,11 +76,11 @@ usage: run_models.py [-h] [-N NPROC] [-RT RUN_TYPE] [-RS RANDOM_SOURCES] [-NS NS
                         random, then randomly select the number of sources
                         from an interval
   -SINT SOURCES_INTERVAL [SOURCES_INTERVAL ...], --sources_interval SOURCES_INTERVAL [SOURCES_INTERVAL ...]
-                        Type the minimum and maximum number of sources
+                        Type the minimum and maximum number of sources  (comma separated values)
   -SLOC SOURCE_LOCATION [SOURCE_LOCATION ...], --source_location SOURCE_LOCATION [SOURCE_LOCATION ...]
                         Coordinate type (UTM/GEO), latitude/northing,
                         longitude/easting, elevation (above ground in m) of 1
-                        fixed source
+                        fixed source (comma separated values)
   -SDX SOURCE_DX, --source_dx SOURCE_DX
                         Extension [m] along the X direction of 1 single source. Option valid for Twodee only
   -SDY SOURCE_DY, --source_dy SOURCE_DY
@@ -95,7 +90,7 @@ usage: run_models.py [-h] [-N NPROC] [-RT RUN_TYPE] [-RS RANDOM_SOURCES] [-NS NS
   -D DOMAIN [DOMAIN ...], --domain DOMAIN [DOMAIN ...]
                         Coordinates type (UTM/GEO), coordinates
                         (latitude/northing, longitude/easting) of the bottom
-                        left corner and top right corner of the domain
+                        left corner and top right corner of the domain (comma separated values)
   -SEM SOURCE_EMISSION, --source_emission SOURCE_EMISSION
                         Source emission rate [kg/s]. If specified, it is
                         assigned to all the sources in the domain
@@ -133,20 +128,20 @@ usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB] [-EX EX_PROB [EX_PROB .
                         probabilities. False: Do not produce plots
   -EX EX_PROB [EX_PROB ...], --ex_prob EX_PROB [EX_PROB ...]
                         List of exceedance probabilities to be used for
-                        graphical output
+                        graphical output (comma separated values)
   -T TIME_STEPS [TIME_STEPS ...], --time_steps TIME_STEPS [TIME_STEPS ...]
                         List of time steps to plot (integer >= 0). Type all to
-                        plot all the time steps
+                        plot all the time steps (comma separated values)
   -L LEVELS [LEVELS ...], --levels LEVELS [LEVELS ...]
                         List of vertical levels (integer >= 1) to plot. Type
-                        all to plot all the levels
+                        all to plot all the levels (comma separated values)
   -D DAYS_PLOT [DAYS_PLOT ...], --days_plot DAYS_PLOT [DAYS_PLOT ...]
                         List of days to plot (YYYYMMDD). Type all to plot all
-                        the days
+                        the days (comma separated values)
   -C CONVERT, --convert CONVERT
                         If True, convert output concentration into other species listed with the command -S (--species)
   -S SPECIES [SPECIES ...], --species SPECIES [SPECIES ...]
-                        List of gas species (e.g. CO2)
+                        List of gas species (e.g. CO2) (comma separated values)
   -TS TRACKING_SPECIE, --tracking_specie TRACKING_SPECIE
                         The original emitted specie that is tracked in the simulation
   -N NPROC, --nproc NPROC
@@ -158,7 +153,7 @@ usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB] [-EX EX_PROB [EX_PROB .
   -U UNITS, --units UNITS
                         Gas concentration units. Possible options are: ppm, kg/m3
   -PL PLOT_LIMITS [PLOT_LIMITS ...], --plot_limits PLOT_LIMITS [PLOT_LIMITS ...]
-                        Minimum and maximum value of concentration to display. If unspecified, they are obtained from all the outputs
+                        Minimum and maximum value of concentration to display. If unspecified, they are obtained from all the outputs (comma separated values)
   -TA TIME_AV, --time_av TIME_AV
                         Generate time-averaged outputs. Specify the time-averaging interval (in hours), or 0 for averaging over the whole duration
   -OF OUTPUT_FORMAT, --output_format OUTPUT_FORMAT

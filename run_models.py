@@ -16,6 +16,8 @@ def read_arguments():
         default=1,
         help="Maximum number of allowed simultaneous processes",
     )
+    parser.add_argument('-RT', '--run_type', default='new', help='Specify if the simulation is a new one or a restart.'
+                                                                 'Possible options are: new, restart')
     parser.add_argument(
         "-RS",
         "--random_sources",
@@ -93,6 +95,7 @@ def read_arguments():
     )
     args = parser.parse_args()
     nproc = args.nproc
+    run_type = args.run_type
     random_sources = args.random_sources
     nsources = args.nsources
     source_location_in = args.source_location
@@ -111,6 +114,10 @@ def read_arguments():
     sources_interval = sources_interval_in.split(',')
     source_location = source_location_in.split(',')
     domain = domain_in.split(',')
+    run_type = run_type.lower()
+    if run_type != 'new' and run_type != 'restart':
+        print('ERROR. Please provide a valid entry for -RT --run_type')
+        sys.exit()
     try:
         source_emission = float(source_emission)
     except ValueError:
@@ -310,6 +317,7 @@ def read_arguments():
             print("Please provide a valid number for the variable -SDUR --source_dur")
             sys.exit()
     return (
+        run_type,
         max_number_processes,
         random_sources,
         nsources,

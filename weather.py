@@ -22,6 +22,8 @@ def read_arguments():
         help="Possible options: reanalysis, forecast. If reanalysis, either ERA5 or WST options should be on. \n "
              "If forecast, GFS data will be downloaded and processed",
     )
+    parser.add_argument('-RT', '--run_type', default='new', help='Specify if the simulation is a new one or a restart.'
+                                                                 'Possible options are: new, restart')
     parser.add_argument(
         "-S",
         "--start_date",
@@ -91,6 +93,7 @@ def read_arguments():
     )
     args = parser.parse_args()
     mode = args.mode
+    run_type = args.run_type
     start_date = args.start_date
     end_date = args.end_date
     sampled_years_in = args.sampled_years
@@ -111,6 +114,9 @@ def read_arguments():
     if mode != "reanalysis" and mode != "forecast":
         print("ERROR. Wrong value for variable -M --mode")
         sys.exit()
+    run_type = run_type.lower()
+    if run_type != 'new' and run_type != 'restart':
+        print('ERROR. Please provide a valid entry for -RT --run_type')
     if ERA5_on.lower() == "true":
         ERA5_on = True
     elif ERA5_on.lower() == "false":
@@ -245,6 +251,7 @@ def read_arguments():
         sys.exit()
     return (
         mode,
+        run_type,
         nsamples,
         time_start,
         time_stop,

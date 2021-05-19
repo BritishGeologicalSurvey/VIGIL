@@ -153,6 +153,18 @@ def read_arguments():
         if days_plot_in == '':
             print("ERROR. Please specify at least one day to plot when --plot==True")
             sys.exit()
+        else:
+            days_to_plot_in = []
+            for day in days_plot:
+                if day == 'all':
+                    days_to_plot_in.append(day)
+                else:
+                    try:
+                        day_datetime = datetime.datetime.strptime(day, '%d/%m/%Y')
+                        days_to_plot_in.append(day_datetime.strftime('%Y%m%d'))
+                    except ValueError:
+                        print('ERROR. Wrong format for -D -days_plot')
+                        sys.exit()
     elif plot.lower() == "false":
         plot = False
     else:
@@ -265,7 +277,7 @@ def read_arguments():
         plot_ex_prob,
         time_steps,
         levels,
-        days_plot,
+        days_to_plot_in,
         species,
         original_specie,
         exceedance_probabilities,

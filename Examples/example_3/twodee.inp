@@ -61,7 +61,7 @@
    TOPOGRAPHY_FILE_FORMAT  = GRD               (Options: NONE value/AAIG/GRD)  
    ROUGHNESS_FILE          = roughness.grd 
    ROUGHNESS_FILE_FORMAT   = GRD               (Options: NONE value/AAIG/GRD)  
-   RESTART_FILE            = restart.dat        (Only used if RESTART_RUN = YES)
+   RESTART_FILE            = restart.dat       
    SOURCE_FILE             = source.dat
    !
    WIND_FILE               = winds.dat          (Only used if WIND_MODEL = UNIFORM)

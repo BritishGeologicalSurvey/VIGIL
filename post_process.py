@@ -9,7 +9,6 @@ import os
 from pathos.multiprocessing import ThreadingPool
 from io import StringIO
 import argparse
-from shutil import rmtree
 import datetime
 
 
@@ -330,30 +329,11 @@ def folder_structure():
             os.mkdir(disgas_processed_output_folder)
         except FileExistsError:
             print("Folder " + disgas_processed_output_folder + " already exists")
-            list_temp = os.listdir(disgas_processed_output_folder)
-            for item in list_temp:
-                try:
-                    rmtree(
-                        os.path.join(disgas_processed_output_folder, item),
-                        ignore_errors=True,
-                    )
-                except FileNotFoundError:
-                    print(
-                        "Unable to remove "
-                        + item
-                        + " in "
-                        + disgas_processed_output_folder
-                    )
+
         try:
             os.mkdir(disgas_ecdf)
         except FileExistsError:
             print("Folder " + disgas_ecdf + " already exists")
-            list_temp = os.listdir(disgas_ecdf)
-            for item in list_temp:
-                try:
-                    rmtree(os.path.join(disgas_ecdf, item), ignore_errors=True)
-                except FileNotFoundError:
-                    print("Unable to remove " + item + " in " + disgas_ecdf)
     if models == "twodee" or models == "all":
         try:
             os.mkdir(twodee_outputs)
@@ -363,30 +343,10 @@ def folder_structure():
             os.mkdir(twodee_processed_output_folder)
         except FileExistsError:
             print("Folder " + twodee_processed_output_folder + " already exists")
-            list_temp = os.listdir(twodee_processed_output_folder)
-            for item in list_temp:
-                try:
-                    rmtree(
-                        os.path.join(twodee_processed_output_folder, item),
-                        ignore_errors=True,
-                    )
-                except FileNotFoundError:
-                    print(
-                        "Unable to remove "
-                        + item
-                        + " in "
-                        + twodee_processed_output_folder
-                    )
         try:
             os.mkdir(twodee_ecdf)
         except FileExistsError:
             print("Folder " + twodee_ecdf + " already exists")
-            list_temp = os.listdir(twodee_ecdf)
-            for item in list_temp:
-                try:
-                    rmtree(os.path.join(twodee_ecdf, item), ignore_errors=True)
-                except FileNotFoundError:
-                    print("Unable to remove " + item + " in " + twodee_ecdf)
     twodee_input_file = os.path.join(root, "twodee.inp")
     twodee_output_time_step = 0
     if models == "all":
@@ -1221,19 +1181,6 @@ def save_plots(model, min_con, max_con):
         os.mkdir(graphical_outputs)
     except FileExistsError:
         print("Folder " + graphical_outputs + " already exists")
-        list_temp = os.listdir(graphical_outputs)
-        for item in list_temp:
-            list_temp_2 = os.listdir(os.path.join(graphical_outputs, item))
-            for item_2 in list_temp_2:
-                try:
-                    rmtree(os.path.join(os.path.join(graphical_outputs, item), item_2))
-                except FileNotFoundError:
-                    print(
-                        "Unable to remove "
-                        + item_2
-                        + " in "
-                        + os.path.join(graphical_outputs, item)
-                    )
     try:
         os.mkdir(graphical_outputs_simulations)
     except FileExistsError:

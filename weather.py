@@ -37,22 +37,19 @@ def read_arguments():
     parser.add_argument(
         "-SY",
         "--sampled_years",
-        nargs="+",
-        default=[],
+        default='',
         help="Specify years to sample from the time interval",
     )
     parser.add_argument(
         "-SM",
         "--sampled_months",
-        nargs="+",
-        default=[],
+        default='',
         help="Specify months to sample from the time interval",
     )
     parser.add_argument(
         "-SD",
         "--sampled_days",
-        nargs="+",
-        default=[],
+        default='',
         help="Specify days to sample from the time interval",
     )
     parser.add_argument(
@@ -96,9 +93,9 @@ def read_arguments():
     mode = args.mode
     start_date = args.start_date
     end_date = args.end_date
-    sampled_years = args.sampled_years
-    sampled_months = args.sampled_months
-    sampled_days = args.sampled_days
+    sampled_years_in = args.sampled_years
+    sampled_months_in = args.sampled_months
+    sampled_days_in = args.sampled_days
     volc_id = int(args.volc)
     volc_lat = float(args.lat)
     volc_lon = float(args.lon)
@@ -178,6 +175,33 @@ def read_arguments():
             print("Unable to retrieve volcano information from the ESPs database "
                   "and no location information have been provided")
             raise
+    sampled_days = []
+    sampled_months = []
+    sampled_years = []
+    if sampled_days_in != '':
+        sampled_days = sampled_days_in.split(',')
+        for day in sampled_days:
+            try:
+                datetime.datetime.strptime(day,'%d')
+            except ValueError:
+                print('ERROR. Please provide a valid entry for -SD --sampled_days')
+                sys.exit()
+    if sampled_months_in != '':
+        sampled_months = sampled_months_in.split(',')
+        for month in sampled_months:
+            try:
+                datetime.datetime.strptime(month, '%m')
+            except ValueError:
+                print('ERROR. Please provide a valid entry for -SM --sampled_months')
+                sys.exit()
+    if sampled_years_in != '':
+        sampled_years = sampled_years_in.split(',')
+        for year in sampled_years:
+            try:
+                datetime.datetime.strptime(year, '%Y')
+            except ValueError:
+                print('ERROR. Please provide a valid entry for -SY --sampled_years')
+                sys.exit()
     try:
         max_number_processes = int(nproc)
     except ValueError:

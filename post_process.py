@@ -29,29 +29,25 @@ def read_arguments():
     parser.add_argument(
         "-EX",
         "--ex_prob",
-        nargs="+",
-        default=[],
+        default='',
         help="List of exceedence probabilities to be used for graphical output",
     )
     parser.add_argument(
         "-T",
         "--time_steps",
-        nargs="+",
-        default=[],
+        default='',
         help="List of time steps to plot (integer >= 0). Type all to plot all the time steps",
     )
     parser.add_argument(
         "-L",
         "--levels",
-        nargs="+",
-        default=[],
+        default='',
         help="List of vertical levels (integer >= 1) to plot. Type all to plot all the levels",
     )
     parser.add_argument(
         "-D",
         "--days_plot",
-        nargs="+",
-        default=[],
+        default='',
         help="List of days to plot (YYYYMMDD). Type all to plot all the days",
     )
     parser.add_argument(
@@ -61,7 +57,7 @@ def read_arguments():
         help="If True, convert output concentration into other species listed with the command -S (--species)",
     )
     parser.add_argument(
-        "-S", "--species", nargs="+", default=[], help="List of gas species (e.g. CO2)"
+        "-S", "--species", default='', help="List of gas species (e.g. CO2)"
     )
     parser.add_argument(
         "-TS", "--tracking_specie", default=None, help="The original emitted specie that is tracked in the simulation"
@@ -93,8 +89,7 @@ def read_arguments():
     parser.add_argument(
         "-PL",
         "--plot_limits",
-        nargs="+",
-        default=[],
+        default='',
         help="Minimum and maximum value of concentration to display. If unspecified, they are obtained from all "
              "the outputs",
     )
@@ -129,26 +124,32 @@ def read_arguments():
     args = parser.parse_args()
     plot = args.plot
     plot_ex_prob = args.plot_ex_prob
-    ex_prob = args.ex_prob
-    time_steps = args.time_steps
-    levels = args.levels
-    days_plot = args.days_plot
-    species = args.species
+    ex_prob_in = args.ex_prob
+    time_steps_in = args.time_steps
+    levels_in = args.levels
+    days_plot_in = args.days_plot
+    species_in = args.species
     original_specie = args.tracking_specie
     nproc = args.nproc
     convert = args.convert
     models = args.models
     merge_outputs = args.merge_outputs
     units = args.units
-    plot_limits = args.plot_limits
+    plot_limits_in = args.plot_limits
     time_av = args.time_av
     output_format = args.output_format
     plot_topography = args.plot_topography
     dz_lines_res = args.topography_isolines
     plot_resolution = args.plot_resolution
+    ex_prob = ex_prob_in.split(',')
+    time_steps = time_steps_in.split(',')
+    levels = levels_in.split(',')
+    days_plot = days_plot_in.split(',')
+    plot_limits = plot_limits_in.split(',')
+    species = species_in.split(',')
     if plot.lower() == "true":
         plot = True
-        if len(days_plot) == 0:
+        if days_plot_in == '':
             print("ERROR. Please specify at least one day to plot when --plot==True")
             sys.exit()
     elif plot.lower() == "false":
@@ -158,7 +159,7 @@ def read_arguments():
         sys.exit()
     if plot_ex_prob.lower() == "true":
         plot_ex_prob = True
-        if len(ex_prob) == 0:
+        if ex_prob_in == '':
             print(
                 "ERROR. Please specify at least one exceedance probability to plot when --plot_ex_prob==True"
             )
@@ -169,16 +170,16 @@ def read_arguments():
         print("ERROR. Wrong value for variable -PE --plot_ex_prob")
         sys.exit()
     if plot or plot_ex_prob:
-        if len(time_steps) == 0:
+        if time_steps_in == '':
             print("ERROR. Please specify at least one time step to plot")
             sys.exit()
-        if len(levels) == 0:
+        if levels_in == '':
             print("ERROR. Please specify at least one level to plot")
             sys.exit()
     if original_specie == None:
         print('ERROR. Please specify the name of the tracked specie')
         sys.exit()
-    if len(species) == 0:
+    if species_in == '':
         print("ERROR. Please specify at least one gas specie name")
         sys.exit()
     if convert.lower() == "true":
@@ -189,8 +190,9 @@ def read_arguments():
         print("ERROR. Wrong value for variable -C --convert")
         sys.exit()
     exceedance_probabilities = []
-    for prob in ex_prob:
-        exceedance_probabilities.append(float(prob))
+    if ex_prob_in != '':
+        for prob in ex_prob:
+            exceedance_probabilities.append(float(prob))
     if (
         models.lower() != "disgas"
         and models.lower() != "twodee"

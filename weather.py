@@ -22,8 +22,12 @@ def read_arguments():
         help="Possible options: reanalysis, forecast. If reanalysis, either ERA5 or WST options should be on. \n "
              "If forecast, GFS data will be downloaded and processed",
     )
-    parser.add_argument('-RT', '--run_type', default='new', help='Specify if the simulation is a new one or a restart.'
+    parser.add_argument('-RT', '--run_type', default='new', help='Specify if the simulation is a new one or a restart. '
                                                                  'Possible options are: new, restart')
+    parser.add_argument('-CS', '--continuous_simulation', default='False', help='Specify if the simulation is '
+                                                                                'continuous between the specified '
+                                                                                'start and end dates. Possible options '
+                                                                                'are True or False')
     parser.add_argument(
         "-S",
         "--start_date",
@@ -94,6 +98,7 @@ def read_arguments():
     args = parser.parse_args()
     mode = args.mode
     run_type = args.run_type
+    continuous_simulation = args.continuous_simulation
     start_date = args.start_date
     end_date = args.end_date
     sampled_years_in = args.sampled_years
@@ -103,7 +108,6 @@ def read_arguments():
     volc_lat = float(args.lat)
     volc_lon = float(args.lon)
     elevation = float(args.elev)
-    nsamples = int(args.samples)
     ERA5_on = args.ERA5
     weather_station_on = args.station
     args = parser.parse_args()
@@ -117,6 +121,13 @@ def read_arguments():
     run_type = run_type.lower()
     if run_type != 'new' and run_type != 'restart':
         print('ERROR. Please provide a valid entry for -RT --run_type')
+    if continuous_simulation.lower() == "true":
+        continuous_simulation = True
+    elif continuous_simulation.lower() == "false":
+        continuous_simulation = False
+    else:
+        print("ERROR. Wrong value for variable -CS --continuous_simulation")
+        sys.exit()
     if ERA5_on.lower() == "true":
         ERA5_on = True
     elif ERA5_on.lower() == "false":
@@ -184,30 +195,31 @@ def read_arguments():
     sampled_days = []
     sampled_months = []
     sampled_years = []
-    if sampled_days_in != '':
-        sampled_days = sampled_days_in.split(',')
-        for day in sampled_days:
-            try:
-                datetime.datetime.strptime(day,'%d')
-            except ValueError:
-                print('ERROR. Please provide a valid entry for -SD --sampled_days')
-                sys.exit()
-    if sampled_months_in != '':
-        sampled_months = sampled_months_in.split(',')
-        for month in sampled_months:
-            try:
-                datetime.datetime.strptime(month, '%m')
-            except ValueError:
-                print('ERROR. Please provide a valid entry for -SM --sampled_months')
-                sys.exit()
-    if sampled_years_in != '':
-        sampled_years = sampled_years_in.split(',')
-        for year in sampled_years:
-            try:
-                datetime.datetime.strptime(year, '%Y')
-            except ValueError:
-                print('ERROR. Please provide a valid entry for -SY --sampled_years')
-                sys.exit()
+    if not continuous_simulation:
+        if sampled_days_in != '':
+            sampled_days = sampled_days_in.split(',')
+            for day in sampled_days:
+                try:
+                    datetime.datetime.strptime(day,'%d')
+                except ValueError:
+                    print('ERROR. Please provide a valid entry for -SD --sampled_days')
+                    sys.exit()
+        if sampled_months_in != '':
+            sampled_months = sampled_months_in.split(',')
+            for month in sampled_months:
+                try:
+                    datetime.datetime.strptime(month, '%m')
+                except ValueError:
+                    print('ERROR. Please provide a valid entry for -SM --sampled_months')
+                    sys.exit()
+        if sampled_years_in != '':
+            sampled_years = sampled_years_in.split(',')
+            for year in sampled_years:
+                try:
+                    datetime.datetime.strptime(year, '%Y')
+                except ValueError:
+                    print('ERROR. Please provide a valid entry for -SY --sampled_years')
+                    sys.exit()
     try:
         max_number_processes = int(nproc)
     except ValueError:
@@ -235,6 +247,15 @@ def read_arguments():
             "Please ensure the dates are provided in the format DD/MM/YYYY (e.g. 23/06/2018)"
         )
         sys.exit()
+    if not continuous_simulation:
+        try:
+            nsamples = int(args.samples)
+        except ValueError:
+            print('ERROR. Wrong entry for variable -NS --samples')
+            sys.exit()
+    else:
+        nsamples = (time_stop - time_start).days + 1
+        run_type = 'restart'
     if twodee.lower() == "on":
         twodee_on = True
     elif twodee.lower() == "off":
@@ -252,6 +273,7 @@ def read_arguments():
     return (
         mode,
         run_type,
+        continuous_simulation,
         nsamples,
         time_start,
         time_stop,
@@ -1015,6 +1037,7 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
     import urllib.request
     import urllib.error
     from datetime import datetime, timedelta
+    import shutil
 
     def wtfile_download(url, wtfile_dwnl):
         print("Downloading forecast file " + url)
@@ -1084,7 +1107,6 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
     wtfiles = []
     wtfiles_int = []
     wtfiles_prof = []
-    abs_validities = []
     zooms = []
     lon_corners = []
     lat_corners = []
@@ -1157,6 +1179,7 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
         ifcst = ihour + 6
     # Check all forecast files are available
     max_ifcst = ifcst + nfcst
+    time_profile = time_in
     while ifcst < max_ifcst:
         fcst = "f" + "{:03d}".format(ifcst)
         wtfile_dwnl = "gfs.t" + anl + "z.pgrb2.0p25." + fcst
@@ -1204,17 +1227,22 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
             anl = "0" + str(ianl)
         else:
             anl = str(ianl)
-        ival = ianl + ifcst
-        if ival < 10:
-            validity = "0" + str(ival)
-        elif ival >= 24:
-            ival = ival - 24
-            validity = "0" + str(ival)
-        else:
-            validity = str(ival)
         fcst = "f" + "{:03d}".format(ifcst)
         wtfile_dwnl = "gfs.t" + anl + "z.pgrb2.0p25." + fcst
-        abs_validity = year + month + day + validity
+        year_profile = str(time_profile)[0:4]
+        month_profile = str(time_profile)[5:7]
+        day_profile = str(time_profile)[8:10]
+        hour_profile = str(time_profile)[11:13]
+        #ival = ianl + ifcst
+        #if ival < 10:
+        #    validity = "0" + str(ival)
+        #elif ival >= 24:
+        #    ival = ival - 24
+        #    validity = str(ival)
+        #else:
+        #    validity = str(ival)
+        #abs_validity = year + month + day + validity
+        abs_validity = year_profile + month_profile + day_profile + hour_profile
         wtfile_int = os.path.join(
             data_folder,
             "weather_data_interpolated_"
@@ -1225,7 +1253,6 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
             + "_"
             + fcst,
         )
-        abs_validities.append(abs_validity)
         wtfile = os.path.join(
             data_folder,
             "weather_data_" + year_anl + month_anl + day_anl + anl + "_" + fcst,
@@ -1276,11 +1303,56 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
         lat_corners.append(lat_corner)
         slon_sources.append(slon_source)
         slat_sources.append(slat_source)
-    try:
-        pool = ThreadingPool(nfcst)
-        pool.map(wtfile_download, urls, wtfiles)
-    except BaseException:
-        print("No new weather data downloaded")
+        time_profile += timedelta(hours=1)
+    n_downloaded_days = 0
+    pools = []
+    n_pool = 0
+    while n_downloaded_days <= nfcst:
+        end = n_downloaded_days + 24
+        if end > nfcst:
+            end = nfcst
+        n_downloaded_days = end
+        pools.append(n_pool)
+        n_pool += 1
+        if n_downloaded_days == nfcst:
+            break
+    n_downloaded_days = 0
+    n_pool = 0
+    while n_downloaded_days <= nfcst:
+        start = n_downloaded_days
+        end = n_downloaded_days + 24
+        if end > nfcst:
+            end = nfcst
+        try:
+            pools[n_pool] = ThreadingPool(24)
+            pools[n_pool].map(wtfile_download, urls[start:end], wtfiles[start:end])
+        except BaseException:
+            print("Unable to doanload weather data")
+            sys.exit()
+        n_downloaded_days = end
+        n_pool += 1
+        if n_downloaded_days == nfcst:
+            break
+    #try:
+    #    pool = ThreadingPool(nfcst)
+    #    pool.map(wtfile_download, urls, wtfiles)
+    #except BaseException:
+    #    print("No new weather data downloaded")
+    # if nfcst > 24:
+    #     simulation_day_current = time_in
+    #     simulation_day = simulation_day_current
+    #     for i in range(0, len(wtfiles)):
+    #         simulation_day_s = str(simulation_day)
+    #         year = simulation_day_s[0:4]
+    #         month = simulation_day_s[5:7]
+    #         day = simulation_day_s[8:10]
+    #         data_folder_new = os.path.join(simulations, year + month + day)
+    #         try:
+    #             shutil.move(wtfiles[i], data_folder_new)
+    #         except shutil.Error:
+    #             print('File ' + wtfiles[i] + ' alread present in ' + data_folder_new)
+    #         simulation_day += timedelta(hours=1)
+
     try:
         pool = ThreadingPool(nfcst)
         pool.map(
@@ -1296,6 +1368,28 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
         )
     except BaseException:
         print("Error in weather data interpolation")
+    if nfcst > 24:
+        simulation_day_current = time_in
+        simulation_day = simulation_day_current
+        for i in range(0, len(wtfiles)):
+            simulation_day_s = str(simulation_day)
+            year = simulation_day_s[0:4]
+            month = simulation_day_s[5:7]
+            day = simulation_day_s[8:10]
+            data_folder_new = os.path.join(simulations, year + month + day)
+            try:
+                shutil.move(wtfiles[i], data_folder_new)
+            except shutil.Error:
+                print('File ' + wtfiles[i] + ' alread present in ' + data_folder_new)
+            try:
+                shutil.move(wtfiles_int[i], data_folder_new)
+            except shutil.Error:
+                print('File ' + wtfiles_int[i] + ' alread present in ' + data_folder_new)
+            try:
+                shutil.move(wtfiles_prof[i], data_folder_new)
+            except:
+                print('File ' + wtfiles_prof[i] + ' alread present in ' + data_folder_new)
+            simulation_day += timedelta(hours=1)
 
 
 def extract_station_data(station_data_files, eastings, northings, zst, data_folder):
@@ -1569,10 +1663,11 @@ def automatic_weather(analysis_start):
     except FileNotFoundError:
         print("File diagno.inp not found")
     if mode == "forecast":
-        print("Retrieving GFS data for day " + str(analysis_start)[0:10])
-        gfs_retrieve(
-            volc_lon, volc_lat, 24, analysis_start
-        )  # for the moment nfcst set to 24 since the models can run for 24 hours
+        if analysis_start == time_start:
+            print("Retrieving GFS data for day " + str(analysis_start)[0:10])
+            gfs_retrieve(
+                volc_lon, volc_lat, ((time_stop - time_start).days + 1) * 24, analysis_start
+            )
     if ERA5_on:
         print("Retrieving ERA5 data for day " + str(analysis_start)[0:10])
         era5_retrieve(volc_lon, volc_lat, analysis_start)
@@ -1630,6 +1725,7 @@ def automatic_weather(analysis_start):
 (
     mode,
     run_type,
+    continuous_simulation,
     nsamples,
     time_start,
     time_stop,
@@ -1693,86 +1789,89 @@ days_list_file = open("days_list.txt", "a+", encoding="utf-8", errors="surrogate
 for i in range(nsamples):
     days_list_file.write(str(sampled_period_days[i]) + "\n")
 days_list_file.close()
-
-n_elaborated_days = 0
-pools = []
-n_pool = 0
-while n_elaborated_days <= nsamples:
-    start = n_elaborated_days
-    end = n_elaborated_days + max_number_processes
-    if end > nsamples:
-        end = nsamples
-    n_elaborated_days = end
-    pools.append(n_pool)
-    n_pool += 1
-    if n_elaborated_days == nsamples:
-        break
-n_elaborated_days = 0
-n_pool = 0
-while n_elaborated_days <= nsamples:
-    start = n_elaborated_days
-    end = n_elaborated_days + max_number_processes
-    if end > nsamples:
-        end = nsamples
-    try:
-        pools[n_pool] = ThreadingPool(max_number_processes)
-        pools[n_pool].map(automatic_weather, sampled_period_days[start:end])
-    except BaseException:
-        print("Unable to process weather data")
-        sys.exit()
-    n_elaborated_days = end
-    n_pool += 1
-    if n_elaborated_days == nsamples:
-        break
-
-attempt = 0
-while attempt < 5:
-    days_to_reelaborate = []
-    with open("log.txt", "r", encoding="utf-8", errors="surrogateescape") as log_file:
-        for line in log_file:
-            try:
-                record = line.split("\n")[0]
-                days_to_reelaborate.append(
-                    datetime.datetime.strptime(record, "%Y-%m-%d %H:%M:%S")
-                )
-            except ValueError:
-                continue
-    if len(days_to_reelaborate) == 0:
-        break
-    log_file.close()
-    os.remove("log.txt")
+if run_type == 'forecast' and continuous_simulation:
+    for day in sampled_period_days:
+        automatic_weather(day)
+else:
     n_elaborated_days = 0
     pools = []
     n_pool = 0
-    while n_elaborated_days <= len(days_to_reelaborate):
+    while n_elaborated_days <= nsamples:
         start = n_elaborated_days
         end = n_elaborated_days + max_number_processes
-        if end > len(days_to_reelaborate):
-            end = len(days_to_reelaborate)
+        if end > nsamples:
+            end = nsamples
         n_elaborated_days = end
         pools.append(n_pool)
         n_pool += 1
-        if n_elaborated_days == len(days_to_reelaborate):
+        if n_elaborated_days == nsamples:
             break
     n_elaborated_days = 0
     n_pool = 0
-    while n_elaborated_days <= len(days_to_reelaborate):
-        logger = open("log.txt", "w", encoding="utf-8", errors="surrogateescape")
-        logger.write(
-            "Unable to complete weather data processing for the following days\n"
-        )
+    while n_elaborated_days <= nsamples:
         start = n_elaborated_days
         end = n_elaborated_days + max_number_processes
-        if end > len(days_to_reelaborate):
-            end = len(days_to_reelaborate)
+        if end > nsamples:
+            end = nsamples
         try:
             pools[n_pool] = ThreadingPool(max_number_processes)
-            pools[n_pool].map(automatic_weather, days_to_reelaborate[start:end])
+            pools[n_pool].map(automatic_weather, sampled_period_days[start:end])
         except BaseException:
             print("Unable to process weather data")
             sys.exit()
         n_elaborated_days = end
         n_pool += 1
-        if n_elaborated_days == len(days_to_reelaborate):
+        if n_elaborated_days == nsamples:
             break
-    attempt += 1
+
+    attempt = 0
+    while attempt < 5:
+        days_to_reelaborate = []
+        with open("log.txt", "r", encoding="utf-8", errors="surrogateescape") as log_file:
+            for line in log_file:
+                try:
+                    record = line.split("\n")[0]
+                    days_to_reelaborate.append(
+                        datetime.datetime.strptime(record, "%Y-%m-%d %H:%M:%S")
+                    )
+                except ValueError:
+                    continue
+        if len(days_to_reelaborate) == 0:
+            break
+        log_file.close()
+        os.remove("log.txt")
+        n_elaborated_days = 0
+        pools = []
+        n_pool = 0
+        while n_elaborated_days <= len(days_to_reelaborate):
+            start = n_elaborated_days
+            end = n_elaborated_days + max_number_processes
+            if end > len(days_to_reelaborate):
+                end = len(days_to_reelaborate)
+            n_elaborated_days = end
+            pools.append(n_pool)
+            n_pool += 1
+            if n_elaborated_days == len(days_to_reelaborate):
+                break
+        n_elaborated_days = 0
+        n_pool = 0
+        while n_elaborated_days <= len(days_to_reelaborate):
+            logger = open("log.txt", "w", encoding="utf-8", errors="surrogateescape")
+            logger.write(
+                "Unable to complete weather data processing for the following days\n"
+            )
+            start = n_elaborated_days
+            end = n_elaborated_days + max_number_processes
+            if end > len(days_to_reelaborate):
+                end = len(days_to_reelaborate)
+            try:
+                pools[n_pool] = ThreadingPool(max_number_processes)
+                pools[n_pool].map(automatic_weather, days_to_reelaborate[start:end])
+            except BaseException:
+                print("Unable to process weather data")
+                sys.exit()
+            n_elaborated_days = end
+            n_pool += 1
+            if n_elaborated_days == len(days_to_reelaborate):
+                break
+        attempt += 1

@@ -573,8 +573,12 @@ def pre_process():
             current_day = datetime.datetime.strptime(days[i], '%Y%m%d')
             previous_day = current_day - datetime.timedelta(days=1)
             previous_day = previous_day.strftime('%Y%m%d')
+            if continuous_simulation:
+                run_type = 'new'
         else:
             previous_day = days[i-1]
+            if continuous_simulation:
+                run_type = 'restart'
         path = os.path.join(root, "simulations", str(day))
         files = os.listdir(path)
         diagno_daily = os.path.join(diagno, str(day))
@@ -673,6 +677,18 @@ def pre_process():
                         disgas_input_file.write("  MONTH  = " + day[4:6] + "\n")
                     elif "DAY" in record:
                         disgas_input_file.write("  DAY    = " + day[6:8] + "\n")
+                    elif "HOUR" in record:
+                        hour_start = float(record.split('=')[1])
+                        if continuous_simulation:
+                            if i > 0:
+                                hour_start = 0
+                                disgas_input_file.write("  HOUR   = 0\n")
+                    elif 'SIMULATION_INTERVAL_(SEC)' in record:
+                        simulation_interval = float(record.split('=')[1])
+                        if simulation_interval + hour_start * 3600 > 86400:
+                            simulation_interval = 86400
+                            disgas_input_file.write("  SIMULATION_INTERVAL_(SEC) = " +
+                                                    "{0:7.0f}".format(simulation_interval) +  "\n")
                     elif 'RESTART_RUN' in record:
                         if run_type == 'restart':
                             disgas_input_file.write("  RESTART_RUN = YES\n")
@@ -817,6 +833,22 @@ def pre_process():
                         twodee_input_file.write("  MONTH  = " + day[4:6] + "\n")
                     elif "DAY" in record:
                         twodee_input_file.write("  DAY    = " + day[6:8] + "\n")
+                    elif "HOUR" in record:
+                        hour_start = float(record.split('=')[1])
+                        if continuous_simulation:
+                            if i > 0:
+                                hour_start = 0
+                                disgas_input_file.write("  HOUR   = 0\n")
+                    elif 'SIMULATION_INTERVAL_(SEC)' in record:
+                        simulation_interval = float(record.split('=')[1])
+                        if i == 0 and simulation_interval + hour_start * 3600 > 86400:
+                            simulation_interval = 86400
+                            disgas_input_file.write("  SIMULATION_INTERVAL_(SEC) = " +
+                                                    "{0:7.0f}".format(simulation_interval) + "\n")
+                        if continuous_simulation:
+                            simulation_interval = (i + 1) * 86400
+                            disgas_input_file.write("  SIMULATION_INTERVAL_(SEC) = " +
+                                                    "{0:7.0f}".format(simulation_interval) + "\n")
                     elif 'RESTART_RUN' in record:
                         if run_type == 'restart':
                             twodee_input_file.write("  RESTART_RUN = YES\n")

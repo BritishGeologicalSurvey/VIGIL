@@ -1038,10 +1038,23 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
     import urllib.error
     from datetime import datetime, timedelta
     import shutil
+    import time
 
     def wtfile_download(url, wtfile_dwnl):
         print("Downloading forecast file " + url)
-        urllib.request.urlretrieve(url, wtfile_dwnl)
+        try:
+            urllib.request.urlretrieve(url, wtfile_dwnl)
+        except (urllib.error.HTTPError, urllib.error.URLError):
+            try:
+                time.sleep(60)
+                urllib.request.urlretrieve(url, wtfile_dwnl)
+            except (urllib.error.HTTPError, urllib.error.URLError):
+                try:
+                    time.sleep(60)
+                    urllib.request.urlretrieve(url, wtfile_dwnl)
+                except (urllib.error.HTTPError, urllib.error.URLError):
+                    print('Unable to retrieve URL ' + url)
+                    sys.exit()
 
     def interpolate(
             slon,
@@ -1233,15 +1246,6 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
         month_profile = str(time_profile)[5:7]
         day_profile = str(time_profile)[8:10]
         hour_profile = str(time_profile)[11:13]
-        #ival = ianl + ifcst
-        #if ival < 10:
-        #    validity = "0" + str(ival)
-        #elif ival >= 24:
-        #    ival = ival - 24
-        #    validity = str(ival)
-        #else:
-        #    validity = str(ival)
-        #abs_validity = year + month + day + validity
         abs_validity = year_profile + month_profile + day_profile + hour_profile
         wtfile_int = os.path.join(
             data_folder,
@@ -1280,8 +1284,32 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
             )
             urllib.request.urlopen(url)
             zoom = False
-        except urllib.error.HTTPError:
-            url = (
+        except (urllib.error.HTTPError, urllib.error.URLError):
+            time.sleep(60)
+            try:
+                url = (
+                        "https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25_1hr.pl?file="
+                        + wtfile_dwnl
+                        + "&all_lev=on&var_HGT=on&var_TMP=on&var_UGRD=on&var_VGRD=on&var_PRES=on&subregion=&leftlon="
+                        + slon_source_left
+                        + "&rightlon="
+                        + slon_source_right
+                        + "&toplat="
+                        + slat_source_top
+                        + "&bottomlat="
+                        + slat_source_bottom
+                        + "&dir=%2Fgfs."
+                        + year_anl
+                        + month_anl
+                        + day_anl
+                        + "%2F"
+                        + anl
+                        + "%2Fatmos"
+                )
+                urllib.request.urlopen(url)
+                zoom = False
+            except (urllib.error.HTTPError, urllib.error.URLError):
+                url = (
                     "http://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/gfs."
                     + year_anl
                     + month_anl
@@ -1291,8 +1319,8 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
                     + "/atmos/"
                     + wtfile_dwnl
             )
-            urllib.request.urlopen(url)
-            zoom = True
+                urllib.request.urlopen(url)
+                zoom = True
         urls.append(url)
         ifcst += 1
         wtfiles.append(wtfile)
@@ -1333,25 +1361,6 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
         n_pool += 1
         if n_downloaded_days == nfcst:
             break
-    #try:
-    #    pool = ThreadingPool(nfcst)
-    #    pool.map(wtfile_download, urls, wtfiles)
-    #except BaseException:
-    #    print("No new weather data downloaded")
-    # if nfcst > 24:
-    #     simulation_day_current = time_in
-    #     simulation_day = simulation_day_current
-    #     for i in range(0, len(wtfiles)):
-    #         simulation_day_s = str(simulation_day)
-    #         year = simulation_day_s[0:4]
-    #         month = simulation_day_s[5:7]
-    #         day = simulation_day_s[8:10]
-    #         data_folder_new = os.path.join(simulations, year + month + day)
-    #         try:
-    #             shutil.move(wtfiles[i], data_folder_new)
-    #         except shutil.Error:
-    #             print('File ' + wtfiles[i] + ' alread present in ' + data_folder_new)
-    #         simulation_day += timedelta(hours=1)
 
     try:
         pool = ThreadingPool(nfcst)
@@ -1377,6 +1386,10 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
             month = simulation_day_s[5:7]
             day = simulation_day_s[8:10]
             data_folder_new = os.path.join(simulations, year + month + day)
+            try:
+                os.mkdir(data_folder_new)
+            except FileExistsError:
+                print('Folder ' + data_folder_new + ' already exists')
             try:
                 shutil.move(wtfiles[i], data_folder_new)
             except shutil.Error:
@@ -1790,7 +1803,7 @@ for i in range(nsamples):
     days_list_file.write(str(sampled_period_days[i]) + "\n")
 days_list_file.close()
 if run_type == 'forecast' and continuous_simulation:
-    for day in sampled_period_days:
+    for day in sorted(sampled_period_days):
         automatic_weather(day)
 else:
     n_elaborated_days = 0

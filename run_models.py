@@ -18,6 +18,10 @@ def read_arguments():
     )
     parser.add_argument('-RT', '--run_type', default='new', help='Specify if the simulation is a new one or a restart.'
                                                                  'Possible options are: new, restart')
+    parser.add_argument('-CS', '--continuous_simulation', default='False', help='Specify if the simulation is '
+                                                                                'continuous between the specified '
+                                                                                'start and end dates. Possible options '
+                                                                                'are True or False')
     parser.add_argument(
         "-RS",
         "--random_sources",
@@ -96,6 +100,7 @@ def read_arguments():
     args = parser.parse_args()
     nproc = args.nproc
     run_type = args.run_type
+    continuous_simulation = args.continuous_simulation
     random_sources = args.random_sources
     nsources = args.nsources
     source_location_in = args.source_location
@@ -117,6 +122,14 @@ def read_arguments():
     run_type = run_type.lower()
     if run_type != 'new' and run_type != 'restart':
         print('ERROR. Please provide a valid entry for -RT --run_type')
+        sys.exit()
+    if continuous_simulation.lower() == "true":
+        continuous_simulation = True
+        max_number_processes = 1 #to make simulations run in sequence
+    elif continuous_simulation.lower() == "false":
+        continuous_simulation = False
+    else:
+        print("ERROR. Wrong value for variable -CS --continuous_simulation")
         sys.exit()
     try:
         source_emission = float(source_emission)
@@ -318,6 +331,7 @@ def read_arguments():
             sys.exit()
     return (
         run_type,
+        continuous_simulation,
         max_number_processes,
         random_sources,
         nsources,
@@ -1029,6 +1043,7 @@ topography = os.path.join(root, "topography.grd")
 
 (
     run_type,
+    continuous_simulation,
     max_number_processes,
     random_sources,
     nsources,

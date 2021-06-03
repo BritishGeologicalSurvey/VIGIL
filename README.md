@@ -19,11 +19,15 @@ The weather data can be either retrieved from ECMWF ERA5 database or from time s
 	+ Weather station data
 	In this mode, the script is design to extract weather data in the time interval specified by the user from selected weather data file. The script reads the number of files, file location and name from weather_stations.txt; the file data should be stored in the folder weather_stations.
 The following flags control the execution of weather.py:
-usage: weather.py [-h] [-M MODE] [-S START_DATE] [-E END_DATE] [-SY SAMPLED_YEARS [SAMPLED_YEARS ...]] [-SM SAMPLED_MONTHS [SAMPLED_MONTHS ...]] [-SD SAMPLED_DAYS [SAMPLED_DAYS ...]] [-V VOLC] [-LAT LAT] [-LON LON]
+usage: weather.py [-h] [-M MODE] [-RT RUN_TYPE] [-CS CONTINUOUS_SIMULATION] [-S START_DATE] [-E END_DATE] [-SY SAMPLED_YEARS [SAMPLED_YEARS ...]] [-SM SAMPLED_MONTHS [SAMPLED_MONTHS ...]] [-SD SAMPLED_DAYS [SAMPLED_DAYS ...]] [-V VOLC] [-LAT LAT] [-LON LON]
                   [-EL ELEV] [-NS SAMPLES] [-ERA5 ERA5] [-WST STATION] [-N NPROC] [-TD TWODEE] [-DG DISGAS]
   -h, --help            show this help message and exit
   -M MODE, --mode MODE  Possible options: reanalysis, forecast. If reanalysis, either ERA5 or WST options should be
                         on. If forecast, GFS data will be downloaded and processed
+  -RT RUN_TYPE, --run_type RUN_TYPE
+                        Specify if the simulation is a new one or a restart. Possible options are: new, restart
+  -CS CONTINUOUS_SIMULATION, --continuous_simulation CONTINUOUS_SIMULATION
+                        Specify if the simulation is continuous between the specified start and end dates. Possible options are True or False
   -S START_DATE, --start_date START_DATE
                         Start date of the sampling period. Format: DD/MM/YYYY
   -E END_DATE, --end_date END_DATE
@@ -61,13 +65,17 @@ usage: weather.py [-h] [-M MODE] [-S START_DATE] [-E END_DATE] [-SY SAMPLED_YEAR
 ```bash
 Python script to run Diagno and DISGAS for the days sampled with weather.py. 
 The following flags control the execution of hazard_fumaroles.py:
-usage: run_models.py [-h] [-N NPROC] [-RS RANDOM_SOURCES] [-NS NSOURCES]
+usage: run_models.py [-h] [-N NPROC] [-RT RUN_TYPE] [-CS CONTINUOUS_SIMULATION] [-RS RANDOM_SOURCES] [-NS NSOURCES]
                      [-SINT SOURCES_INTERVAL [SOURCES_INTERVAL ...]] [-SLOC SOURCE_LOCATION [SOURCE_LOCATION ...]]
                      [-SDX SOURCE_DX] [-SDY SOURCE_DY] [-SDUR SOURCE_DUR] [-D DOMAIN [DOMAIN ...]]
                      [-SEM SOURCE_EMISSION] [-RER RANDOM_EMISSION] [-TD TWODEE] [-DG DISGAS]
   -h, --help            show this help message and exit
   -N NPROC, --nproc NPROC
                         Maximum number of allowed simultaneous processes
+  -RT RUN_TYPE, --run_type RUN_TYPE
+                        Specify if the simulation is a new one or a restart. Possible options are: new, restart
+  -CS CONTINUOUS_SIMULATION, --continuous_simulation CONTINUOUS_SIMULATION
+                        Specify if the simulation is continuous between the specified start and end dates. Possible options are True or False
   -RS RANDOM_SOURCES, --random_sources RANDOM_SOURCES
                         on: randomly select NS locations from a probability
                         map. off: fixed source locations

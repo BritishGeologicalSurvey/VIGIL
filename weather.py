@@ -478,8 +478,7 @@ def prepare_diagno_files(data_folder, year, month, day):
             wtfile_prof_step = os.path.join(data_folder, file)
             # Extract and elaborate weather data
             wind, direction, height, gamma_pl = extract_grib_data(
-                data_folder, validity, wtfile_prof_step
-            )
+                data_folder, validity, wtfile_prof_step)
             for i in range(0, len(wind) - 1):
                 try:
                     heights_string += "{:>5}".format(str(int(round(height[i]))))

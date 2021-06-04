@@ -376,7 +376,6 @@ def prepare_days():
     return sorted(days)
 
 def pre_process():
-    import datetime
     def sample_random_sources(
         n_sources, input_file, dur_min, dur_max, source_size_min, source_size_max
     ):
@@ -569,15 +568,10 @@ def pre_process():
     days = prepare_days()
     for i in range(0, len(days)):
         day = days[i]
-        if i == 0:
-            current_day = datetime.datetime.strptime(days[i], '%Y%m%d')
-            previous_day = current_day - datetime.timedelta(days=1)
-            previous_day = previous_day.strftime('%Y%m%d')
-            if continuous_simulation:
+        if continuous_simulation:
+            if i == 0:
                 run_type = 'new'
-        else:
-            previous_day = days[i-1]
-            if continuous_simulation:
+            else:
                 run_type = 'restart'
         path = os.path.join(root, "simulations", str(day))
         files = os.listdir(path)
@@ -596,7 +590,6 @@ def pre_process():
         # Set DISGAS folder
         if disgas_on:
             disgas_daily = os.path.join(disgas, str(day))
-            disgas_previous_day = os.path.join(disgas, str(previous_day))
             outfiles = os.path.join(disgas_daily, "outfiles")
             try:
                 os.mkdir(disgas_daily)
@@ -650,7 +643,6 @@ def pre_process():
             except (FileExistsError, FileNotFoundError):
                 print('ERROR with surface_data.txt')
             # read and memorize disgas.inp file
-            shutdown_restart = False
             disgas_input_records = []
             with open(
                 disgas_original, "r", encoding="utf-8", errors="surrogateescape"
@@ -713,15 +705,6 @@ def pre_process():
                             + " \n"
                         )
                     elif "RESTART_FILE_PATH" in record:
-                        if run_type == 'restart':
-                            try:
-                                shutil.copyfile(os.path.join(disgas_previous_day, "restart.dat"),
-                                                os.path.join(disgas_daily, "restart.dat"))
-                            except FileNotFoundError:
-                                print('WARNING. Restart run requested but file ' +
-                                      os.path.join(disgas_previous_day, "restart.dat") + ' not found')
-                                print('Changing back to a new simulation')
-                                shutdown_restart = True
                         disgas_input_file.write(
                                 "   RESTART_FILE_PATH   = "
                                 + os.path.join(disgas_daily, "restart.dat")
@@ -751,22 +734,8 @@ def pre_process():
                         )
                     else:
                         disgas_input_file.write(record)
-            if shutdown_restart:
-                disgas_input_records = []
-                with open(
-                        disgas_input, "r", encoding="utf-8", errors="surrogateescape"
-                ) as disgas_or_input:
-                    for line in disgas_or_input:
-                        disgas_input_records.append(line)
-                with open(disgas_input, 'w', encoding="utf-8", errors="surrogateescape") as disgas_input_file:
-                    for record in disgas_input_records:
-                        if 'RESTART_RUN' in record:
-                            disgas_input_file.write("  RESTART_RUN = NO\n")
-                        else:
-                            disgas_input_file.write(record)
         if twodee_on:
             twodee_daily = os.path.join(twodee, str(day))
-            twodee_previous_day = os.path.join(twodee, str(previous_day))
             outfiles_twodee = os.path.join(twodee_daily, "outfiles")
             try:
                 os.mkdir(twodee_daily)
@@ -817,7 +786,6 @@ def pre_process():
                     )
             source_file.close()
             # read and memorize twodee.inp file
-            shutdown_restart = False
             twodee_input_records = []
             with open(
                 twodee_original, "r", encoding="utf-8", errors="surrogateescape"
@@ -895,15 +863,6 @@ def pre_process():
                             + " \n"
                         )
                     elif "RESTART_FILE" in record:
-                        if run_type == 'restart':
-                            try:
-                                shutil.copyfile(os.path.join(twodee_previous_day, "restart.dat"),
-                                                os.path.join(twodee_daily, "restart.dat"))
-                            except FileNotFoundError:
-                                print('WARNING. Restart run requested but file ' +
-                                      os.path.join(twodee_previous_day, "restart.dat") + ' not found')
-                                print('Changing back to a new simulation')
-                                shutdown_restart = True
                         twodee_input_file.write(
                                 "   RESTART_FILE   = "
                                 + os.path.join(twodee_daily, "restart.dat")
@@ -911,18 +870,6 @@ def pre_process():
                             )
                     else:
                         twodee_input_file.write(record)
-            if shutdown_restart:
-                twodee_input_records = []
-                with open(
-                        twodee_input, "r", encoding="utf-8", errors="surrogateescape") as twodee_or_input:
-                    for line in twodee_or_input:
-                        twodee_input_records.append(line)
-                with open(twodee_input, "w", encoding="utf-8", errors="surrogateescape") as twodee_input_file:
-                    for record in twodee_input_records:
-                        if 'RESTART_RUN' in record:
-                            twodee_input_file.write("  RESTART_RUN = NO\n")
-                        else:
-                            twodee_input_file.write(record)
         shutil.rmtree(path)
     return days
 
@@ -970,6 +917,8 @@ def run_diagno():
 
 
 def run_disgas():
+    import datetime
+    disgas = os.path.join(root, "simulations", "disgas")
     n_elaborated_days = 0
     while n_elaborated_days <= len(days):
         ps = []
@@ -979,11 +928,23 @@ def run_disgas():
             end = len(days)
         try:
             for day in days[start:end]:
-                disgas_folder = os.path.join(root, "simulations", "disgas", day)
+                disgas_folder = os.path.join(disgas, day)
                 disgas_input_file = os.path.join(disgas_folder, "disgas.inp")
                 disgas_log_file = os.path.join(
                     disgas_folder, "disgas_log_" + day + ".txt"
                 )
+                if continuous_simulation and day != days[start]:
+                    current_day = datetime.datetime.strptime(day, '%Y%m%d')
+                    previous_day = current_day - datetime.timedelta(days=1)
+                    previous_day = previous_day.strftime('%Y%m%d')
+                    disgas_previous_day = os.path.join(disgas, str(previous_day))
+                    try:
+                        shutil.copyfile(os.path.join(disgas_previous_day, "restart.dat"),
+                                        os.path.join(disgas_folder, "restart.dat"))
+                    except FileNotFoundError:
+                        print('ERROR. Restart run requested but file ' +
+                              os.path.join(disgas_previous_day, "restart.dat") + ' not found')
+                        sys.exit()
                 if not diagno_on:
                     disgas_output_folder = os.path.join(disgas_folder, 'outfiles')
                     try:
@@ -1017,6 +978,8 @@ def run_disgas():
 
 
 def run_twodee():
+    import datetime
+    twodee = twodee_folder = os.path.join(root, "simulations", "twodee")
     n_elaborated_days = 0
     while n_elaborated_days <= len(days):
         ps = []
@@ -1027,7 +990,7 @@ def run_twodee():
         try:
             for day in days[start:end]:
                 diagno = os.path.join(root, "simulations", "diagno", day)
-                twodee_folder = os.path.join(root, "simulations", "twodee", day)
+                twodee_folder = os.path.join(twodee, day)
                 shutil.copyfile(
                     os.path.join(diagno, "diagno.out"),
                     os.path.join(twodee_folder, "diagno.out"),
@@ -1036,6 +999,18 @@ def run_twodee():
                 twodee_log_file = os.path.join(
                     twodee_folder, "twodee_log_" + day + ".txt"
                 )
+                if continuous_simulation:
+                    current_day = datetime.datetime.strptime(day, '%Y%m%d')
+                    previous_day = current_day - datetime.timedelta(days=1)
+                    previous_day = previous_day.strftime('%Y%m%d')
+                    twodee_previous_day = os.path.join(twodee, str(previous_day))
+                    try:
+                        shutil.copyfile(os.path.join(twodee_previous_day, "restart.dat"),
+                                        os.path.join(twodee_folder, "restart.dat"))
+                    except FileNotFoundError:
+                        print('ERROR. Restart run requested but file ' +
+                              os.path.join(twodee_previous_day, "restart.dat") + ' not found')
+                        sys.exit()
                 if not diagno_on:
                     twodee_output_folder = os.path.join(twodee_folder, 'outfiles')
                     try:

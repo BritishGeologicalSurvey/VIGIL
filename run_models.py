@@ -683,7 +683,7 @@ def pre_process():
                             if i > 0:
                                 hour_start = 0
                                 disgas_input_file.write("  HOUR   = 0\n")
-                        disgas_input_file.write("  HOUR   = " + "{0:7.0f}".format(hour_start) + "\n")
+                        disgas_input_file.write("  HOUR   = " + "{0:2.0f}".format(hour_start) + "\n")
                     elif 'SIMULATION_INTERVAL_(SEC)' in record:
                         simulation_interval = float(record.split('=')[1])
                         if simulation_interval + hour_start * 3600 > 86400:
@@ -840,7 +840,7 @@ def pre_process():
                             if i > 0:
                                 hour_start = 0
                                 disgas_input_file.write("  HOUR   = 0\n")
-                        disgas_input_file.write("  HOUR   = " + "{0:7.0f}".format(hour_start) + "\n")
+                        disgas_input_file.write("  HOUR   = " + "{0:2.0f}".format(hour_start) + "\n")
                     elif 'SIMULATION_INTERVAL_(SEC)' in record:
                         simulation_interval = float(record.split('=')[1])
                         if i == 0 and simulation_interval + hour_start * 3600 > 86400:

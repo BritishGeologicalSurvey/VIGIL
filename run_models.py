@@ -933,7 +933,7 @@ def run_disgas():
                 disgas_log_file = os.path.join(
                     disgas_folder, "disgas_log_" + day + ".txt"
                 )
-                if continuous_simulation and day != days[start]:
+                if continuous_simulation and day != days[0]:
                     current_day = datetime.datetime.strptime(day, '%Y%m%d')
                     previous_day = current_day - datetime.timedelta(days=1)
                     previous_day = previous_day.strftime('%Y%m%d')

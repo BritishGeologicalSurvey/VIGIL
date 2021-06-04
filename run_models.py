@@ -807,7 +807,7 @@ def pre_process():
                         if continuous_simulation:
                             if i > 0:
                                 hour_start = 0
-                                disgas_input_file.write("  HOUR   = 0\n")
+                                twodee_input_file.write("  HOUR   = 0\n")
                         twodee_input_file.write("  HOUR   = " + "{0:2.0f}".format(hour_start) + "\n")
                     elif 'SIMULATION_INTERVAL_(SEC)' in record:
                         simulation_interval = float(record.split('=')[1])

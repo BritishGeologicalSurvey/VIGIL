@@ -808,14 +808,14 @@ def pre_process():
                             if i > 0:
                                 hour_start = 0
                                 disgas_input_file.write("  HOUR   = 0\n")
-                        disgas_input_file.write("  HOUR   = " + "{0:2.0f}".format(hour_start) + "\n")
+                        twodee_input_file.write("  HOUR   = " + "{0:2.0f}".format(hour_start) + "\n")
                     elif 'SIMULATION_INTERVAL_(SEC)' in record:
                         simulation_interval = float(record.split('=')[1])
                         if i == 0 and simulation_interval + hour_start * 3600 > 86400:
                             simulation_interval = 86400
                         if continuous_simulation:
                             simulation_interval = (i + 1) * 86400
-                        disgas_input_file.write("  SIMULATION_INTERVAL_(SEC) = " +
+                        twodee_input_file.write("  SIMULATION_INTERVAL_(SEC) = " +
                                                     "{0:7.0f}".format(simulation_interval) + "\n")
                     elif 'RESTART_RUN' in record:
                         if run_type == 'restart':
@@ -999,7 +999,7 @@ def run_twodee():
                 twodee_log_file = os.path.join(
                     twodee_folder, "twodee_log_" + day + ".txt"
                 )
-                if continuous_simulation:
+                if continuous_simulation and day != days[0]:
                     current_day = datetime.datetime.strptime(day, '%Y%m%d')
                     previous_day = current_day - datetime.timedelta(days=1)
                     previous_day = previous_day.strftime('%Y%m%d')

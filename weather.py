@@ -1801,7 +1801,7 @@ days_list_file = open("days_list.txt", "a+", encoding="utf-8", errors="surrogate
 for i in range(nsamples):
     days_list_file.write(str(sampled_period_days[i]) + "\n")
 days_list_file.close()
-if run_type == 'forecast' and continuous_simulation:
+if mode == 'forecast' and continuous_simulation:
     for day in sorted(sampled_period_days):
         automatic_weather(day)
 else:

@@ -673,7 +673,7 @@ def pre_process():
                         try:
                             hour_start = float(record.split('=')[1])
                         except ValueError:
-                            hour_start = record.split('=')[1]
+                            hour_start = record.split('=')[1].strip()
                             hour_start = float(hour_start.split(' ')[0])
                         if continuous_simulation:
                             if i > 0:
@@ -684,7 +684,7 @@ def pre_process():
                         try:
                             simulation_interval = float(record.split('=')[1])
                         except ValueError:
-                            simulation_interval = record.split('=')[1]
+                            simulation_interval = record.split('=')[1].strip()
                             simulation_interval = float(simulation_interval.split(' ')[0])
                         if simulation_interval + hour_start * 3600 > 86400:
                             simulation_interval = 86400
@@ -814,7 +814,7 @@ def pre_process():
                         try:
                             hour_start = float(record.split('=')[1])
                         except ValueError:
-                            hour_start = record.split('=')[1]
+                            hour_start = record.split('=')[1].strip()
                             hour_start = float(hour_start.split(' ')[0])
                         if continuous_simulation:
                             if i > 0:
@@ -825,7 +825,7 @@ def pre_process():
                         try:
                             simulation_interval = float(record.split('=')[1])
                         except ValueError:
-                            simulation_interval = record.split('=')[1]
+                            simulation_interval = record.split('=')[1].strip()
                             simulation_interval = float(simulation_interval.split(' ')[0])
                         if i == 0 and simulation_interval + hour_start * 3600 > 86400:
                             simulation_interval = 86400

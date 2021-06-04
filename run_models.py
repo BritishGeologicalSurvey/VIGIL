@@ -670,14 +670,22 @@ def pre_process():
                     elif "DAY" in record:
                         disgas_input_file.write("  DAY    = " + day[6:8] + "\n")
                     elif "HOUR" in record:
-                        hour_start = float(record.split('=')[1])
+                        try:
+                            hour_start = float(record.split('=')[1])
+                        except ValueError:
+                            hour_start = record.split('=')[1]
+                            hour_start = float(hour_start.split(' ')[0])
                         if continuous_simulation:
                             if i > 0:
                                 hour_start = 0
                                 disgas_input_file.write("  HOUR   = 0\n")
                         disgas_input_file.write("  HOUR   = " + "{0:2.0f}".format(hour_start) + "\n")
                     elif 'SIMULATION_INTERVAL_(SEC)' in record:
-                        simulation_interval = float(record.split('=')[1])
+                        try:
+                            simulation_interval = float(record.split('=')[1])
+                        except ValueError:
+                            simulation_interval = record.split('=')[1]
+                            simulation_interval = float(simulation_interval.split(' ')[0])
                         if simulation_interval + hour_start * 3600 > 86400:
                             simulation_interval = 86400
                         disgas_input_file.write("  SIMULATION_INTERVAL_(SEC) = " +
@@ -803,14 +811,22 @@ def pre_process():
                     elif "DAY" in record:
                         twodee_input_file.write("  DAY    = " + day[6:8] + "\n")
                     elif "HOUR" in record:
-                        hour_start = float(record.split('=')[1])
+                        try:
+                            hour_start = float(record.split('=')[1])
+                        except ValueError:
+                            hour_start = record.split('=')[1]
+                            hour_start = float(hour_start.split(' ')[0])
                         if continuous_simulation:
                             if i > 0:
                                 hour_start = 0
                                 twodee_input_file.write("  HOUR   = 0\n")
                         twodee_input_file.write("  HOUR   = " + "{0:2.0f}".format(hour_start) + "\n")
                     elif 'SIMULATION_INTERVAL_(SEC)' in record:
-                        simulation_interval = float(record.split('=')[1])
+                        try:
+                            simulation_interval = float(record.split('=')[1])
+                        except ValueError:
+                            simulation_interval = record.split('=')[1]
+                            simulation_interval = float(simulation_interval.split(' ')[0])
                         if i == 0 and simulation_interval + hour_start * 3600 > 86400:
                             simulation_interval = 86400
                         if continuous_simulation:

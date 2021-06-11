@@ -125,7 +125,6 @@ def read_arguments():
         sys.exit()
     if continuous_simulation.lower() == "true":
         continuous_simulation = True
-        max_number_processes = 1 #to make simulations run in sequence
     elif continuous_simulation.lower() == "false":
         continuous_simulation = False
     else:
@@ -934,6 +933,8 @@ def run_disgas():
     import datetime
     disgas = os.path.join(root, "simulations", "disgas")
     n_elaborated_days = 0
+    if continuous_simulation:
+        max_number_processes = 1
     while n_elaborated_days <= len(days):
         ps = []
         start = n_elaborated_days
@@ -993,8 +994,10 @@ def run_disgas():
 
 def run_twodee():
     import datetime
-    twodee = twodee_folder = os.path.join(root, "simulations", "twodee")
+    twodee = os.path.join(root, "simulations", "twodee")
     n_elaborated_days = 0
+    if continuous_simulation:
+        max_number_processes = 1
     while n_elaborated_days <= len(days):
         ps = []
         start = n_elaborated_days

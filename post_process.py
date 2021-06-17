@@ -147,13 +147,13 @@ def read_arguments():
     days_plot = days_plot_in.split(',')
     plot_limits = plot_limits_in.split(',')
     species = species_in.split(',')
+    days_to_plot_in = []
     if plot.lower() == "true":
         plot = True
         if days_plot_in == '':
             print("ERROR. Please specify at least one day to plot when --plot==True")
             sys.exit()
         else:
-            days_to_plot_in = []
             for day in days_plot:
                 if day == 'all':
                     days_to_plot_in.append(day)
@@ -238,7 +238,7 @@ def read_arguments():
             print("ERROR. Please specify a valid time-averaging interval")
             sys.exit()
     min_con = max_con = -1.0
-    if len(plot_limits) > 0:
+    if len(plot_limits) > 1:
         try:
             min_con = float(plot_limits[0])
             max_con = float(plot_limits[1])
@@ -467,6 +467,11 @@ def domain(model):
                         y0 = float(temp[0])
                     elif "OUTPUT_INTERVAL_(SEC)" in record_splitted[0]:
                         dt = float(temp[0])
+                    #New
+                    elif "HOUR" in record_splitted[0]:
+                        hour_start = int(temp[0])
+                    elif "MINUTE" in record_splitted[0]:
+                        minute_start = int(temp[0])
                 except (IndexError, ValueError):
                     continue
     else:
@@ -502,12 +507,17 @@ def domain(model):
                         output_levels = sorted(output_levels)
                     elif "OUTPUT_INTERVAL_(SEC)" in record_splitted[0]:
                         dt = float(temp[0])
+                    # New
+                    elif "HOUR" in record_splitted[0]:
+                        hour_start = int(temp[0])
+                    elif "MINUTE" in record_splitted[0]:
+                        minute_start = int(temp[0])
                 except (IndexError, ValueError):
                     continue
     yf = y0 + ny * dy
     xf = x0 + nx * dx
     n_time_steps = int(tot_time / dt)
-    return x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, output_levels
+    return x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, output_levels, hour_start, minute_start
 
 
 def extract_days():
@@ -726,6 +736,8 @@ def elaborate_day(day_input, model):
     levels = []
     time_steps = []
     tavg_intervals = []
+    time_start = datetime.datetime.strptime(day_input + str(hour_start).zfill(2) + str(minute_start).zfill(2),
+                                            '%Y%m%d%H%M')
     for specie in species:
         processed_files_specie = []
         for file in files_list:
@@ -733,21 +745,29 @@ def elaborate_day(day_input, model):
             if model == "twodee":
                 file_name_splitted = file.split("_")
                 file_level = file_name_splitted[1]
-                file_time_step = file_name_splitted[2].split(".")[0]
+                file_time_step = int(file_name_splitted[2].split(".")[0])
                 file_level = float(file_level.split("cm")[0]) / 100
-                try:
-                    file_level_index = output_levels.index(file_level)
-                except BaseException:
-                    print(
-                        "Cannot find the expected TWODEE output file at the level "
-                        + str(file_level)
-                    )
-                    sys.exit()
-                file_level = "{:03d}".format(file_level_index + 1)
-                file_time_step = "{:06d}".format(
-                    int((int(file_time_step) / twodee_output_time_step))
-                )
-                file = "c_" + file_level + "_" + file_time_step + ".grd"
+
+                #New
+                file_level = "{0:7.3f}".format(file_level) + 'mabg'
+                time_validity = time_start + datetime.timedelta(seconds=file_time_step)
+                file_validity = datetime.datetime.strftime(time_validity, '%Y%m%d%H%M')
+                file = "c_" + file_level + "_" + file_validity + ".grd"
+
+                #old
+                # try:
+                #     file_level_index = output_levels.index(file_level)
+                # except BaseException:
+                #     print(
+                #         "Cannot find the expected TWODEE output file at the level "
+                #         + str(file_level)
+                #     )
+                #     sys.exit()
+                # file_level = "{:03d}".format(file_level_index + 1)
+                # file_time_step = "{:06d}".format(
+                #     int((int(file_time_step) / twodee_output_time_step))
+                # )
+                # file = "c_" + file_level + "_" + file_time_step + ".grd"
             else:
                 file_name_splitted = file.split("_")
                 file_level = file_name_splitted[1]
@@ -1490,9 +1510,10 @@ days, days_to_plot = extract_days()
 species_properties = gas_properties()
 
 for model in models_to_elaborate:
-    x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, output_levels = domain(model)
+    x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, output_levels, hour_start, minute_start = domain(model)
     for day in days:
         tavg_intervals = elaborate_day(day, model)
+    exit()
     if plot_ex_prob:
         probabilistic_output(model)
     save_plots(model, min_con, max_con)

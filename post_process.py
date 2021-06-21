@@ -758,25 +758,9 @@ def elaborate_day(day_input, model):
                 file_time_step = int(file_name_splitted[2].split(".")[0])
                 file_level = float(file_level.split("cm")[0]) / 100
                 file_level_s = "{0:.3f}".format(file_level) + 'mabg'
-                #old
-                # try:
-                #     file_level_index = output_levels.index(file_level)
-                # except BaseException:
-                #     print(
-                #         "Cannot find the expected TWODEE output file at the level "
-                #         + str(file_level)
-                #     )
-                #     sys.exit()
-                # file_level = "{:03d}".format(file_level_index + 1)
-                # file_time_step = "{:06d}".format(
-                #     int((int(file_time_step) / twodee_output_time_step))
-                # )
-                # file = "c_" + file_level + "_" + file_time_step + ".grd"
             else:
                 file_name_splitted = file.split("_")
                 file_level = int(file_name_splitted[1])
-                print(file_level)
-                print(output_levels)
                 file_level_s = "{0:.3f}".format(output_levels[file_level - 1]) + 'mabg'
                 file_time_step = file_name_splitted[2]
                 file_time_step = int(file_time_step.split(".")[0]) * dt
@@ -784,8 +768,6 @@ def elaborate_day(day_input, model):
                 levels.append(file_level)
             if file_time_step not in time_steps:
                 time_steps.append(int(file_time_step))
-            # New
-
             time_validity = time_start + datetime.timedelta(seconds=file_time_step)
             file_validity = datetime.datetime.strftime(time_validity, '%Y%m%d%H%M')
             file = "c_" + file_level_s + "_" + file_validity + ".grd"

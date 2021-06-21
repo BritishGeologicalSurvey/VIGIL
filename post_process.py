@@ -472,6 +472,15 @@ def domain(model):
                         hour_start = int(temp[0])
                     elif "MINUTE" in record_splitted[0]:
                         minute_start = int(temp[0])
+                    elif "Z_LAYERS_(M)" in record_splitted[0]:
+                        heights = temp[0]
+                        heights_list = heights.split(' ')
+                        for height in heights_list:
+                            try:
+                                output_levels.append(float(height))
+                            except ValueError:
+                                continue
+                        output_levels = sorted(output_levels)
                 except (IndexError, ValueError):
                     continue
     else:
@@ -498,12 +507,12 @@ def domain(model):
                         y0 = float(temp[0])
                     elif "HEIGHTS_(M)" in record_splitted[0]:
                         heights = temp[0]
-                        extracted_heights = re.findall(
-                            "\d+\.\d+", heights
-                        )  # This extracts decimal numbers only!
-                        nz = len(extracted_heights)
-                        for height in extracted_heights:
-                            output_levels.append(float(height))
+                        heights_list = heights.split(' ')
+                        for height in heights_list:
+                            try:
+                                output_levels.append(float(height))
+                            except ValueError:
+                                continue
                         output_levels = sorted(output_levels)
                     elif "OUTPUT_INTERVAL_(SEC)" in record_splitted[0]:
                         dt = float(temp[0])
@@ -517,6 +526,7 @@ def domain(model):
     yf = y0 + ny * dy
     xf = x0 + nx * dx
     n_time_steps = int(tot_time / dt)
+    nz = len(output_levels)
     return x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, output_levels, hour_start, minute_start
 
 
@@ -747,13 +757,7 @@ def elaborate_day(day_input, model):
                 file_level = file_name_splitted[1]
                 file_time_step = int(file_name_splitted[2].split(".")[0])
                 file_level = float(file_level.split("cm")[0]) / 100
-
-                #New
-                file_level = "{0:7.3f}".format(file_level) + 'mabg'
-                time_validity = time_start + datetime.timedelta(seconds=file_time_step)
-                file_validity = datetime.datetime.strftime(time_validity, '%Y%m%d%H%M')
-                file = "c_" + file_level + "_" + file_validity + ".grd"
-
+                file_level_s = "{0:.3f}".format(file_level) + 'mabg'
                 #old
                 # try:
                 #     file_level_index = output_levels.index(file_level)
@@ -770,13 +774,21 @@ def elaborate_day(day_input, model):
                 # file = "c_" + file_level + "_" + file_time_step + ".grd"
             else:
                 file_name_splitted = file.split("_")
-                file_level = file_name_splitted[1]
+                file_level = int(file_name_splitted[1])
+                print(file_level)
+                print(output_levels)
+                file_level_s = "{0:.3f}".format(output_levels[file_level - 1]) + 'mabg'
                 file_time_step = file_name_splitted[2]
-                file_time_step = file_time_step.split(".")[0]
+                file_time_step = int(file_time_step.split(".")[0]) * dt
             if file_level not in levels:
                 levels.append(file_level)
             if file_time_step not in time_steps:
                 time_steps.append(int(file_time_step))
+            # New
+
+            time_validity = time_start + datetime.timedelta(seconds=file_time_step)
+            file_validity = datetime.datetime.strftime(time_validity, '%Y%m%d%H%M')
+            file = "c_" + file_level_s + "_" + file_validity + ".grd"
             converted_file = file
             converted_files.append(converted_file)
             processed_files.append(

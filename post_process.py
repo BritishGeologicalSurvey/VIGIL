@@ -724,7 +724,6 @@ def elaborate_day(day_input, model):
     processed_files_species = []
     levels = []
     time_steps = []
-    tavg_intervals = []
     time_start = datetime.datetime.strptime(day_input + str(hour_start).zfill(2) + str(minute_start).zfill(2),
                                             '%Y%m%d%H%M')
     for specie in species:
@@ -794,9 +793,9 @@ def elaborate_day(day_input, model):
             time_max = max(time_steps)
         else:
             time_max = time_min + datetime.timedelta(seconds=time_av * 3600)
-        tavg_intervals.append(datetime.datetime.strftime(time_min, '%Y%m%d%H%M') + "-" +
-                              datetime.datetime.strftime(time_max, '%Y%m%d%H%M') + "-tavg")
         while time_max <= max(time_steps):
+            tavg_intervals.append(datetime.datetime.strftime(time_min, '%Y%m%d%H%M') + "-" +
+                                  datetime.datetime.strftime(time_max, '%Y%m%d%H%M') + "-tavg")
             for i in range(0, len(species)):
                 files_to_average = []
                 for level in levels:
@@ -838,8 +837,6 @@ def elaborate_day(day_input, model):
                 if time_max > max(time_steps):
                     time_max = max(time_steps)
                 continue
-    return tavg_intervals
-
 
 def probabilistic_output(model):
     def ecdf(index):
@@ -850,52 +847,68 @@ def probabilistic_output(model):
         quantile = 1 - ex_prob
         output_files = []
         for day in days:
+            # NEW
             try:
-                file_name = (
-                    "c_"
-                    + "{:03d}".format(int(level))
-                    + "_"
-                    + "{:06d}".format(int(time_step))
-                    + ".grd"
-                )
+                if model == "twodee":
+                    file_time_step = int(time_step)
+                    file_level = float(level) / 100
+                    file_level_s = "{0:.3f}".format(file_level) + 'mabg'
+                else:
+                    file_level = int(level)
+                    file_level_s = "{0:.3f}".format(output_levels[file_level - 1]) + 'mabg'
+                    file_time_step = int(time_step)
+                    file_time_step = file_time_step * dt
+                time_start = datetime.datetime.strptime(
+                    day + str(hour_start).zfill(2) + str(minute_start).zfill(2),
+                    '%Y%m%d%H%M')
+                time_validity = time_start + datetime.timedelta(seconds=file_time_step)
+                file_validity = datetime.datetime.strftime(time_validity, '%Y%m%d%H%M')
+                time_step_s = "{:06d}".format(int(time_step))
             except ValueError:
-                file_name = (
-                    "c_" + "{:03d}".format(int(level)) + "_" + time_step + ".grd"
-                )
+                if model == "twodee":
+                    file_level = float(level) / 100
+                    file_level_s = "{0:.3f}".format(file_level) + 'mabg'
+                else:
+                    file_level = int(level)
+                    file_level_s = "{0:.3f}".format(output_levels[file_level - 1]) + 'mabg'
+                tavg_interval_start = datetime.datetime.strptime(time_step.split('-')[0], '%Y%m%d%H%M')
+                day_interval = datetime.datetime.strftime(tavg_interval_start, '%Y%m%d')
+                if day != day_interval:
+                    continue
+                tavg_interval_end = datetime.datetime.strptime(time_step.split('-')[1], '%Y%m%d%H%M')
+                tavg_interval = (tavg_interval_end - tavg_interval_start).seconds
+                tavg_interval = int(tavg_interval / 3600)
+                tavg_interval_start = int(datetime.datetime.strftime(tavg_interval_start, '%H'))
+                tavg_interval_end = tavg_interval_start + tavg_interval
+                file_validity = time_step
+                time_step_s = "{:02d}".format(tavg_interval_start) + "-" + "{:02d}".format(tavg_interval_end)
+            file_name = "c_" + file_level_s + "_" + file_validity + ".grd"
+            # END NEW
+            # try:
+            #     file_name = (
+            #         "c_"
+            #         + "{:03d}".format(int(level))
+            #         + "_"
+            #         + "{:06d}".format(int(time_step))
+            #         + ".grd"
+            #     )
+            # except ValueError:
+            #     file_name = (
+            #         "c_" + "{:03d}".format(int(level)) + "_" + time_step + ".grd"
+            #     )
             output_folder = os.path.join(model_processed_output_folder, day, specie)
             output_files.append(os.path.join(output_folder, file_name))
-        if model == "twodee":
-            file_level = level
-            file_level = float(file_level.split("cm")[0]) / 100
-            file_level_s = "{0:.3f}".format(file_level) + 'mabg'
-        else:
-            file_level = int(level)
-            file_level_s = "{0:.3f}".format(output_levels[file_level - 1]) + 'mabg'
-        try:
-            ecdf_output_file = os.path.join(
-                ecdf_folder,
-                str(ex_prob),
-                specie,
-                "c_"
-                #+ "{:03d}".format(int(level))
-                + file_level_s
-                + "_"
-                + "{:06d}".format(int(time_step))
-                + ".grd",
-            )
-        except ValueError:
-            # ecdf_output_file = os.path.join(
-            #     ecdf_folder,
-            #     str(ex_prob),
-            #     specie,
-            #     "c_" + "{:03d}".format(int(level)) + "_" + time_step + ".grd",
-            # )
-            ecdf_output_file = os.path.join(
-                ecdf_folder,
-                str(ex_prob),
-                specie,
-                "c_" + file_level_s + "_" + time_step + ".grd",
-            )
+        ecdf_output_file = os.path.join(
+            ecdf_folder,
+            str(ex_prob),
+            specie,
+            "c_"
+            # + "{:03d}".format(int(level))
+            + file_level_s
+            + "_"
+            + time_step_s
+            + ".grd",
+        )
         output_quantile = np.zeros((ny, nx))
         c_arrays = []
         files_not_available = []
@@ -1479,10 +1492,11 @@ days, days_to_plot = extract_days()
 
 species_properties = gas_properties()
 
+tavg_intervals = []
 for model in models_to_elaborate:
     x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, output_levels, hour_start, minute_start = domain(model)
     for day in days:
-        tavg_intervals = elaborate_day(day, model)
+        elaborate_day(day, model)
     if plot_ex_prob:
         probabilistic_output(model)
     save_plots(model, min_con, max_con)

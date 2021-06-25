@@ -586,22 +586,7 @@ def converter(input_file, processed_file, specie_input, model):
             file_time_step = os.path.split(processed_file)[1]
             file_time_step = file_time_step.split("_")[2]
             file_time_step = int(file_time_step.split(".grd")[0])
-            file_time_s = file_time_step * dt
-            hours, remainder = divmod(file_time_s, 3600)
-            minutes, seconds = divmod(remainder, 60)
-            hours_int = int(hours)
-            minutes_int = int(minutes)
-            # Round to the next hours. It can be improved with a linear interpolation
-            if minutes_int > 30:
-                minutes_int = 0
-                hours_int += 1
-            if (
-                hours_int > 23
-            ):
-                # First order approximation for the last time step. To be modified if simulations > 24 hours are to be
-                # implemented
-                hours_int = 23
-            file_time_h = "{:02}{:02}".format(hours_int, minutes_int)
+            file_time_h = file_time_step[-4:]
             file_name = input_file.split(os.sep)[-1]
             file_folder = input_file.split(file_name)[0]
             file_folder_daily = file_folder.split("outfiles")[
@@ -879,23 +864,37 @@ def probabilistic_output(model):
                 )
             output_folder = os.path.join(model_processed_output_folder, day, specie)
             output_files.append(os.path.join(output_folder, file_name))
+        if model == "twodee":
+            file_level = level
+            file_level = float(file_level.split("cm")[0]) / 100
+            file_level_s = "{0:.3f}".format(file_level) + 'mabg'
+        else:
+            file_level = int(level)
+            file_level_s = "{0:.3f}".format(output_levels[file_level - 1]) + 'mabg'
         try:
             ecdf_output_file = os.path.join(
                 ecdf_folder,
                 str(ex_prob),
                 specie,
                 "c_"
-                + "{:03d}".format(int(level))
+                #+ "{:03d}".format(int(level))
+                + file_level_s
                 + "_"
                 + "{:06d}".format(int(time_step))
                 + ".grd",
             )
         except ValueError:
+            # ecdf_output_file = os.path.join(
+            #     ecdf_folder,
+            #     str(ex_prob),
+            #     specie,
+            #     "c_" + "{:03d}".format(int(level)) + "_" + time_step + ".grd",
+            # )
             ecdf_output_file = os.path.join(
                 ecdf_folder,
                 str(ex_prob),
                 specie,
-                "c_" + "{:03d}".format(int(level)) + "_" + time_step + ".grd",
+                "c_" + file_level_s + "_" + time_step + ".grd",
             )
         output_quantile = np.zeros((ny, nx))
         c_arrays = []
@@ -1484,7 +1483,6 @@ for model in models_to_elaborate:
     x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, output_levels, hour_start, minute_start = domain(model)
     for day in days:
         tavg_intervals = elaborate_day(day, model)
-    exit()
     if plot_ex_prob:
         probabilistic_output(model)
     save_plots(model, min_con, max_con)

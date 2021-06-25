@@ -556,23 +556,8 @@ def converter(input_file, processed_file, specie_input, model):
         if model == "disgas":
             file_time_step = os.path.split(processed_file)[1]
             file_time_step = file_time_step.split("_")[2]
-            file_time_step = int(file_time_step.split(".grd")[0])
-            file_time_s = file_time_step * dt
-            hours, remainder = divmod(file_time_s, 3600)
-            minutes, seconds = divmod(remainder, 60)
-            hours_int = int(hours)
-            minutes_int = int(minutes)
-            # Round to the next hours. It can be improved with a linear interpolation
-            if minutes_int > 30:
-                minutes_int = 0
-                hours_int += 1
-            if (
-                hours_int > 23
-            ):
-                # First order approximation for the last time step. To be modified if simulations > 24 hours are to be
-                # implemented
-                hours_int = 23
-            file_time_h = "{:02}{:02}".format(hours_int, minutes_int)
+            file_time_step = file_time_step.split(".grd")[0]
+            file_time_h = file_time_step[-4:]
             file_name = input_file.split(os.sep)[-1]
             file_folder = input_file.split(file_name)[0]
             file_folder_daily = file_folder.split("outfiles")[0]
@@ -739,6 +724,15 @@ def elaborate_day(day_input, model):
             for specie in species:
                 files_list_path.append(os.path.join(model_output_folder, file))  #
                 models.append(model)
+    time_steps_disgas = []
+    if model == 'disgas':
+        for file in files_list:
+            file_name_splitted = file.split("_")
+            file_time_step = file_name_splitted[2]
+            file_time_step = int(file_time_step.split(".")[0])
+            if file_time_step not in time_steps_disgas:
+                time_steps_disgas.append(file_time_step)
+    time_steps_disgas = sorted(time_steps_disgas)
     converted_files = []
     processed_files = []
     species_list = []
@@ -763,11 +757,10 @@ def elaborate_day(day_input, model):
                 file_level = int(file_name_splitted[1])
                 file_level_s = "{0:.3f}".format(output_levels[file_level - 1]) + 'mabg'
                 file_time_step = file_name_splitted[2]
-                file_time_step = int(file_time_step.split(".")[0]) * dt
-            if file_level not in levels:
+                file_time_step = int(file_time_step.split(".")[0])
+                file_time_step = time_steps_disgas.index(file_time_step) * dt
+            if file_level_s not in levels:
                 levels.append(file_level_s)
-            #if file_time_step not in time_steps:
-            #    time_steps.append(int(file_time_step))
             time_validity = time_start + datetime.timedelta(seconds=file_time_step)
             file_validity = datetime.datetime.strftime(time_validity, '%Y%m%d%H%M')
             if time_validity not in time_steps:
@@ -814,12 +807,10 @@ def elaborate_day(day_input, model):
         time_min = min(time_steps)
         if time_av == 0:
             time_max = max(time_steps)
-            #tavg_intervals.append(str(time_min) + "-" + str(time_max) + "-tavg")
-            tavg_intervals.append(datetime.datetime.strftime(time_min, '%Y%m%d%H%M') + "-" +
-                                  datetime.datetime.strftime(time_max, '%Y%m%d%H%M') + "-tavg")
         else:
-            #time_max = time_min + time_av * 3600
             time_max = time_min + datetime.timedelta(seconds=time_av * 3600)
+        tavg_intervals.append(datetime.datetime.strftime(time_min, '%Y%m%d%H%M') + "-" +
+                              datetime.datetime.strftime(time_max, '%Y%m%d%H%M') + "-tavg")
         while time_max <= max(time_steps):
             for i in range(0, len(species)):
                 files_to_average = []
@@ -835,10 +826,8 @@ def elaborate_day(day_input, model):
                         "c_"
                         + level
                         + "_"
-                        #+ str(time_min)
                         + datetime.datetime.strftime(time_min, '%Y%m%d%H%M')
                         + "-"
-                        #+ str(time_max)
                         + datetime.datetime.strftime(time_max, '%Y%m%d%H%M')
                         + "-tavg.grd",
                     )
@@ -848,53 +837,21 @@ def elaborate_day(day_input, model):
                         file_validity_s = file_name.split("_")[2]
                         file_validity_s = file_validity_s.split(".")[0]
                         file_validity = datetime.datetime.strptime(file_validity_s, '%Y%m%d%H%M')
-                        #file_time_step = (file_validity - time_start).total_seconds()
                         if file_level == level:
                             if time_min <= file_validity <= time_max:
-                            #if time_min <= int(file_time_step) <= time_max:
                                 files_to_average.append(file)
                                 averaged_files.append(file)
-                    #if (
-                    #    0 < max(time_steps) - time_max < time_av
-                    #    and len(files_in_level) != 0
-                    #):
-                    if (
-                        0 < (max(time_steps) - time_max).total_seconds() < time_av * 3600
-                        and len(files_in_level) != 0
-                    ):
-                        for file in files_in_level:
-                            if file not in averaged_files:
-                                files_to_average.append(file)
-                                averaged_files.append(file)
-                        time_averaged_file = os.path.join(
-                            os.path.join(
-                                model_processed_output_folder_daily, species[i]
-                            ),
-                            "c_"
-                            + level
-                            + "_"
-                            #+ str(time_min)
-                            + datetime.datetime.strftime(time_min, '%Y%m%d%H%M')
-                            + "-"
-                            #+ str(max(time_steps))
-                            + datetime.datetime.strftime(max(time_steps), '%Y%m%d%H%M')
-                            + "-tavg.grd",
-                        )
-                        #tavg_intervals[-1] = (
-                        #    str(time_min) + "-" + str(max(time_steps)) + "-tavg"
-                        #)
-                        tavg_intervals[-1] = (
-                            datetime.datetime.strftime(time_min, '%Y%m%d%H%M') + "-" +
-                            datetime.datetime.strftime(max(time_steps), '%Y%m%d%H%M') + "-tavg"
-                        )
                     time_average(files_to_average, time_averaged_file)
                     files_to_average = []
             if time_av == 0:
                 break
             else:
-                time_min = time_max# + 3600
-                #time_max = time_min + time_av * 3600
+                time_min = time_max
+                if time_min == max(time_steps):
+                    break
                 time_max = time_min + datetime.timedelta(seconds=time_av * 3600)
+                if time_max > max(time_steps):
+                    time_max = max(time_steps)
                 continue
     return tavg_intervals
 

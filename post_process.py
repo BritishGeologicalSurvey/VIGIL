@@ -722,7 +722,6 @@ def elaborate_day(day_input, model):
     processed_files = []
     species_list = []
     processed_files_species = []
-    levels = []
     time_steps = []
     time_start = datetime.datetime.strptime(day_input + str(hour_start).zfill(2) + str(minute_start).zfill(2),
                                             '%Y%m%d%H%M')
@@ -743,8 +742,8 @@ def elaborate_day(day_input, model):
                 file_time_step = file_name_splitted[2]
                 file_time_step = int(file_time_step.split(".")[0])
                 file_time_step = time_steps_disgas.index(file_time_step) * dt
-            if file_level_s not in levels:
-                levels.append(file_level_s)
+            if file_level_s not in processed_files_levels:
+                processed_files_levels.append(file_level_s)
             time_validity = time_start + datetime.timedelta(seconds=file_time_step)
             file_validity = datetime.datetime.strftime(time_validity, '%Y%m%d%H%M')
             if time_validity not in time_steps:
@@ -793,12 +792,16 @@ def elaborate_day(day_input, model):
             time_max = max(time_steps)
         else:
             time_max = time_min + datetime.timedelta(seconds=time_av * 3600)
+            if time_max > max(time_steps):
+                time_max = max(time_steps)
         while time_max <= max(time_steps):
-            tavg_intervals.append(datetime.datetime.strftime(time_min, '%Y%m%d%H%M') + "-" +
-                                  datetime.datetime.strftime(time_max, '%Y%m%d%H%M') + "-tavg")
+            time_max_s = "{:02d}".format(int(datetime.datetime.strftime(time_min, '%H')) +
+                                         int((time_max - time_min).seconds / 3600))
+            if datetime.datetime.strftime(time_min, '%H') + "-" + time_max_s + "-tavg" not in tavg_intervals:
+                tavg_intervals.append(datetime.datetime.strftime(time_min, '%H') + "-" + time_max_s + "-tavg")
             for i in range(0, len(species)):
                 files_to_average = []
-                for level in levels:
+                for level in processed_files_levels:
                     files_in_level = []
                     for file in processed_files_species[i]:
                         file_level = os.path.split(file)[1]
@@ -841,23 +844,15 @@ def elaborate_day(day_input, model):
 def probabilistic_output(model):
     def ecdf(index):
         specie = index[1]
-        level = index[2]
+        file_level_s = index[2]
         time_step = index[3]
         ex_prob = index[0]
         quantile = 1 - ex_prob
         output_files = []
         for day in days:
-            # NEW
             try:
-                if model == "twodee":
-                    file_time_step = int(time_step)
-                    file_level = float(level) / 100
-                    file_level_s = "{0:.3f}".format(file_level) + 'mabg'
-                else:
-                    file_level = int(level)
-                    file_level_s = "{0:.3f}".format(output_levels[file_level - 1]) + 'mabg'
-                    file_time_step = int(time_step)
-                    file_time_step = file_time_step * dt
+                file_time_step = int(time_step)
+                file_time_step = file_time_step * dt
                 time_start = datetime.datetime.strptime(
                     day + str(hour_start).zfill(2) + str(minute_start).zfill(2),
                     '%Y%m%d%H%M')
@@ -871,31 +866,21 @@ def probabilistic_output(model):
                 else:
                     file_level = int(level)
                     file_level_s = "{0:.3f}".format(output_levels[file_level - 1]) + 'mabg'
-                tavg_interval_start = datetime.datetime.strptime(time_step.split('-')[0], '%Y%m%d%H%M')
+                tavg_interval_start_s = day + time_step.split('-')[0] + '00'
+                tavg_interval_end_s = day + time_step.split('-')[1] + '00'
+                tavg_interval_start = datetime.datetime.strptime(tavg_interval_start_s, '%Y%m%d%H%M')
+                try:
+                    datetime.datetime.strptime(tavg_interval_end_s, '%Y%m%d%H%M')
+                except ValueError:
+                    tavg_interval_end = tavg_interval_start + datetime.timedelta(hours=(int(time_step.split('-')[1]) -
+                                                                                        int(time_step.split('-')[0])))
+                    tavg_interval_end_s = datetime.datetime.strftime(tavg_interval_end, '%Y%m%d%H%M')
                 day_interval = datetime.datetime.strftime(tavg_interval_start, '%Y%m%d')
                 if day != day_interval:
                     continue
-                tavg_interval_end = datetime.datetime.strptime(time_step.split('-')[1], '%Y%m%d%H%M')
-                tavg_interval = (tavg_interval_end - tavg_interval_start).seconds
-                tavg_interval = int(tavg_interval / 3600)
-                tavg_interval_start = int(datetime.datetime.strftime(tavg_interval_start, '%H'))
-                tavg_interval_end = tavg_interval_start + tavg_interval
-                file_validity = time_step
-                time_step_s = "{:02d}".format(tavg_interval_start) + "-" + "{:02d}".format(tavg_interval_end)
+                file_validity = tavg_interval_start_s + '-' + tavg_interval_end_s + '-tavg'
+                time_step_s = time_step
             file_name = "c_" + file_level_s + "_" + file_validity + ".grd"
-            # END NEW
-            # try:
-            #     file_name = (
-            #         "c_"
-            #         + "{:03d}".format(int(level))
-            #         + "_"
-            #         + "{:06d}".format(int(time_step))
-            #         + ".grd"
-            #     )
-            # except ValueError:
-            #     file_name = (
-            #         "c_" + "{:03d}".format(int(level)) + "_" + time_step + ".grd"
-            #     )
             output_folder = os.path.join(model_processed_output_folder, day, specie)
             output_files.append(os.path.join(output_folder, file_name))
         ecdf_output_file = os.path.join(
@@ -903,7 +888,6 @@ def probabilistic_output(model):
             str(ex_prob),
             specie,
             "c_"
-            # + "{:03d}".format(int(level))
             + file_level_s
             + "_"
             + time_step_s
@@ -980,30 +964,30 @@ def probabilistic_output(model):
                 pools_ecdfs_tavg.append(n_pool_tavg)
                 n_pool_tavg += 1
             if levels[0] == "all":
-                for i in range(1, nz + 1):
+                for i in range(0, nz):
                     if time_steps[0] == "all":
                         for j in range(0, n_time_steps + 1):
-                            indexes.append([probability, specie, i, j])
+                            indexes.append([probability, specie, processed_files_levels[i], j])
                     else:
                         for time_step in time_steps:
-                            indexes.append([probability, specie, i, time_step])
+                            indexes.append([probability, specie, processed_files_levels[i], time_step])
                     if len(tavg_intervals) > 0:
                         for k in range(0, len(tavg_intervals)):
                             indexes_tavg.append(
-                                [probability, specie, i, tavg_intervals[k]]
+                                [probability, specie, processed_files_levels[i], tavg_intervals[k]]
                             )
             else:
-                for level in levels:
+                for level in processed_files_levels:
                     if time_steps[0] == "all":
                         for j in range(0, n_time_steps + 1):
-                            indexes.append([probability, specie, level, j])
+                            indexes.append([probability, specie, processed_files_levels[int(level) - 1], j])
                     else:
                         for time_step in time_steps:
-                            indexes.append([probability, specie, level, time_step])
+                            indexes.append([probability, specie, processed_files_levels[int(level) - 1], time_step])
                     if len(tavg_intervals) > 0:
                         for k in range(0, len(tavg_intervals)):
                             indexes_tavg.append(
-                                [probability, specie, level, tavg_intervals[k]]
+                                [probability, specie, processed_files_levels[int(level) - 1], tavg_intervals[k]]
                             )
             n_pool += 1
     n_pool = 0
@@ -1493,10 +1477,12 @@ days, days_to_plot = extract_days()
 species_properties = gas_properties()
 
 tavg_intervals = []
+processed_files_levels = []
 for model in models_to_elaborate:
     x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, output_levels, hour_start, minute_start = domain(model)
     for day in days:
         elaborate_day(day, model)
+    processed_files_levels = sorted(processed_files_levels)
     if plot_ex_prob:
         probabilistic_output(model)
     save_plots(model, min_con, max_con)

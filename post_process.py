@@ -748,6 +748,8 @@ def elaborate_day(day_input, model):
             file_validity = datetime.datetime.strftime(time_validity, '%Y%m%d%H%M')
             if time_validity not in time_steps:
                 time_steps.append(time_validity)
+            if file_validity not in processed_files_steps:
+                processed_files_steps.append(file_validity)
             file = "c_" + file_level_s + "_" + file_validity + ".grd"
             converted_file = file
             converted_files.append(converted_file)
@@ -1212,7 +1214,7 @@ def save_plots(model, min_con, max_con):
                 file_name_splitted = files_list[i].split("_")
                 file_level = file_name_splitted[1]
                 file_time_step = file_name_splitted[2].split(".")[0]
-                output_file_name = files_list[i].split(".")[0]
+                output_file_name = files_list[i].split(".grd")[0]
                 output_file_name += ".png"
                 if levels[0] == "all":
                     if time_steps[0] == "all":
@@ -1224,7 +1226,9 @@ def save_plots(model, min_con, max_con):
                         )
                     else:
                         for time_step in time_steps:
-                            if file_time_step == "{:06d}".format(int(time_step)):
+                            time_step_hh_mm = hour_start + int(dt / 3600) * (int(time_step) - 1)
+                            time_step_hh_mm = "{:02d}".format(time_step_hh_mm) + '00'
+                            if file_time_step[-4:] == time_step_hh_mm:
                                 files_to_plot.append(file)
                                 output_files.append(
                                     os.path.join(
@@ -1235,7 +1239,7 @@ def save_plots(model, min_con, max_con):
                                 )
                     if "tavg" in file_time_step:
                         files_to_plot.append(file)
-                        tavg_output_file_name = file.split(os.sep)[-1].split(".")[0]
+                        tavg_output_file_name = file.split(os.sep)[-1].split(".grd")[0]
                         tavg_output_file_name = tavg_output_file_name + ".png"
                         output_files.append(
                             os.path.join(
@@ -1247,7 +1251,7 @@ def save_plots(model, min_con, max_con):
                 else:
                     if time_steps[0] == "all":
                         for level in levels:
-                            if file_level == "{:03d}".format(int(level)):
+                            if file_level == processed_files_levels[int(level) - 1]:
                                 files_to_plot.append(file)
                                 output_files.append(
                                     os.path.join(
@@ -1259,9 +1263,10 @@ def save_plots(model, min_con, max_con):
                     else:
                         for level in levels:
                             for time_step in time_steps:
-                                if file_time_step == "{:06d}".format(
-                                    int(time_step)
-                                ) and file_level == "{:03d}".format(int(level)):
+                                time_step_hh_mm = hour_start + int(dt / 3600) * (int(time_step) - 1)
+                                time_step_hh_mm = "{:02d}".format(time_step_hh_mm) + '00'
+                                if file_time_step[-4:] == time_step_hh_mm \
+                                        and file_level == processed_files_levels[int(level) - 1]:
                                     files_to_plot.append(file)
                                     output_files.append(
                                         os.path.join(
@@ -1271,11 +1276,9 @@ def save_plots(model, min_con, max_con):
                                         )
                                     )
                     for level in levels:
-                        if "tavg" in file_time_step and file_level == "{:03d}".format(
-                            int(level)
-                        ):
+                        if "tavg" in file_time_step and file_level == processed_files_levels[int(level) - 1]:
                             files_to_plot.append(file)
-                            tavg_output_file_name = file.split(os.sep)[-1].split(".")[0]
+                            tavg_output_file_name = file.split(os.sep)[-1].split(".grd")[0]
                             tavg_output_file_name = tavg_output_file_name + ".png"
                             output_files.append(
                                 os.path.join(
@@ -1316,7 +1319,7 @@ def save_plots(model, min_con, max_con):
                     file_name_splitted = file.split("_")
                     file_level = file_name_splitted[1]
                     file_time_step = file_name_splitted[2].split(".")[0]
-                    output_file_name = file.split(".")[0]
+                    output_file_name = file.split(".grd")[0]
                     output_file_name += ".png"
                     if levels[0] == "all":
                         if time_steps[0] == "all":
@@ -1343,7 +1346,7 @@ def save_plots(model, min_con, max_con):
                                     )
                         if "tavg" in file_time_step:
                             files_to_plot.append(file_path)
-                            tavg_output_file_name = file.split(os.sep)[-1].split(".")[0]
+                            tavg_output_file_name = file.split(os.sep)[-1].split(".grd")[0]
                             tavg_output_file_name = tavg_output_file_name + ".png"
                             output_files.append(
                                 os.path.join(
@@ -1356,7 +1359,7 @@ def save_plots(model, min_con, max_con):
                     else:
                         if time_steps[0] == "all":
                             for level in levels:
-                                if file_level == "{:03d}".format(int(level)):
+                                if file_level == processed_files_levels[int(level) - 1]:
                                     files_to_plot.append(file_path)
                                     output_files.append(
                                         os.path.join(
@@ -1371,7 +1374,7 @@ def save_plots(model, min_con, max_con):
                                 for time_step in time_steps:
                                     if file_time_step == "{:06d}".format(
                                         int(time_step)
-                                    ) and file_level == "{:03d}".format(int(level)):
+                                    ) and file_level == processed_files_levels[int(level) - 1]:
                                         files_to_plot.append(file_path)
                                         output_files.append(
                                             os.path.join(
@@ -1384,12 +1387,12 @@ def save_plots(model, min_con, max_con):
                             for level in levels:
                                 if (
                                     "tavg" in file_time_step
-                                    and file_level == "{:03d}".format(int(level))
+                                    and file_level == processed_files_levels[int(level) - 1]
                                 ):
                                     files_to_plot.append(file_path)
                                     tavg_output_file_name = file.split(os.sep)[
                                         -1
-                                    ].split(".")[0]
+                                    ].split(".grd")[0]
                                     tavg_output_file_name = (
                                         tavg_output_file_name + ".png"
                                     )
@@ -1472,11 +1475,13 @@ species_properties = gas_properties()
 
 tavg_intervals = []
 processed_files_levels = []
+processed_files_steps = []
 for model in models_to_elaborate:
     x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, output_levels, hour_start, minute_start = domain(model)
     for day in days:
         elaborate_day(day, model)
     processed_files_levels = sorted(processed_files_levels)
+    processed_files_steps = sorted(processed_files_steps)
     if plot_ex_prob:
         probabilistic_output(model)
     save_plots(model, min_con, max_con)

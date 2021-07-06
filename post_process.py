@@ -860,12 +860,6 @@ def probabilistic_output(model):
                 file_validity = datetime.datetime.strftime(time_validity, '%Y%m%d%H%M')
                 time_step_s = "{:06d}".format(int(time_step))
             except ValueError:
-                if model == "twodee":
-                    file_level = float(level) / 100
-                    file_level_s = "{0:.3f}".format(file_level) + 'mabg'
-                else:
-                    file_level = int(level)
-                    file_level_s = "{0:.3f}".format(output_levels[file_level - 1]) + 'mabg'
                 tavg_interval_start_s = day + time_step.split('-')[0] + '00'
                 tavg_interval_end_s = day + time_step.split('-')[1] + '00'
                 tavg_interval_start = datetime.datetime.strptime(tavg_interval_start_s, '%Y%m%d%H%M')
@@ -980,14 +974,14 @@ def probabilistic_output(model):
                 for level in processed_files_levels:
                     if time_steps[0] == "all":
                         for j in range(0, n_time_steps + 1):
-                            indexes.append([probability, specie, processed_files_levels[int(level) - 1], j])
+                            indexes.append([probability, specie, level, j])
                     else:
                         for time_step in time_steps:
-                            indexes.append([probability, specie, processed_files_levels[int(level) - 1], time_step])
+                            indexes.append([probability, specie, level, time_step])
                     if len(tavg_intervals) > 0:
                         for k in range(0, len(tavg_intervals)):
                             indexes_tavg.append(
-                                [probability, specie, processed_files_levels[int(level) - 1], tavg_intervals[k]]
+                                [probability, specie, level, tavg_intervals[k]]
                             )
             n_pool += 1
     n_pool = 0

@@ -1101,6 +1101,9 @@ def save_plots(model, min_con, max_con):
             dz_lines = myround((max_z - min_z) / (n_levels_lines))
             levels_top = np.arange(min_z + 0.0000001, max_z, dz)
             levels_top_lines = np.arange(min_z, max_z, dz_lines)
+        SUB = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
+        specie_name = file.split(os.sep)[-2]
+        specie_name = specie_name.translate(SUB)
         with open(input) as input_file:
             if output_format == "grd":
                 Z = np.loadtxt(input, skiprows=5)
@@ -1132,9 +1135,9 @@ def save_plots(model, min_con, max_con):
         cbar.ax.tick_params(labelsize=8)
         cbar.set_label("ppm")
         if units == "ppm":
-            ax.set_title("Gas concentration [ppm]")
+            ax.set_title(specie_name + " concentration [ppm]")
         else:
-            ax.set_title("Gas concentration [kg m$\mathregular{^{-3}}$]")
+            ax.set_title(specie_name + " concentration [kg m$\mathregular{^{-3}}$]")
         ax.set_aspect("equal")
         ax.set_xlim(x0, xf)
         ax.set_ylim(y0, yf)

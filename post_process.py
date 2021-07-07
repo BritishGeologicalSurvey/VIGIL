@@ -561,7 +561,7 @@ def converter(input_file, processed_file, specie_input, model):
             file_name = input_file.split(os.sep)[-1]
             file_folder = input_file.split(file_name)[0]
             file_folder_daily = file_folder.split("outfiles")[0]
-            surface_data = os.path.join(file_folder_daily, "surface_data.txt")
+            surface_data = os.path.join(file_folder_daily, "infiles", "surface_data.txt")
             with open(surface_data) as surface_data_file:
                 for line in surface_data_file:
                     try:
@@ -842,6 +842,18 @@ def elaborate_day(day_input, model):
                 if time_max > max(time_steps):
                     time_max = max(time_steps)
                 continue
+
+
+def sort_levels(input_array):
+    output_array = []
+    for level in input_array:
+        level_float = float(level.split('mabg')[0])
+        output_array.append(level_float)
+    output_array = sorted(output_array)
+    for i in range (0, len(output_array)):
+        output_array[i] = "{0:.3f}".format(output_array[i]) + 'mabg'
+    return output_array
+
 
 def probabilistic_output(model):
     def ecdf(index):
@@ -1483,7 +1495,7 @@ for model in models_to_elaborate:
     x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, output_levels, hour_start, minute_start = domain(model)
     for day in days:
         elaborate_day(day, model)
-    processed_files_levels = sorted(processed_files_levels)
+    processed_files_levels = sort_levels(processed_files_levels)
     processed_files_steps = sorted(processed_files_steps)
     if plot_ex_prob:
         probabilistic_output(model)

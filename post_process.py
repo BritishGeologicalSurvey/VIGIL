@@ -1155,8 +1155,8 @@ def save_plots(model, min_con, max_con):
             top_cbar.set_label("m a.s.l.")
         c_field = plt.contourf(X, Y, Z, levels, cmap="Reds", alpha=0.9, extend="max")
         if len(plot_isolines) != 0:
-            specie_isolines = ax.contour(X, Y, Z, levels=[plot_isolines], colors='black', linewidths=0.2)
-            ax.clabel(specie_isolines, inline=True, fontsize=4, fmt='%1.0f')
+            specie_isolines = ax.contour(X, Y, Z, levels=plot_isolines, colors='black', linewidths=0.2)
+            ax.clabel(specie_isolines, inline=True, fontsize=4, fmt='%1.1f')
         aspect = 20
         pad_fraction = 0.5
         divider = make_axes_locatable(ax)
@@ -1249,6 +1249,11 @@ def save_plots(model, min_con, max_con):
                 file_name_splitted = files_list[i].split("_")
                 file_level = file_name_splitted[1]
                 file_time_step = file_name_splitted[2].split(".")[0]
+                try:
+                    file_time_step_datetime = datetime.datetime.strptime(file_time_step, '%Y%m%d%H%M')
+                except ValueError:
+                    None
+                simulation_start = datetime.datetime.strptime(day + "{:02d}".format(hour_start), '%Y%m%d%H%M')
                 output_file_name = files_list[i].split(".grd")[0]
                 output_file_name += ".png"
                 if levels[0] == "all":
@@ -1262,8 +1267,8 @@ def save_plots(model, min_con, max_con):
                     else:
                         for time_step in time_steps:
                             time_step_hh_mm = hour_start + int(dt / 3600) * (int(time_step))
-                            time_step_hh_mm = "{:02d}".format(time_step_hh_mm) + '00'
-                            if file_time_step[-4:] == time_step_hh_mm:
+                            time_step_datetime = simulation_start + datetime.timedelta(hours=time_step_hh_mm)
+                            if time_step_datetime == file_time_step_datetime:
                                 files_to_plot.append(file)
                                 output_files.append(
                                     os.path.join(
@@ -1299,9 +1304,9 @@ def save_plots(model, min_con, max_con):
                         for level in levels:
                             for time_step in time_steps:
                                 time_step_hh_mm = hour_start + int(dt / 3600) * (int(time_step))
-                                time_step_hh_mm = "{:02d}".format(time_step_hh_mm) + '00'
-                                if file_time_step[-4:] == time_step_hh_mm \
-                                        and file_level == processed_files_levels[int(level) - 1]:
+                                time_step_datetime = simulation_start + datetime.timedelta(hours=time_step_hh_mm)
+                                if time_step_datetime == file_time_step_datetime \
+                                    and file_level == processed_files_levels[int(level) - 1]:
                                     files_to_plot.append(file)
                                     output_files.append(
                                         os.path.join(

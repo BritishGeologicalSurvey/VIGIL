@@ -374,7 +374,8 @@ def prepare_days():
         i += 1
     return sorted(days)
 
-def pre_process():
+
+def pre_process(run_type):
     def sample_random_sources(
         n_sources, input_file, dur_min, dur_max, source_size_min, source_size_max
     ):
@@ -546,20 +547,20 @@ def pre_process():
 
     # Set DIAGNO folder
     diagno = os.path.join(root, "simulations", "diagno")
+    disgas = os.path.join(root, "simulations", "disgas")
+    twodee = os.path.join(root, "simulations", "twodee")
     try:
         os.mkdir(diagno)
     except FileExistsError:
         print("Folder " + diagno + " already exists")
     if disgas_on:
         # Set DISGAS folder
-        disgas = os.path.join(root, "simulations", "disgas")
         try:
             os.mkdir(disgas)
         except FileExistsError:
             print("Folder " + disgas + " already exists")
     if twodee_on:
-        # Set DISGAS folder
-        twodee = os.path.join(root, "simulations", "twodee")
+        # Set TWODEE folder
         try:
             os.mkdir(twodee)
         except FileExistsError:
@@ -887,7 +888,7 @@ def pre_process():
     return days
 
 
-def run_diagno():
+def run_diagno(max_number_processes):
     n_elaborated_days = 0
     while n_elaborated_days <= len(days):
         ps = []
@@ -929,7 +930,7 @@ def run_diagno():
     os.chdir(root)
 
 
-def run_disgas():
+def run_disgas(max_number_processes):
     import datetime
     disgas = os.path.join(root, "simulations", "disgas")
     n_elaborated_days = 0
@@ -992,7 +993,7 @@ def run_disgas():
             break
 
 
-def run_twodee():
+def run_twodee(max_number_processes):
     import datetime
     twodee = os.path.join(root, "simulations", "twodee")
     n_elaborated_days = 0
@@ -1095,17 +1096,17 @@ if disgas_on == "off" and twodee_on == "off":
 
 if diagno_on:
     try:
-        days = pre_process()
+        days = pre_process(run_type)
     except BaseException:
         print('ERROR. DIAGNO activated but it seems it has been already run. Please restart switching DIAGNO off')
         sys.exit()
 
-    run_diagno()
+    run_diagno(max_number_processes)
 else:
     days = prepare_days()
 
 if disgas_on:
-    run_disgas()
+    run_disgas(max_number_processes)
 
 if twodee_on:
-    run_twodee()
+    run_twodee(max_number_processes)

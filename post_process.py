@@ -561,7 +561,7 @@ def converter(input_file, processed_file, specie_input, model):
             file_name = input_file.split(os.sep)[-1]
             file_folder = input_file.split(file_name)[0]
             file_folder_daily = file_folder.split("outfiles")[0]
-            surface_data = os.path.join(file_folder_daily, "infiles", "surface_data.txt")
+            surface_data = os.path.join(file_folder_daily, "surface_data.txt")
             with open(surface_data) as surface_data_file:
                 for line in surface_data_file:
                     try:
@@ -1114,7 +1114,7 @@ def save_plots(model, min_con, max_con):
             levels_top = np.arange(min_z + 0.0000001, max_z, dz)
             levels_top_lines = np.arange(min_z, max_z, dz_lines)
         SUB = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
-        specie_name = file.split(os.sep)[-2]
+        specie_name = input.split(os.sep)[-2]
         specie_name = specie_name.translate(SUB)
         with open(input) as input_file:
             if output_format == "grd":
@@ -1241,7 +1241,7 @@ def save_plots(model, min_con, max_con):
                         )
                     else:
                         for time_step in time_steps:
-                            time_step_hh_mm = hour_start + int(dt / 3600) * (int(time_step) - 1)
+                            time_step_hh_mm = hour_start + int(dt / 3600) * (int(time_step))
                             time_step_hh_mm = "{:02d}".format(time_step_hh_mm) + '00'
                             if file_time_step[-4:] == time_step_hh_mm:
                                 files_to_plot.append(file)
@@ -1278,7 +1278,7 @@ def save_plots(model, min_con, max_con):
                     else:
                         for level in levels:
                             for time_step in time_steps:
-                                time_step_hh_mm = hour_start + int(dt / 3600) * (int(time_step) - 1)
+                                time_step_hh_mm = hour_start + int(dt / 3600) * (int(time_step))
                                 time_step_hh_mm = "{:02d}".format(time_step_hh_mm) + '00'
                                 if file_time_step[-4:] == time_step_hh_mm \
                                         and file_level == processed_files_levels[int(level) - 1]:

@@ -162,6 +162,8 @@ usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB] [-EX EX_PROB [EX_PROB .
                         Gas concentration units. Possible options are: ppm, kg/m3
   -PL PLOT_LIMITS [PLOT_LIMITS ...], --plot_limits PLOT_LIMITS [PLOT_LIMITS ...]
                         Minimum and maximum value of concentration to display. If unspecified, they are obtained from all the outputs (comma separated values)
+  -PI PLOT_ISOLINES, --plot_isolines PLOT_ISOLINES
+                        List of gas concentrations values to be used to draw isolines. Optional
   -TA TIME_AV, --time_av TIME_AV
                         Generate time-averaged outputs. Specify the time-averaging interval (in hours), or 0 for averaging over the whole duration
   -OF OUTPUT_FORMAT, --output_format OUTPUT_FORMAT

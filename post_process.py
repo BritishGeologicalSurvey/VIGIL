@@ -153,6 +153,7 @@ def read_arguments():
     days_plot = days_plot_in.split(',')
     plot_limits = plot_limits_in.split(',')
     plot_isolines_s = plot_isolines_in.split(',')
+    plot_isolines = []
     species = species_in.split(',')
     days_to_plot_in = []
     if plot.lower() == "true":
@@ -254,8 +255,7 @@ def read_arguments():
                 "ERROR. Please specify valid minimum and maximum concentration -PL --plot_limits"
             )
             sys.exit()
-    if len(plot_isolines_s) > 1:
-        plot_isolines = []
+    if len(plot_isolines_s) > 0:
         for isoline in plot_isolines_s:
             try:
                 plot_isolines.append(float(isoline))

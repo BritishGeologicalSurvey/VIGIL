@@ -93,6 +93,11 @@ def read_arguments():
         help="Minimum and maximum value of concentration to display. If unspecified, they are obtained from all "
              "the outputs",
     )
+    parser.add_argument("-PI",
+        "--plot_isolines",
+        default='',
+        help="List of gas concentrations values to be used to draw isolines. Optional"
+    )
     parser.add_argument(
         "-TA",
         "--time_av",
@@ -136,6 +141,7 @@ def read_arguments():
     merge_outputs = args.merge_outputs
     units = args.units
     plot_limits_in = args.plot_limits
+    plot_isolines_in = args.plot_isolines
     time_av = args.time_av
     output_format = args.output_format
     plot_topography = args.plot_topography
@@ -146,6 +152,7 @@ def read_arguments():
     levels = levels_in.split(',')
     days_plot = days_plot_in.split(',')
     plot_limits = plot_limits_in.split(',')
+    plot_isolines_s = plot_isolines_in.split(',')
     species = species_in.split(',')
     days_to_plot_in = []
     if plot.lower() == "true":
@@ -247,6 +254,15 @@ def read_arguments():
                 "ERROR. Please specify valid minimum and maximum concentration -PL --plot_limits"
             )
             sys.exit()
+    if len(plot_isolines_s) > 1:
+        plot_isolines = []
+        for isoline in plot_isolines_s:
+            try:
+                plot_isolines.append(float(isoline))
+            except ValueError:
+                print("WARNING. Wrong entry for -PI --plot_isolines. Continuing discarding concentration contour lines")
+                plot_isolines = []
+                break
     if output_format.lower() != "grd":
         print(
             "ERROR. Please specify a valid output format. Current valid options are: GRD"
@@ -288,6 +304,7 @@ def read_arguments():
         time_av,
         min_con,
         max_con,
+        plot_isolines,
         output_format,
         plot_topography_layer,
         dz_lines_res,
@@ -1137,6 +1154,9 @@ def save_plots(model, min_con, max_con):
             top_cbar.ax.tick_params(labelsize=6)
             top_cbar.set_label("m a.s.l.")
         c_field = plt.contourf(X, Y, Z, levels, cmap="Reds", alpha=0.9, extend="max")
+        if len(plot_isolines) != 0:
+            specie_isolines = ax.contour(X, Y, Z, levels=[plot_isolines], colors='black', linewidths=0.2)
+            ax.clabel(specie_isolines, inline=True, fontsize=4, fmt='%1.0f')
         aspect = 20
         pad_fraction = 0.5
         divider = make_axes_locatable(ax)
@@ -1459,6 +1479,7 @@ root = os.getcwd()
     time_av,
     min_con,
     max_con,
+    plot_isolines,
     output_format,
     plot_topography_layer,
     dz_lines_res,

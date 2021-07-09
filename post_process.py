@@ -126,6 +126,10 @@ def read_arguments():
     parser.add_argument(
         "-PR", "--plot_resolution", default=600, help="Specify plot resolution in dpi"
     )
+    parser.add_argument(
+        "-TP", "--tracking_points", default="False", help="Extrapolate gas concentration at locations specified in the "
+                                                          "file tracking_points.txt"
+    )
     args = parser.parse_args()
     plot = args.plot
     plot_ex_prob = args.plot_ex_prob
@@ -147,6 +151,7 @@ def read_arguments():
     plot_topography = args.plot_topography
     dz_lines_res = args.topography_isolines
     plot_resolution = args.plot_resolution
+    tracking_points = args.tracking_points
     ex_prob = ex_prob_in.split(',')
     time_steps = time_steps_in.split(',')
     levels = levels_in.split(',')
@@ -287,6 +292,17 @@ def read_arguments():
     except ValueError:
         print("ERROR. Please provide a valid number for -PR --plot_resolution")
         sys.exit()
+    if tracking_points.lower() == 'true':
+        tracking_points = True
+        if not os.path.isfile('tracking_points.txt'):
+            print("WARNING. Tracking points option activated but file tracking_points.txt not found. Continuing "
+                  "without this option")
+            tracking_points = False
+    elif tracking_points.lower() == 'false':
+        tracking_points = False
+    else:
+        print("ERROR. Wrong value for variable -TP --tracking_points")
+        sys.exit()
     return (
         plot,
         plot_ex_prob,
@@ -309,6 +325,7 @@ def read_arguments():
         plot_topography_layer,
         dz_lines_res,
         plot_resolution,
+        tracking_points
     )
 
 
@@ -1489,6 +1506,7 @@ root = os.getcwd()
     plot_topography_layer,
     dz_lines_res,
     plot_resolution,
+    tracking_points
 ) = read_arguments()
 
 try:

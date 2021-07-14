@@ -1482,6 +1482,38 @@ def save_plots(model, min_con, max_con):
             i += 1
 
 
+def extract_tracking_points():
+    import utm
+    stations_northing = []
+    stations_easting = []
+    stations_elevation = []
+    tracking_points_file = os.path.join(root, 'tracking_points.txt')
+    with open(tracking_points_file, 'r') as tracking_points_file_read:
+        for line in tracking_points_file_read:
+            x = line.split('\t')[0]
+            y = line.split('\t')[1]
+            z = line.split('\t')[2]
+            try:
+                station_x = float(x)
+                station_y = float(y)
+                station_z = float(z)
+            except ValueError:
+                continue
+            if -90 <= station_y <= 90 and -180 <= station_x <= 180: # Input is in lat-lon
+                try:
+                    out_utm = utm.from_latlon(station_y, station_x)
+                    station_easting = float(out_utm[0])
+                    station_northing = float(out_utm[1])
+                except ValueError:
+                    print(
+                        "WARNING. Invalide coordinate of the tracking point"
+                    )
+                    continue
+                # HERE ADD CHECK POINTS ARE IN THE DOMAIN
+                stations_northing.append(station_northing)
+                stations_easting.append(station_easting)
+            stations_elevation.append(station_z)
+
 root = os.getcwd()
 
 (
@@ -1544,3 +1576,5 @@ for model in models_to_elaborate:
     if plot_ex_prob:
         probabilistic_output(model)
     save_plots(model, min_con, max_con)
+    if tracking_points:
+        extract_tracking_points()

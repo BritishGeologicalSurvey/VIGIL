@@ -1499,18 +1499,16 @@ def extract_tracking_points():
                 continue
             if -90 <= station_y <= 90 and -180 <= station_x <= 180: # Input is in lat-lon
                 try:
-                    out_utm = utm.from_latlon(station_y, station_x)
+                    out_utm = utm.from_latlon(station_x, station_y)
                     station_easting = float(out_utm[0])
                     station_northing = float(out_utm[1])
                 except ValueError:
                     print(
                         "WARNING. Invalide coordinate of the tracking point"
                     )
-                    continue
             else:
-                stations_northing = station_y
-                stations_easting = station_x
-                # HERE ADD CHECK POINTS ARE IN THE DOMAIN
+                station_northing = station_y
+                station_easting = station_x
             if y0 <= station_northing <= yf and x0 <= station_easting <= xf and \
                     min(output_levels) <= station_z <= max(output_levels):
                 stations_elevation.append(station_z)

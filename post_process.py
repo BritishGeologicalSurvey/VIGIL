@@ -472,8 +472,6 @@ def gas_properties():
 
 
 def domain(model):
-    import re
-
     output_levels = []
     if model == "disgas":
         with open(file="disgas.inp") as input_file:
@@ -1509,10 +1507,18 @@ def extract_tracking_points():
                         "WARNING. Invalide coordinate of the tracking point"
                     )
                     continue
+            else:
+                stations_northing = station_y
+                stations_easting = station_x
                 # HERE ADD CHECK POINTS ARE IN THE DOMAIN
+            if y0 <= station_northing <= yf and x0 <= station_easting <= xf and \
+                    min(output_levels) <= station_z <= max(output_levels):
+                stations_elevation.append(station_z)
                 stations_northing.append(station_northing)
                 stations_easting.append(station_easting)
-            stations_elevation.append(station_z)
+            else:
+                continue
+
 
 root = os.getcwd()
 

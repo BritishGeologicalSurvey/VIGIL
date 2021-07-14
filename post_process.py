@@ -1480,42 +1480,49 @@ def save_plots(model, min_con, max_con):
             i += 1
 
 
-def extract_tracking_points():
-    import utm
-    stations_northing = []
-    stations_easting = []
-    stations_elevation = []
-    tracking_points_file = os.path.join(root, 'tracking_points.txt')
-    with open(tracking_points_file, 'r') as tracking_points_file_read:
-        for line in tracking_points_file_read:
-            x = line.split('\t')[0]
-            y = line.split('\t')[1]
-            z = line.split('\t')[2]
-            try:
-                station_x = float(x)
-                station_y = float(y)
-                station_z = float(z)
-            except ValueError:
-                continue
-            if -90 <= station_y <= 90 and -180 <= station_x <= 180: # Input is in lat-lon
+def elaborate_tracking_points():
+
+    def extract_tracking_points_locations():
+        import utm
+        stations_northing = []
+        stations_easting = []
+        stations_elevation = []
+        tracking_points_file = os.path.join(root, 'tracking_points.txt')
+        with open(tracking_points_file, 'r') as tracking_points_file_read:
+            for line in tracking_points_file_read:
+                x = line.split('\t')[0]
+                y = line.split('\t')[1]
+                z = line.split('\t')[2]
                 try:
-                    out_utm = utm.from_latlon(station_x, station_y)
-                    station_easting = float(out_utm[0])
-                    station_northing = float(out_utm[1])
+                    station_x = float(x)
+                    station_y = float(y)
+                    station_z = float(z)
                 except ValueError:
-                    print(
-                        "WARNING. Invalide coordinate of the tracking point"
-                    )
-            else:
-                station_northing = station_y
-                station_easting = station_x
-            if y0 <= station_northing <= yf and x0 <= station_easting <= xf and \
-                    min(output_levels) <= station_z <= max(output_levels):
-                stations_elevation.append(station_z)
-                stations_northing.append(station_northing)
-                stations_easting.append(station_easting)
-            else:
-                continue
+                    continue
+                if -90 <= station_y <= 90 and -180 <= station_x <= 180: # Input is in lat-lon
+                    try:
+                        out_utm = utm.from_latlon(station_x, station_y)
+                        station_easting = float(out_utm[0])
+                        station_northing = float(out_utm[1])
+                    except ValueError:
+                        print(
+                            "WARNING. Invalide coordinate of the tracking point"
+                        )
+                else:
+                    station_northing = station_y
+                    station_easting = station_x
+                if y0 <= station_northing <= yf and x0 <= station_easting <= xf and \
+                        min(output_levels) <= station_z <= max(output_levels):
+                    stations_elevation.append(station_z)
+                    stations_northing.append(station_northing)
+                    stations_easting.append(station_easting)
+                else:
+                    continue
+        return stations_easting, stations_northing, stations_elevation
+
+
+    stations_easting, stations_northing, stations_elevation = extract_tracking_points_locations()
+
 
 
 root = os.getcwd()
@@ -1581,4 +1588,4 @@ for model in models_to_elaborate:
         probabilistic_output(model)
     save_plots(model, min_con, max_con)
     if tracking_points:
-        extract_tracking_points()
+        elaborate_tracking_points()

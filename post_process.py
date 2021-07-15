@@ -555,11 +555,111 @@ def domain(model):
                         minute_start = int(temp[0])
                 except (IndexError, ValueError):
                     continue
-    yf = y0 + ny * dy
-    xf = x0 + nx * dx
+    yf = y0 + (ny - 1) * dy
+    xf = x0 + (nx - 1) * dx
     n_time_steps = int(tot_time / dt)
     nz = len(output_levels)
     return x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, output_levels, hour_start, minute_start
+
+
+def elaborate_tracking_points():
+    import utm
+    stations = []
+    tracking_points_file = os.path.join(root, 'tracking_points.txt')
+    station_id = 0
+    with open(tracking_points_file, 'r') as tracking_points_file_read:
+        for line in tracking_points_file_read:
+            x = line.split('\t')[0]
+            y = line.split('\t')[1]
+            z = line.split('\t')[2]
+            try:
+                station_x = float(x)
+                station_y = float(y)
+                station_z = float(z)
+            except ValueError:
+                continue
+            if -90 <= station_y <= 90 and -180 <= station_x <= 180:  # Input is in lat-lon
+                try:
+                    out_utm = utm.from_latlon(station_x, station_y)
+                    station_easting = float(out_utm[0])
+                    station_northing = float(out_utm[1])
+                except ValueError:
+                    print(
+                        "WARNING. Invalide coordinate of the tracking point"
+                    )
+            else:
+                station_northing = station_y
+                station_easting = station_x
+            if y0 <= station_northing <= yf and x0 <= station_easting <= xf and \
+                    min(output_levels) <= station_z <= max(output_levels):
+                station_id += 1
+                stations.append({'station_id': station_id, 'easting': station_easting,
+                                        'northing': station_northing, 'elevation': station_z})
+            else:
+                continue
+    return stations
+
+
+def extract_tracking_points(files_to_interpolate):
+    def interpolate(x, y, z, levels_interpolation, files):
+        from scipy import interpolate
+        x_array = np.linspace(x0, xf, nx, endpoint=True)
+        y_array = np.linspace(y0, yf, ny, endpoint=True)
+        Z1 = np.loadtxt(files[0], skiprows=5)
+        if len(levels_interpolation) == 2:
+            z_array = np.linspace(levels_interpolation[0], levels_interpolation[1], 2)
+            Z2 = np.loadtxt(files[1], skiprows=5)
+            Z = np.array([Z1, Z2])
+            my_interpolating_function = interpolate.RegularGridInterpolator((x_array, y_array, z_array), Z.T)
+            pt = np.array([x, y, z])
+        else:
+            Z = Z1
+            my_interpolating_function = interpolate.RegularGridInterpolator((x_array, y_array), Z.T)
+            pt = np.array([x, y])
+        return my_interpolating_function(pt)
+
+    files_time_steps = []
+    for file in files_to_interpolate:
+        file_name = file.split(os.sep)[-1]
+        file_time_step = file_name.split('_')[2]
+        file_time_step = int(file_time_step.split('.grd')[0])
+        if file_time_step not in files_time_steps:
+            files_time_steps.append(file_time_step)
+    files_time_steps = sorted(files_time_steps)
+    levels_for_interpolation = []
+    for station in stations:
+        if min(output_levels) <= station['elevation'] <= max(output_levels):
+            for i in range (1, len(output_levels) + 1):
+                levels_for_interpolation = []
+                if output_levels[i - 1] == station['elevation']:
+                    levels_for_interpolation.append(output_levels[i - 1])
+                    break
+                elif output_levels[i - 1] < station['elevation'] < output_levels[i]:
+                    levels_for_interpolation.append(output_levels[i - 1])
+                    levels_for_interpolation.append(output_levels[i])
+                    break
+                else:
+                    continue
+        for time_step in files_time_steps:
+            files_to_use = []
+            files_levels = []
+            file_directory = ''
+            for file in files_to_interpolate:
+                file_name = file.split(os.sep)[-1]
+                file_directory = file.split(file_name)[0]
+                file_level = file_name.split('_')[1]
+                file_level = float(file_level.split('mabg')[0])
+                file_time_step = file_name.split('_')[2]
+                file_time_step = int(file_time_step.split('.grd')[0])
+                if file_level in levels_for_interpolation and file_time_step == time_step:
+                    files_to_use.append(file)
+                    files_levels.append(file_level)
+            files_levels = sorted(files_levels)
+            c_interpolated = interpolate(station['easting'], station['northing'], station['elevation'], files_levels,
+                                         files_to_use)
+            with open(os.path.join(file_directory, 'TP_' + str(station['station_id']) + '.txt'), 'a') as \
+                    tracking_point_file:
+                tracking_point_file.write(str(time_step) + '\t' + "{0:.2e}".format(c_interpolated[0]) + '\n')
 
 
 def extract_days():
@@ -874,7 +974,7 @@ def elaborate_day(day_input, model):
                 if time_max > max(time_steps):
                     time_max = max(time_steps)
                 continue
-
+    return processed_files
 
 def sort_levels(input_array):
     output_array = []
@@ -1254,6 +1354,8 @@ def save_plots(model, min_con, max_con):
             for folder in model_processed_output_folder_species:
                 files_list_temp = os.listdir(folder)
                 for file in files_list_temp:
+                    if 'TP' in file:
+                        continue
                     files_list.append(file)
                     files_list_path.append(os.path.join(folder, file))
             i = 0
@@ -1480,48 +1582,6 @@ def save_plots(model, min_con, max_con):
             i += 1
 
 
-def elaborate_tracking_points():
-
-    def extract_tracking_points_locations():
-        import utm
-        stations_northing = []
-        stations_easting = []
-        stations_elevation = []
-        tracking_points_file = os.path.join(root, 'tracking_points.txt')
-        with open(tracking_points_file, 'r') as tracking_points_file_read:
-            for line in tracking_points_file_read:
-                x = line.split('\t')[0]
-                y = line.split('\t')[1]
-                z = line.split('\t')[2]
-                try:
-                    station_x = float(x)
-                    station_y = float(y)
-                    station_z = float(z)
-                except ValueError:
-                    continue
-                if -90 <= station_y <= 90 and -180 <= station_x <= 180: # Input is in lat-lon
-                    try:
-                        out_utm = utm.from_latlon(station_x, station_y)
-                        station_easting = float(out_utm[0])
-                        station_northing = float(out_utm[1])
-                    except ValueError:
-                        print(
-                            "WARNING. Invalide coordinate of the tracking point"
-                        )
-                else:
-                    station_northing = station_y
-                    station_easting = station_x
-                if y0 <= station_northing <= yf and x0 <= station_easting <= xf and \
-                        min(output_levels) <= station_z <= max(output_levels):
-                    stations_elevation.append(station_z)
-                    stations_northing.append(station_northing)
-                    stations_easting.append(station_easting)
-                else:
-                    continue
-        return stations_easting, stations_northing, stations_elevation
-
-
-    stations_easting, stations_northing, stations_elevation = extract_tracking_points_locations()
 
 
 
@@ -1580,12 +1640,14 @@ processed_files_levels = []
 processed_files_steps = []
 for model in models_to_elaborate:
     x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, output_levels, hour_start, minute_start = domain(model)
+    if tracking_points:
+        stations = elaborate_tracking_points()
     for day in days:
-        elaborate_day(day, model)
+        processed_files = elaborate_day(day, model)
+        if tracking_points:
+            extract_tracking_points(processed_files)
     processed_files_levels = sort_levels(processed_files_levels)
     processed_files_steps = sorted(processed_files_steps)
     if plot_ex_prob:
         probabilistic_output(model)
     save_plots(model, min_con, max_con)
-    if tracking_points:
-        elaborate_tracking_points()

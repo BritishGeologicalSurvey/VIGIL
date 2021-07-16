@@ -619,13 +619,20 @@ def extract_tracking_points(files_to_interpolate):
         return my_interpolating_function(pt)
 
     files_time_steps = []
+    files_time_averaging_steps = []
     for file in files_to_interpolate:
         file_name = file.split(os.sep)[-1]
         file_time_step = file_name.split('_')[2]
-        file_time_step = int(file_time_step.split('.grd')[0])
-        if file_time_step not in files_time_steps:
-            files_time_steps.append(file_time_step)
+        try:
+            file_time_step = int(file_time_step.split('.grd')[0])
+            if file_time_step not in files_time_steps:
+                files_time_steps.append(file_time_step)
+        except ValueError:
+            file_time_step_avg = file_time_step.split('.grd')[0]
+            if file_time_step_avg not in files_time_averaging_steps:
+                files_time_averaging_steps.append(file_time_step_avg)
     files_time_steps = sorted(files_time_steps)
+    files_time_averaging_steps = sorted(files_time_averaging_steps)
     levels_for_interpolation = []
     for station in stations:
         if min(output_levels) <= station['elevation'] <= max(output_levels):
@@ -650,15 +657,43 @@ def extract_tracking_points(files_to_interpolate):
                 file_level = file_name.split('_')[1]
                 file_level = float(file_level.split('mabg')[0])
                 file_time_step = file_name.split('_')[2]
-                file_time_step = int(file_time_step.split('.grd')[0])
+                try:
+                    file_time_step = int(file_time_step.split('.grd')[0])
+                except ValueError:
+                    continue
                 if file_level in levels_for_interpolation and file_time_step == time_step:
                     files_to_use.append(file)
                     files_levels.append(file_level)
             files_levels = sorted(files_levels)
             c_interpolated = interpolate(station['easting'], station['northing'], station['elevation'], files_levels,
                                          files_to_use)
-            with open(os.path.join(file_directory, 'TP_' + str(station['station_id']) + '.txt'), 'a') as \
-                    tracking_point_file:
+            tracking_point_file = os.path.join(file_directory, 'TP_' + str(station['station_id']) + '.txt')
+            tracking_points_files.append(tracking_point_file)
+            with open(tracking_point_file, 'a') as tracking_point_file:
+                tracking_point_file.write(str(time_step) + '\t' + "{0:.2e}".format(c_interpolated[0]) + '\n')
+        for time_step in files_time_averaging_steps:
+            files_to_use = []
+            files_levels = []
+            file_directory = ''
+            for file in files_to_interpolate:
+                file_name = file.split(os.sep)[-1]
+                file_directory = file.split(file_name)[0]
+                file_level = file_name.split('_')[1]
+                file_level = float(file_level.split('mabg')[0])
+                file_time_step = file_name.split('_')[2]
+                try:
+                    file_time_step = int(file_time_step.split('.grd')[0])
+                except ValueError:
+                    file_time_step = file_time_step.split('.grd')[0]
+                    if file_level in levels_for_interpolation and file_time_step == time_step:
+                        files_to_use.append(file)
+                        files_levels.append(file_level)
+            files_levels = sorted(files_levels)
+            c_interpolated = interpolate(station['easting'], station['northing'], station['elevation'], files_levels,
+                                         files_to_use)
+            tracking_point_file = os.path.join(file_directory, 'TP_' + str(station['station_id']) + '.txt')
+            tracking_points_files.append(tracking_point_file)
+            with open(tracking_point_file, 'a') as tracking_point_file:
                 tracking_point_file.write(str(time_step) + '\t' + "{0:.2e}".format(c_interpolated[0]) + '\n')
 
 
@@ -962,6 +997,7 @@ def elaborate_day(day_input, model):
                             if time_min <= file_validity <= time_max:
                                 files_to_average.append(file)
                                 averaged_files.append(file)
+                    processed_files.append(time_averaged_file)
                     time_average(files_to_average, time_averaged_file)
                     files_to_average = []
             if time_av == 0:
@@ -1369,7 +1405,7 @@ def save_plots(model, min_con, max_con):
                 try:
                     file_time_step_datetime = datetime.datetime.strptime(file_time_step, '%Y%m%d%H%M')
                 except ValueError:
-                    None
+                    file_time_step_datetime = datetime.datetime.strptime('999912310000', '%Y%m%d%H%M')
                 simulation_start = datetime.datetime.strptime(day + "{:02d}".format(hour_start), '%Y%m%d%H%M')
                 output_file_name = files_list[i].split(".grd")[0]
                 output_file_name += ".png"
@@ -1638,6 +1674,7 @@ species_properties = gas_properties()
 tavg_intervals = []
 processed_files_levels = []
 processed_files_steps = []
+tracking_points_files = []
 for model in models_to_elaborate:
     x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, output_levels, hour_start, minute_start = domain(model)
     if tracking_points:

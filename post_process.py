@@ -1252,7 +1252,7 @@ def save_plots(model, min_con, max_con):
                 try:
                     file_time_step_datetime = datetime.datetime.strptime(file_time_step, '%Y%m%d%H%M')
                 except ValueError:
-                    None
+                    file_time_step_datetime = datetime.datetime.strptime('999912310000', '%Y%m%d%H%M')
                 simulation_start = datetime.datetime.strptime(day + "{:02d}".format(hour_start), '%Y%m%d%H%M')
                 output_file_name = files_list[i].split(".grd")[0]
                 output_file_name += ".png"

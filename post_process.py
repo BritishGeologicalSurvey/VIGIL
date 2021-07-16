@@ -600,7 +600,7 @@ def elaborate_tracking_points():
     return stations
 
 
-def extract_tracking_points(files_to_interpolate):
+def extract_tracking_points(files_to_interpolate, j):
     def interpolate(x, y, z, levels_interpolation, files):
         from scipy import interpolate
         x_array = np.linspace(x0, xf, nx, endpoint=True)
@@ -634,6 +634,7 @@ def extract_tracking_points(files_to_interpolate):
     files_time_steps = sorted(files_time_steps)
     files_time_averaging_steps = sorted(files_time_averaging_steps)
     levels_for_interpolation = []
+    k = 0
     for station in stations:
         if min(output_levels) <= station['elevation'] <= max(output_levels):
             for i in range (1, len(output_levels) + 1):
@@ -647,6 +648,7 @@ def extract_tracking_points(files_to_interpolate):
                     break
                 else:
                     continue
+        i = 0
         for time_step in files_time_steps:
             files_to_use = []
             files_levels = []
@@ -667,10 +669,12 @@ def extract_tracking_points(files_to_interpolate):
             files_levels = sorted(files_levels)
             c_interpolated = interpolate(station['easting'], station['northing'], station['elevation'], files_levels,
                                          files_to_use)
+            c[k][j][i] = c_interpolated[0]
             tracking_point_file = os.path.join(file_directory, 'TP_' + str(station['station_id']) + '.txt')
             tracking_points_files.append(tracking_point_file)
             with open(tracking_point_file, 'a') as tracking_point_file:
                 tracking_point_file.write(str(time_step) + '\t' + "{0:.2e}".format(c_interpolated[0]) + '\n')
+            i += 1
         for time_step in files_time_averaging_steps:
             files_to_use = []
             files_levels = []
@@ -691,10 +695,42 @@ def extract_tracking_points(files_to_interpolate):
             files_levels = sorted(files_levels)
             c_interpolated = interpolate(station['easting'], station['northing'], station['elevation'], files_levels,
                                          files_to_use)
+            c[k][j][i] = c_interpolated[0]
             tracking_point_file = os.path.join(file_directory, 'TP_' + str(station['station_id']) + '.txt')
             tracking_points_files.append(tracking_point_file)
             with open(tracking_point_file, 'a') as tracking_point_file:
                 tracking_point_file.write(str(time_step) + '\t' + "{0:.2e}".format(c_interpolated[0]) + '\n')
+            i += 1
+        k += 1
+    return files_time_steps + files_time_averaging_steps
+
+
+def probabilistic_tracking_points():
+    delta_quantile = 0.1
+    quantiles = []
+    quantile_string = ''
+    for l in range(0, int(1 / delta_quantile + 1)):
+        quantiles.append(l * delta_quantile)
+        quantile_string +=  '\t' + "{0:.3f}".format(quantiles[-1])
+    output_quantile = [[[0 for i in range(0, len(all_time_steps))] for l in range(0, len(quantiles)]
+                       for k in range(0, len(stations))]
+    c_list = []
+    for k in range(0, len(stations)):
+        for i in range(0, len(all_time_steps)):
+            for j in range(0, len(days)):
+                c_list.append(c[k][j][i])
+            for l in range(0, len(quantiles)):
+                output_quantile[k][l][i] = np.quantile(c_list, q=quantiles[l])
+            c_list = []
+    for k in range(0, len(stations)):
+        ecdf_tracking_point_file = os.path.join(root, 'TP_' + str(station['station_id'][k]) + '_ecdf.txt')
+        with open(ecdf_tracking_point_file, 'w') as output_file:
+            output_file.write(quantile_string + '\n')
+            for i in range(0, len(all_time_steps)):
+                output_quantile_string = str(all_time_steps[i])
+                for l in range(0, len(quantiles)): \
+                        output_quantile_string += '\t' + "{0:.2e}".format(output_quantile[k][l][i])
+                output_file.write(output_quantile_string + '\n' )
 
 
 def extract_days():
@@ -1011,6 +1047,7 @@ def elaborate_day(day_input, model):
                     time_max = max(time_steps)
                 continue
     return processed_files
+
 
 def sort_levels(input_array):
     output_array = []
@@ -1618,9 +1655,6 @@ def save_plots(model, min_con, max_con):
             i += 1
 
 
-
-
-
 root = os.getcwd()
 
 (
@@ -1679,10 +1713,18 @@ for model in models_to_elaborate:
     x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, output_levels, hour_start, minute_start = domain(model)
     if tracking_points:
         stations = elaborate_tracking_points()
+        # Initialize array of concentration to be used for ECDFs in the tracking points
+        c = [[[0 for i in range(0, n_time_steps + 10)] for j in range(0, len(days))]
+             for k in range(0, len(stations))]
+    j = 0
     for day in days:
         processed_files = elaborate_day(day, model)
         if tracking_points:
-            extract_tracking_points(processed_files)
+            all_time_steps = extract_tracking_points(processed_files, j)
+            j += 1
+    print(all_time_steps)
+    if tracking_points:
+        probabilistic_tracking_points()
     processed_files_levels = sort_levels(processed_files_levels)
     processed_files_steps = sorted(processed_files_steps)
     if plot_ex_prob:

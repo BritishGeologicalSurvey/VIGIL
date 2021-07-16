@@ -350,6 +350,8 @@ def folder_structure():
         twodee_outputs, processed_output_folder_name
     )
     twodee_ecdf = os.path.join(twodee_outputs, ecdf_folder_name)
+    disgas_ecdf_tracking_points = os.path.join(disgas_ecdf, 'tracking_points')
+    twodee_ecdf_tracking_points = os.path.join(twodee_ecdf, 'tracking_points')
     try:
         os.mkdir(post_processing)
     except FileExistsError:
@@ -363,11 +365,14 @@ def folder_structure():
             os.mkdir(disgas_processed_output_folder)
         except FileExistsError:
             print("Folder " + disgas_processed_output_folder + " already exists")
-
         try:
             os.mkdir(disgas_ecdf)
         except FileExistsError:
             print("Folder " + disgas_ecdf + " already exists")
+        try:
+            os.mkdir(disgas_ecdf_tracking_points)
+        except FileExistsError:
+            print("Folder " + disgas_ecdf_tracking_points + " already exists")
     if models == "twodee" or models == "all":
         try:
             os.mkdir(twodee_outputs)
@@ -381,6 +386,10 @@ def folder_structure():
             os.mkdir(twodee_ecdf)
         except FileExistsError:
             print("Folder " + twodee_ecdf + " already exists")
+        try:
+            os.mkdir(twodee_ecdf_tracking_points)
+        except FileExistsError:
+            print("Folder " + twodee_ecdf_tracking_points + " already exists")
     twodee_input_file = os.path.join(root, "twodee.inp")
     twodee_output_time_step = 0
     if models == "all":
@@ -404,10 +413,12 @@ def folder_structure():
         disgas_processed_output_folder,
         ecdf_folder_name,
         disgas_ecdf,
+        disgas_ecdf_tracking_points,
         twodee_outputs,
         twodee_original_output_folder,
         twodee_processed_output_folder,
         twodee_ecdf,
+        twodee_ecdf_tracking_points,
         models_to_elaborate,
         twodee_output_time_step,
     )
@@ -711,8 +722,8 @@ def probabilistic_tracking_points():
     quantile_string = ''
     for l in range(0, int(1 / delta_quantile + 1)):
         quantiles.append(l * delta_quantile)
-        quantile_string +=  '\t' + "{0:.3f}".format(quantiles[-1])
-    output_quantile = [[[0 for i in range(0, len(all_time_steps))] for l in range(0, len(quantiles)]
+        quantile_string += '\t' + "{0:.3f}".format(quantiles[-1])
+    output_quantile = [[[0 for i in range(0, len(all_time_steps))] for l in range(0, len(quantiles))]
                        for k in range(0, len(stations))]
     c_list = []
     for k in range(0, len(stations)):
@@ -723,7 +734,13 @@ def probabilistic_tracking_points():
                 output_quantile[k][l][i] = np.quantile(c_list, q=quantiles[l])
             c_list = []
     for k in range(0, len(stations)):
-        ecdf_tracking_point_file = os.path.join(root, 'TP_' + str(station['station_id'][k]) + '_ecdf.txt')
+        station = stations[k]
+        if model == 'disgas':
+            ecdf_tracking_point_file = os.path.join(disgas_ecdf_tracking_points,
+                                                    'TP_' + str(station['station_id']) + '_ecdf.txt')
+        else:
+            ecdf_tracking_point_file = os.path.join(twodee_ecdf_tracking_points,
+                                                    'TP_' + str(station['station_id']) + '_ecdf.txt')
         with open(ecdf_tracking_point_file, 'w') as output_file:
             output_file.write(quantile_string + '\n')
             for i in range(0, len(all_time_steps)):
@@ -1693,10 +1710,12 @@ except KeyError:
     disgas_processed_output_folder,
     ecdf_folder_name,
     disgas_ecdf,
+    disgas_ecdf_tracking_points,
     twodee_outputs,
     twodee_original_output_folder,
     twodee_processed_output_folder,
     twodee_ecdf,
+    twodee_ecdf_tracking_points,
     models_to_elaborate,
     twodee_output_time_step,
 ) = folder_structure()
@@ -1722,7 +1741,6 @@ for model in models_to_elaborate:
         if tracking_points:
             all_time_steps = extract_tracking_points(processed_files, j)
             j += 1
-    print(all_time_steps)
     if tracking_points:
         probabilistic_tracking_points()
     processed_files_levels = sort_levels(processed_files_levels)

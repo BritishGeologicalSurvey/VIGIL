@@ -126,7 +126,7 @@ The following flags control the execution of post_process.py:
 usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB] [-EX EX_PROB [EX_PROB ...]] [-T TIME_STEPS [TIME_STEPS ...]]
                        [-L LEVELS [LEVELS ...]] [-D DAYS_PLOT [DAYS_PLOT ...]] [-C CONVERT] [-S SPECIES [SPECIES ...]]
                        [-N NPROC] [-M MODELS] [-MO MERGE_OUTPUTS] [-U UNITS] [-PL PLOT_LIMITS [PLOT_LIMITS ...]] [-TA TIME_AV] 
-		       [-OF OUTPUT_FORMAT] [-PT PLOT_TOPOGRAPHY] [-PR PLOT_RESOLUTION]
+		       [-OF OUTPUT_FORMAT] [-PT PLOT_TOPOGRAPHY] [-PR PLOT_RESOLUTION] [-TP TRACKING_POINTS]
 
   -h, --help            show this help message and exit
   -P PLOT, --plot PLOT  True: Produce plots of the solutions. False: Do not
@@ -174,6 +174,8 @@ usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB] [-EX EX_PROB [EX_PROB .
                         Topography height a.s.l. contour lines spatial resolution (in m). Used only if -PT True
   -PR PLOT_RESOLUTION, --plot_resolution PLOT_RESOLUTION
                         Specify plot resolution in dpi
+  -TP TRACKING_POINTS, --tracking_points TRACKING_POINTS
+                        Extrapolate gas concentration at locations specified in the file tracking_points.txt
 ```
 
 ### Dependencies and installation instructions

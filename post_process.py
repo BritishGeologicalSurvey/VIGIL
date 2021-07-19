@@ -717,7 +717,43 @@ def extract_tracking_points(files_to_interpolate, j):
 
 
 def probabilistic_tracking_points():
-    delta_quantile = 0.1
+    def plot_hazard_curves(file_input):
+        import matplotlib
+        matplotlib.use("Agg")
+        from matplotlib import pyplot as plt
+        c_ecdf = []
+        with open(file_input, 'r') as tp_ecdf_file:
+            lines = tp_ecdf_file.readlines()[1:]
+            time_steps = []
+            for line in lines:
+                entries = line.split('\t')[1:]
+                time_steps.append(line.split('\t')[0])
+                for i in range(0, len(entries)):
+                    entries[i] = float(entries[i])
+                c_ecdf.append(entries)
+        SUB = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
+        tp_file = file_input.split(os.sep)[-1]
+        tp_file = tp_file.split('.txt')[0]
+        specie_name = file_input.split(os.sep)[-2]
+        specie_name = specie_name.translate(SUB)
+        for i in range(0, len(c_ecdf)):
+            output_plot_file = tp_file + '_' + time_steps[i] + '.png'
+            plt.plot(c_ecdf[i], quantiles)
+            if units == "ppm":
+                plt.title(specie_name + " concentration [ppm]")
+                plt.xlabel("C [ppm]")
+            else:
+                plt.title(specie_name + " concentration [kg m$\mathregular{^{-3}}$]")
+                plt.xlabel("C [kg m$\mathregular{^{-3}}$]")
+            plt.ylabel("ECDF")
+            image_buffer = StringIO()
+            plt.tight_layout()
+            plt.savefig(output_plot_file)
+            image_buffer.close()
+            plt.close()
+
+
+    delta_quantile = 0.01
     quantiles = []
     quantile_string = ''
     for l in range(0, int(1 / delta_quantile + 1)):
@@ -748,6 +784,7 @@ def probabilistic_tracking_points():
                 for l in range(0, len(quantiles)): \
                         output_quantile_string += '\t' + "{0:.2e}".format(output_quantile[k][l][i])
                 output_file.write(output_quantile_string + '\n' )
+        plot_hazard_curves(ecdf_tracking_point_file)
 
 
 def extract_days():
@@ -1400,6 +1437,7 @@ def save_plots(model, min_con, max_con):
     graphical_outputs = os.path.join(model_outputs, "graphical_outputs")
     graphical_outputs_simulations = os.path.join(graphical_outputs, "simulations")
     graphical_outputs_ecdf = os.path.join(graphical_outputs, "ecdf")
+    graphical_outputs_ecdf_tracking_points = os.path.join(graphical_outputs_ecdf, "tracking_points")
     try:
         os.mkdir(graphical_outputs)
     except FileExistsError:
@@ -1412,6 +1450,10 @@ def save_plots(model, min_con, max_con):
         os.mkdir(graphical_outputs_ecdf)
     except FileExistsError:
         print("Folder " + graphical_outputs_ecdf + " already exists")
+    try:
+        os.mkdir(graphical_outputs_ecdf_tracking_points)
+    except FileExistsError:
+        print("Folder " + graphical_outputs_ecdf_tracking_points + " already exists")
 
     files_to_plot = []
     output_files = []

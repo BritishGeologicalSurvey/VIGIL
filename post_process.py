@@ -406,6 +406,35 @@ def folder_structure():
         if twodee_output_time_step == 0:
             print("Unable to read the Twodee output time step")
             sys.exit()
+    for model in models_to_elaborate:
+        if model == "disgas":
+            model_outputs = disgas_outputs
+            model_processed_output_folder = disgas_processed_output_folder
+            ecdf_outputs = disgas_ecdf
+        else:
+            model_outputs = twodee_outputs
+            model_processed_output_folder = twodee_processed_output_folder
+            ecdf_outputs = twodee_ecdf
+        graphical_outputs = os.path.join(model_outputs, "graphical_outputs")
+        graphical_outputs_simulations = os.path.join(graphical_outputs, "simulations")
+        graphical_outputs_ecdf = os.path.join(graphical_outputs, "ecdf")
+        graphical_outputs_ecdf_tracking_points = os.path.join(graphical_outputs_ecdf, "tracking_points")
+        try:
+            os.mkdir(graphical_outputs)
+        except FileExistsError:
+            print("Folder " + graphical_outputs + " already exists")
+        try:
+            os.mkdir(graphical_outputs_simulations)
+        except FileExistsError:
+            print("Folder " + graphical_outputs_simulations + " already exists")
+        try:
+            os.mkdir(graphical_outputs_ecdf)
+        except FileExistsError:
+            print("Folder " + graphical_outputs_ecdf + " already exists")
+        try:
+            os.mkdir(graphical_outputs_ecdf_tracking_points)
+        except FileExistsError:
+            print("Folder " + graphical_outputs_ecdf_tracking_points + " already exists")
 
     return (
         disgas_outputs,
@@ -421,6 +450,12 @@ def folder_structure():
         twodee_ecdf_tracking_points,
         models_to_elaborate,
         twodee_output_time_step,
+        model_processed_output_folder,
+        ecdf_outputs,
+        graphical_outputs,
+        graphical_outputs_simulations,
+        graphical_outputs_ecdf,
+        graphical_outputs_ecdf_tracking_points
     )
 
 
@@ -645,79 +680,80 @@ def extract_tracking_points(files_to_interpolate, j):
     files_time_steps = sorted(files_time_steps)
     files_time_averaging_steps = sorted(files_time_averaging_steps)
     levels_for_interpolation = []
-    k = 0
-    for station in stations:
-        if min(output_levels) <= station['elevation'] <= max(output_levels):
-            for i in range (1, len(output_levels) + 1):
-                levels_for_interpolation = []
-                if output_levels[i - 1] == station['elevation']:
-                    levels_for_interpolation.append(output_levels[i - 1])
-                    break
-                elif output_levels[i - 1] < station['elevation'] < output_levels[i]:
-                    levels_for_interpolation.append(output_levels[i - 1])
-                    levels_for_interpolation.append(output_levels[i])
-                    break
-                else:
-                    continue
-        i = 0
-        for time_step in files_time_steps:
-            files_to_use = []
-            files_levels = []
-            file_directory = ''
-            for file in files_to_interpolate:
-                file_name = file.split(os.sep)[-1]
-                file_directory = file.split(file_name)[0]
-                file_level = file_name.split('_')[1]
-                file_level = float(file_level.split('mabg')[0])
-                file_time_step = file_name.split('_')[2]
-                try:
-                    file_time_step = int(file_time_step.split('.grd')[0])
-                except ValueError:
-                    continue
-                if file_level in levels_for_interpolation and file_time_step == time_step:
-                    files_to_use.append(file)
-                    files_levels.append(file_level)
-            files_levels = sorted(files_levels)
-            c_interpolated = interpolate(station['easting'], station['northing'], station['elevation'], files_levels,
-                                         files_to_use)
-            c[k][j][i] = c_interpolated[0]
-            tracking_point_file = os.path.join(file_directory, 'TP_' + str(station['station_id']) + '.txt')
-            tracking_points_files.append(tracking_point_file)
-            with open(tracking_point_file, 'a') as tracking_point_file:
-                tracking_point_file.write(str(time_step) + '\t' + "{0:.2e}".format(c_interpolated[0]) + '\n')
-            i += 1
-        for time_step in files_time_averaging_steps:
-            files_to_use = []
-            files_levels = []
-            file_directory = ''
-            for file in files_to_interpolate:
-                file_name = file.split(os.sep)[-1]
-                file_directory = file.split(file_name)[0]
-                file_level = file_name.split('_')[1]
-                file_level = float(file_level.split('mabg')[0])
-                file_time_step = file_name.split('_')[2]
-                try:
-                    file_time_step = int(file_time_step.split('.grd')[0])
-                except ValueError:
-                    file_time_step = file_time_step.split('.grd')[0]
+    for l in range(0, len(species)):
+        k = 0
+        for station in stations:
+            if min(output_levels) <= station['elevation'] <= max(output_levels):
+                for i in range(1, len(output_levels) + 1):
+                    levels_for_interpolation = []
+                    if output_levels[i - 1] == station['elevation']:
+                        levels_for_interpolation.append(output_levels[i - 1])
+                        break
+                    elif output_levels[i - 1] < station['elevation'] < output_levels[i]:
+                        levels_for_interpolation.append(output_levels[i - 1])
+                        levels_for_interpolation.append(output_levels[i])
+                        break
+                    else:
+                        continue
+            i = 0
+            for time_step in files_time_steps:
+                files_to_use = []
+                files_levels = []
+                file_directory = ''
+                for file in files_to_interpolate:
+                    file_name = file.split(os.sep)[-1]
+                    file_directory = file.split(file_name)[0]
+                    file_level = file_name.split('_')[1]
+                    file_level = float(file_level.split('mabg')[0])
+                    file_time_step = file_name.split('_')[2]
+                    try:
+                        file_time_step = int(file_time_step.split('.grd')[0])
+                    except ValueError:
+                        continue
                     if file_level in levels_for_interpolation and file_time_step == time_step:
                         files_to_use.append(file)
                         files_levels.append(file_level)
-            files_levels = sorted(files_levels)
-            c_interpolated = interpolate(station['easting'], station['northing'], station['elevation'], files_levels,
-                                         files_to_use)
-            c[k][j][i] = c_interpolated[0]
-            tracking_point_file = os.path.join(file_directory, 'TP_' + str(station['station_id']) + '.txt')
-            tracking_points_files.append(tracking_point_file)
-            with open(tracking_point_file, 'a') as tracking_point_file:
-                tracking_point_file.write(str(time_step) + '\t' + "{0:.2e}".format(c_interpolated[0]) + '\n')
-            i += 1
-        k += 1
+                files_levels = sorted(files_levels)
+                c_interpolated = interpolate(station['easting'], station['northing'], station['elevation'], files_levels,
+                                             files_to_use)
+                c[l][k][j][i] = c_interpolated[0]
+                tracking_point_file = os.path.join(file_directory, 'TP_' + str(station['station_id']) + '.txt')
+                tracking_points_files.append(tracking_point_file)
+                with open(tracking_point_file, 'a') as tracking_point_file:
+                    tracking_point_file.write(str(time_step) + '\t' + "{0:.2e}".format(c_interpolated[0]) + '\n')
+                i += 1
+            for time_step in files_time_averaging_steps:
+                files_to_use = []
+                files_levels = []
+                file_directory = ''
+                for file in files_to_interpolate:
+                    file_name = file.split(os.sep)[-1]
+                    file_directory = file.split(file_name)[0]
+                    file_level = file_name.split('_')[1]
+                    file_level = float(file_level.split('mabg')[0])
+                    file_time_step = file_name.split('_')[2]
+                    try:
+                        file_time_step = int(file_time_step.split('.grd')[0])
+                    except ValueError:
+                        file_time_step = file_time_step.split('.grd')[0]
+                        if file_level in levels_for_interpolation and file_time_step == time_step:
+                            files_to_use.append(file)
+                            files_levels.append(file_level)
+                files_levels = sorted(files_levels)
+                c_interpolated = interpolate(station['easting'], station['northing'], station['elevation'], files_levels,
+                                             files_to_use)
+                c[l][k][j][i] = c_interpolated[0]
+                tracking_point_file = os.path.join(file_directory, 'TP_' + str(station['station_id']) + '.txt')
+                tracking_points_files.append(tracking_point_file)
+                with open(tracking_point_file, 'a') as tracking_point_file:
+                    tracking_point_file.write(str(time_step) + '\t' + "{0:.2e}".format(c_interpolated[0]) + '\n')
+                i += 1
+            k += 1
     return files_time_steps + files_time_averaging_steps
 
 
 def probabilistic_tracking_points():
-    def plot_hazard_curves(file_input):
+    def plot_hazard_curves(file_input, folder):
         import matplotlib
         matplotlib.use("Agg")
         from matplotlib import pyplot as plt
@@ -737,7 +773,7 @@ def probabilistic_tracking_points():
         specie_name = file_input.split(os.sep)[-2]
         specie_name = specie_name.translate(SUB)
         for i in range(0, len(c_ecdf)):
-            output_plot_file = tp_file + '_' + time_steps[i] + '.png'
+            output_plot_file = os.path.join(folder, tp_file + '_' + time_steps[i] + '.png')
             plt.plot(c_ecdf[i], quantiles)
             if units == "ppm":
                 plt.title(specie_name + " concentration [ppm]")
@@ -745,10 +781,11 @@ def probabilistic_tracking_points():
             else:
                 plt.title(specie_name + " concentration [kg m$\mathregular{^{-3}}$]")
                 plt.xlabel("C [kg m$\mathregular{^{-3}}$]")
+            plt.xlim(min_con_tp, max_con_tp)
             plt.ylabel("ECDF")
             image_buffer = StringIO()
             plt.tight_layout()
-            plt.savefig(output_plot_file)
+            plt.savefig(output_plot_file, dpi=plot_resolution)
             image_buffer.close()
             plt.close()
 
@@ -756,35 +793,63 @@ def probabilistic_tracking_points():
     delta_quantile = 0.01
     quantiles = []
     quantile_string = ''
-    for l in range(0, int(1 / delta_quantile + 1)):
-        quantiles.append(l * delta_quantile)
+    for m in range(0, int(1 / delta_quantile + 1)):
+        quantiles.append(m * delta_quantile)
         quantile_string += '\t' + "{0:.3f}".format(quantiles[-1])
-    output_quantile = [[[0 for i in range(0, len(all_time_steps))] for l in range(0, len(quantiles))]
-                       for k in range(0, len(stations))]
+    output_quantile = [[[[0 for i in range(0, len(all_time_steps))] for m in range(0, len(quantiles))]
+                       for k in range(0, len(stations))] for l in range (0, len(stations))]
     c_list = []
-    for k in range(0, len(stations)):
-        for i in range(0, len(all_time_steps)):
-            for j in range(0, len(days)):
-                c_list.append(c[k][j][i])
-            for l in range(0, len(quantiles)):
-                output_quantile[k][l][i] = np.quantile(c_list, q=quantiles[l])
-            c_list = []
-    for k in range(0, len(stations)):
-        station = stations[k]
+    for specie in species:
+        graphical_outputs_ecdf_tracking_points_specie = os.path.join(graphical_outputs_ecdf_tracking_points, specie)
+        try:
+            os.mkdir(graphical_outputs_ecdf_tracking_points_specie)
+        except FileExistsError:
+            print('Folder ' + graphical_outputs_ecdf_tracking_points_specie + ' already exists')
         if model == 'disgas':
-            ecdf_tracking_point_file = os.path.join(disgas_ecdf_tracking_points,
-                                                    'TP_' + str(station['station_id']) + '_ecdf.txt')
+            disgas_ecdf_tracking_points_specie = os.path.join(disgas_ecdf_tracking_points, specie)
+            try:
+                os.mkdir(disgas_ecdf_tracking_points_specie)
+            except FileExistsError:
+                print('Folder ' + disgas_ecdf_tracking_points_specie + ' already exists')
         else:
-            ecdf_tracking_point_file = os.path.join(twodee_ecdf_tracking_points,
-                                                    'TP_' + str(station['station_id']) + '_ecdf.txt')
-        with open(ecdf_tracking_point_file, 'w') as output_file:
-            output_file.write(quantile_string + '\n')
+            twodee_ecdf_tracking_points_specie = os.path.join(twodee_ecdf_tracking_points, specie)
+            try:
+                os.mkdir(twodee_ecdf_tracking_points_specie)
+            except FileExistsError:
+                print('Folder ' + twodee_ecdf_tracking_points_specie + ' already exists')
+    min_con_tp = 1000000000000000
+    max_con_tp = 0
+    for l in range(0, len(species)):
+        for k in range(0, len(stations)):
             for i in range(0, len(all_time_steps)):
-                output_quantile_string = str(all_time_steps[i])
-                for l in range(0, len(quantiles)): \
-                        output_quantile_string += '\t' + "{0:.2e}".format(output_quantile[k][l][i])
-                output_file.write(output_quantile_string + '\n' )
-        plot_hazard_curves(ecdf_tracking_point_file)
+                for j in range(0, len(days)):
+                    c_list.append(c[l][k][j][i])
+                for m in range(0, len(quantiles)):
+                    output_quantile[l][k][m][i] = np.quantile(c_list, q=quantiles[m])
+                    if output_quantile[l][k][m][i] <= min_con_tp:
+                        min_con_tp = output_quantile[l][k][m][i]
+                    if output_quantile[l][k][m][i] >= max_con_tp:
+                        max_con_tp = output_quantile[l][k][m][i]
+                c_list = []
+    print(min_con_tp, max_con_tp)
+    for l in range(0, len(species)):
+        for k in range(0, len(stations)):
+            station = stations[k]
+            if model == 'disgas':
+                ecdf_tracking_point_file = os.path.join(disgas_ecdf_tracking_points, species[l],
+                                                        'TP_' + str(station['station_id']) + '_ecdf.txt')
+            else:
+                ecdf_tracking_point_file = os.path.join(twodee_ecdf_tracking_points, species[l],
+                                                        'TP_' + str(station['station_id']) + '_ecdf.txt')
+            with open(ecdf_tracking_point_file, 'w') as output_file:
+                output_file.write(quantile_string + '\n')
+                for i in range(0, len(all_time_steps)):
+                    output_quantile_string = str(all_time_steps[i])
+                    for m in range(0, len(quantiles)): \
+                            output_quantile_string += '\t' + "{0:.2e}".format(output_quantile[l][k][m][i])
+                    output_file.write(output_quantile_string + '\n' )
+            plot_file_folder = os.path.join(graphical_outputs_ecdf_tracking_points, specie)
+            plot_hazard_curves(ecdf_tracking_point_file, plot_file_folder)
 
 
 def extract_days():
@@ -1383,7 +1448,7 @@ def save_plots(model, min_con, max_con):
             n_levels = 10
             dc = (max_con - min_con) / n_levels
             levels = np.arange(min_con + 0.0000001, max_con, dc)
-        fig, ax = plt.subplots(figsize=(6, 5), dpi=600)
+        fig, ax = plt.subplots(figsize=(6, 5), dpi=plot_resolution)
         if plot_topography_layer:
             top = ax.contourf(
                 X_top, Y_top, Z_top, levels_top, cmap="Greys", extend="max"
@@ -1426,38 +1491,20 @@ def save_plots(model, min_con, max_con):
         plt.close(fig)
         input_file.close()
 
-    if model == "disgas":
-        model_outputs = disgas_outputs
-        model_processed_output_folder = disgas_processed_output_folder
-        ecdf_outputs = disgas_ecdf
-    else:
-        model_outputs = twodee_outputs
-        model_processed_output_folder = twodee_processed_output_folder
-        ecdf_outputs = twodee_ecdf
-    graphical_outputs = os.path.join(model_outputs, "graphical_outputs")
-    graphical_outputs_simulations = os.path.join(graphical_outputs, "simulations")
-    graphical_outputs_ecdf = os.path.join(graphical_outputs, "ecdf")
-    graphical_outputs_ecdf_tracking_points = os.path.join(graphical_outputs_ecdf, "tracking_points")
-    try:
-        os.mkdir(graphical_outputs)
-    except FileExistsError:
-        print("Folder " + graphical_outputs + " already exists")
-    try:
-        os.mkdir(graphical_outputs_simulations)
-    except FileExistsError:
-        print("Folder " + graphical_outputs_simulations + " already exists")
-    try:
-        os.mkdir(graphical_outputs_ecdf)
-    except FileExistsError:
-        print("Folder " + graphical_outputs_ecdf + " already exists")
-    try:
-        os.mkdir(graphical_outputs_ecdf_tracking_points)
-    except FileExistsError:
-        print("Folder " + graphical_outputs_ecdf_tracking_points + " already exists")
-
     files_to_plot = []
     output_files = []
     if plot:
+        if model == "disgas":
+            model_outputs = disgas_outputs
+            model_processed_output_folder = disgas_processed_output_folder
+            ecdf_outputs = disgas_ecdf
+        else:
+            model_outputs = twodee_outputs
+            model_processed_output_folder = twodee_processed_output_folder
+            ecdf_outputs = twodee_ecdf
+        graphical_outputs = os.path.join(model_outputs, "graphical_outputs")
+        graphical_outputs_simulations = os.path.join(graphical_outputs, "simulations")
+        graphical_outputs_ecdf = os.path.join(graphical_outputs, "ecdf")
         for day in days_to_plot:
             graphical_outputs_daily = os.path.join(graphical_outputs_simulations, day)
             try:
@@ -1760,6 +1807,12 @@ except KeyError:
     twodee_ecdf_tracking_points,
     models_to_elaborate,
     twodee_output_time_step,
+    model_processed_output_folder,
+    ecdf_outputs,
+    graphical_outputs,
+    graphical_outputs_simulations,
+    graphical_outputs_ecdf,
+    graphical_outputs_ecdf_tracking_points
 ) = folder_structure()
 
 days, days_to_plot = extract_days()
@@ -1775,8 +1828,10 @@ for model in models_to_elaborate:
     if tracking_points:
         stations = elaborate_tracking_points()
         # Initialize array of concentration to be used for ECDFs in the tracking points
-        c = [[[0 for i in range(0, n_time_steps + 10)] for j in range(0, len(days))]
-             for k in range(0, len(stations))]
+        #c = [[[0 for i in range(0, n_time_steps + 10)] for j in range(0, len(days))]
+        #     for k in range(0, len(stations))]
+        c = [[[[0 for i in range(0, n_time_steps + 10)] for j in range(0, len(days))]
+             for k in range(0, len(stations))] for l in range(0, len(species))]
     j = 0
     for day in days:
         processed_files = elaborate_day(day, model)

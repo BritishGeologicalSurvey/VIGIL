@@ -21,26 +21,26 @@ GRID
   Y_ORIGIN_(UTM_M) = 4517000
 
 PROPERTIES
-  DISPERSION_TYPE = GAS            (GAS/PARTICLES)
-  PARTICLE_DIAMETER = 1e-5         (DIAMETER IN M)
-  PARTICLE_DENSITY =  2500.         (KG/M3)
-  PARTICLE_SHAPE_PARAMETER = 1.     ([0-1])
-  PARTICLE_MODEL_VSET = GANSER      (ARASTOOPOUR/GANSER/WILSON_HUANG)
+  DISPERSION_TYPE = GAS            
+  PARTICLE_DIAMETER = 1e-5        
+  PARTICLE_DENSITY =  2500.         
+  PARTICLE_SHAPE_PARAMETER = 1.    
+  PARTICLE_MODEL_VSET = GANSER      
 
 TOPOGRAPHY
-  EXTRACT_TOPOGRAPHY_FROM_FILE = YES    (YES/NO)
+  EXTRACT_TOPOGRAPHY_FROM_FILE = YES   
   Z_ORIGIN_(M) = 0.0
   X_SLOPE_(DEG) = 0.0
   Y_SLOPE_(DEG) = 0.0
 
 METEO
-  WIND_MODEL            = DIAGNO        (SIMILARITY/DIAGNO)
-  HORIZONTAL_TURB_MODEL = SMAGORINSKY   (CONSTANT/SMAGORINSKY)
-  VERTICAL_TURB_MODEL   = SIMILARITY    (CONSTANT/SIMILARITY)
-  ROUGHNESS_MODEL       = UNIFORM       (UNIFORM/MATRIX)
-  ROUGHNESS_LENGTH      = 0.05          (Roughness length if UNIFORM)
-  DIFF_COEFF_HORIZONTAL = 10.           (Only for turbulence model=0)
-  DIFF_COEFF_VERTICAL   = 10.           (Only for turbulence model=0)
+  WIND_MODEL            = DIAGNO       
+  HORIZONTAL_TURB_MODEL = SMAGORINSKY   
+  VERTICAL_TURB_MODEL   = SIMILARITY    
+  ROUGHNESS_MODEL       = UNIFORM      
+  ROUGHNESS_LENGTH      = 0.05          
+  DIFF_COEFF_HORIZONTAL = 10.           
+  DIFF_COEFF_VERTICAL   = 10.          
 
  FILES                                        (Relative or absolute file paths)
    TOPOGRAPHY_FILE_PATH   = /Users/silviamassaro/Programmi/APVGDM-master/simulations/diagno/19970710/topography.grd 
@@ -52,16 +52,16 @@ METEO
    OUTPUT_DIRECTORY    = /Users/silviamassaro/Programmi/APVGDM-master/simulations/disgas/19970710/outfiles/ 
 
 OUTPUT
-  LOG_VERBOSITY_LEVEL  = 0                 (0/1)
-  OUTPUT_GRD_TYPE      = ASCII             (ASCII/BINARY)
-  OUTPUT_INTERVAL_(SEC) = 21600           (Number of seconds between prints)
-  OUTPUT_U_VELOCITY = NO                  (YES/NO)
-  OUTPUT_V_VELOCITY = NO                 (YES/NO)
-  OUTPUT_W_VELOCITY = NO                  (YES/NO)
-  OUTPUT_CONCENTRATION = YES               (YES/NO)
-  OUTPUT_LAYERS = ALL                    (ALL/List_of_layers)
-  TRACK_POINTS = NO                       (YES/NO)
-  N_POINTS = 2                             (Number of tracking points)
-  POINTS_EASTING = 643080 641000           (UTM easting coordinate of each tracking point)
-  POINTS_NORTHING = 1774150 1774250        (UTM northing coordinate of each tracking point)
-  POINTS_ELEVATION = 1 1                   (Meters above ground of each tracking point)
+  LOG_VERBOSITY_LEVEL  = 0                 
+  OUTPUT_GRD_TYPE      = ASCII            
+  OUTPUT_INTERVAL_(SEC) = 21600           
+  OUTPUT_U_VELOCITY = NO                 
+  OUTPUT_V_VELOCITY = NO                 
+  OUTPUT_W_VELOCITY = NO                  
+  OUTPUT_CONCENTRATION = YES               
+  OUTPUT_LAYERS = ALL                    
+  TRACK_POINTS = NO                      
+  N_POINTS = 2                            
+  POINTS_EASTING = 643080 641000           
+  POINTS_NORTHING = 1774150 1774250      
+  POINTS_ELEVATION = 1 1                   

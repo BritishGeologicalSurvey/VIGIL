@@ -773,8 +773,10 @@ def probabilistic_tracking_points():
         specie_name = file_input.split(os.sep)[-2]
         specie_name = specie_name.translate(SUB)
         for i in range(0, len(c_ecdf)):
+            ii = 1
             if 'tavg' in str(time_steps[i]):
-                output_plot_file = os.path.join(folder, tp_file + '_tavg-time_step' + str(i + 1) + '.png')
+                output_plot_file = os.path.join(folder, tp_file + '_tavg-time_interval' + str(ii) + '.png')
+                ii += 1
             else:
                 output_plot_file = os.path.join(folder, tp_file + '_time_step' + str(i + 1) + '.png')
             plt.plot(c_ecdf[i], quantiles)
@@ -846,8 +848,10 @@ def probabilistic_tracking_points():
             with open(ecdf_tracking_point_file, 'w') as output_file:
                 output_file.write(quantile_string + '\n')
                 for i in range(0, len(all_time_steps)):
+                    ii = 1
                     if 'tavg' in str(all_time_steps[i]):
-                        output_quantile_string = 'tavg-time_step_' + str(i + 1)
+                        output_quantile_string = 'tavg-time_interval_' + str(ii)
+                        ii += 1
                     else:
                         output_quantile_string = 'time_step_' + str(i + 1)
                     for m in range(0, len(quantiles)): \

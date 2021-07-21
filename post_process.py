@@ -262,12 +262,13 @@ def read_arguments():
             sys.exit()
     if len(plot_isolines_s) >= 1:
         for isoline in plot_isolines_s:
-            try:
-                plot_isolines.append(float(isoline))
-            except ValueError:
-                print("WARNING. Wrong entry for -PI --plot_isolines. Continuing discarding concentration contour lines")
-                plot_isolines = []
-                break
+            if isoline != '':
+                try:
+                    plot_isolines.append(float(isoline))
+                except ValueError:
+                    print("WARNING. Wrong entry for -PI --plot_isolines. Continuing discarding concentration contour lines")
+                    plot_isolines = []
+                    break
     if output_format.lower() != "grd":
         print(
             "ERROR. Please specify a valid output format. Current valid options are: GRD"

@@ -260,7 +260,7 @@ def read_arguments():
                 "ERROR. Please specify valid minimum and maximum concentration -PL --plot_limits"
             )
             sys.exit()
-    if len(plot_isolines_s) > 0:
+    if len(plot_isolines_s) >= 1:
         for isoline in plot_isolines_s:
             try:
                 plot_isolines.append(float(isoline))

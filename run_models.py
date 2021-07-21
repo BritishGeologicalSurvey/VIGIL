@@ -810,7 +810,7 @@ def pre_process(run_type):
                         twodee_input_file.write("  MONTH  = " + day[4:6] + "\n")
                     elif "DAY" in record:
                         twodee_input_file.write("  DAY    = " + day[6:8] + "\n")
-                    elif "HOUR" in record:
+                    elif "HOUR" in record  and "NC_VAR_HOUR_NAME" not in record:
                         try:
                             hour_start = float(record.split('=')[1])
                         except ValueError:

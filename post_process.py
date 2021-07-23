@@ -172,7 +172,7 @@ def read_arguments():
                     days_to_plot_in.append(day)
                 else:
                     try:
-                        day_datetime = datetime.datetime.strptime(day, '%d/%m/%Y')
+                        day_datetime = datetime.datetime.strptime(day, '%Y%m%d')
                         days_to_plot_in.append(day_datetime.strftime('%Y%m%d'))
                     except ValueError:
                         print('ERROR. Wrong format for -D -days_plot')
@@ -944,37 +944,38 @@ def converter(input_file, processed_file, specie_input, model):
             Z_converted = np.multiply(Z, conversion_factor)  # convert ppm to kg/m3
         else:
             Z_converted = Z
-    # Create header of the processed file
-    with open(processed_file, "a") as processed_file:
-        if output_format == "grd":
-            processed_file.write("DSAA\n")
-            processed_file.write(str(nx) + "  " + str(ny) + "\n")
-            processed_file.write(str(x0) + "  " + str(xf) + "\n")
-            processed_file.write(str(y0) + "  " + str(yf) + "\n")
-        if not convert:
-            processed_file.write(
-                str(np.amin(Z_converted)) + "  " + str(np.amax(Z_converted)) + "\n"
-            )
-            np.savetxt(processed_file, Z_converted, fmt="%.2e")
-        else:
-            for specie in species_properties:
-                if specie["specie_name"] == specie_input:
-                    molar_ratio = specie["molar_ratio"]
-                    if units == 'ppm':
-                        species_conversion_factor = molar_ratio
-                    elif units == 'kg/m3':
-                        for specie in species_properties:
-                            if specie["specie_name"] == specie_input:
-                                molar_weight = specie["molar_weight"]
-                            if specie["specie_name"] == original_specie:
-                                molar_weight_tracking_specie = specie["molar_weight"]
-                        species_conversion_factor = molar_ratio * (molar_weight / molar_weight_tracking_specie)
-            Z_converted = np.multiply(Z_converted, species_conversion_factor)
-            processed_file.write(
-                str(np.amin(Z_converted)) + "  " + str(np.amax(Z_converted)) + "\n"
-            )
-            np.savetxt(processed_file, Z_converted, fmt="%.2e")
-    processed_file.close()
+    try:
+        np.loadtxt(processed_file, skiprows=5)
+    except OSError:
+        with open(processed_file, "a") as processed_file:
+            if output_format == "grd":
+                processed_file.write("DSAA\n")
+                processed_file.write(str(nx) + "  " + str(ny) + "\n")
+                processed_file.write(str(x0) + "  " + str(xf) + "\n")
+                processed_file.write(str(y0) + "  " + str(yf) + "\n")
+            if not convert:
+                processed_file.write(
+                    str(np.amin(Z_converted)) + "  " + str(np.amax(Z_converted)) + "\n"
+                )
+                np.savetxt(processed_file, Z_converted, fmt="%.2e")
+            else:
+                for specie in species_properties:
+                    if specie["specie_name"] == specie_input:
+                        molar_ratio = specie["molar_ratio"]
+                        if units == 'ppm':
+                            species_conversion_factor = molar_ratio
+                        elif units == 'kg/m3':
+                            for specie in species_properties:
+                                if specie["specie_name"] == specie_input:
+                                    molar_weight = specie["molar_weight"]
+                                if specie["specie_name"] == original_specie:
+                                    molar_weight_tracking_specie = specie["molar_weight"]
+                            species_conversion_factor = molar_ratio * (molar_weight / molar_weight_tracking_specie)
+                Z_converted = np.multiply(Z_converted, species_conversion_factor)
+                processed_file.write(
+                    str(np.amin(Z_converted)) + "  " + str(np.amax(Z_converted)) + "\n"
+                )
+                np.savetxt(processed_file, Z_converted, fmt="%.2e")
 
 
 def time_average(files_to_average, outfile):
@@ -1833,6 +1834,10 @@ tavg_intervals = []
 processed_files_levels = []
 processed_files_steps = []
 tracking_points_files = []
+if tracking_points or plot_ex_prob:
+    days_to_elaborate = days
+else:
+    days_to_elaborate = days_to_plot
 for model in models_to_elaborate:
     x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, output_levels, hour_start, minute_start = domain(model)
     if tracking_points:
@@ -1841,7 +1846,7 @@ for model in models_to_elaborate:
         c = [[[[0 for i in range(0, n_time_steps + 10)] for j in range(0, len(days))]
              for k in range(0, len(stations))] for l in range(0, len(species))]
     j = 0
-    for day in days:
+    for day in days_to_elaborate:
         processed_files = elaborate_day(day, model)
         if tracking_points:
             all_time_steps = extract_tracking_points(processed_files, j)

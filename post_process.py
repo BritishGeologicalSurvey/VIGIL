@@ -1838,8 +1838,6 @@ for model in models_to_elaborate:
     if tracking_points:
         stations = elaborate_tracking_points()
         # Initialize array of concentration to be used for ECDFs in the tracking points
-        #c = [[[0 for i in range(0, n_time_steps + 10)] for j in range(0, len(days))]
-        #     for k in range(0, len(stations))]
         c = [[[[0 for i in range(0, n_time_steps + 10)] for j in range(0, len(days))]
              for k in range(0, len(stations))] for l in range(0, len(species))]
     j = 0

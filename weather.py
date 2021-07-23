@@ -751,6 +751,10 @@ def prepare_diagno_files(data_folder, year, month, day):
                 "log.txt", "a+", encoding="utf-8", errors="surrogateescape"
         ) as logger:
             logger.write(retrieved_day_s + "\n")
+    new_file_list = os.listdir(data_folder)
+    for file in new_file_list:
+        if file.startswith('data_') or file.startswith('profile_') or file.startswith('weather_'):
+            os.remove(os.path.join(data_folder, file))
     return tref_vector, tsoil_vector, press_vector
 
 
@@ -1392,15 +1396,15 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
             try:
                 shutil.move(wtfiles[i], data_folder_new)
             except shutil.Error:
-                print('File ' + wtfiles[i] + ' alread present in ' + data_folder_new)
+                print('File ' + wtfiles[i] + ' already present in ' + data_folder_new)
             try:
                 shutil.move(wtfiles_int[i], data_folder_new)
             except shutil.Error:
-                print('File ' + wtfiles_int[i] + ' alread present in ' + data_folder_new)
+                print('File ' + wtfiles_int[i] + ' already present in ' + data_folder_new)
             try:
                 shutil.move(wtfiles_prof[i], data_folder_new)
             except:
-                print('File ' + wtfiles_prof[i] + ' alread present in ' + data_folder_new)
+                print('File ' + wtfiles_prof[i] + ' already present in ' + data_folder_new)
             simulation_day += timedelta(hours=1)
 
 

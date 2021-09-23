@@ -780,7 +780,7 @@ def probabilistic_tracking_points():
                 ii += 1
             else:
                 output_plot_file = os.path.join(folder, tp_file + '_time_step' + str(i + 1) + '.png')
-            plt.plot(c_ecdf[i], quantiles)
+            plt.plot(c_ecdf[i], ex_probabilities)
             if units == "ppm":
                 plt.title(specie_name + " concentration [ppm]")
                 plt.xlabel("C [ppm]")
@@ -788,7 +788,7 @@ def probabilistic_tracking_points():
                 plt.title(specie_name + " concentration [kg m$\mathregular{^{-3}}$]")
                 plt.xlabel("C [kg m$\mathregular{^{-3}}$]")
             plt.xlim(min_con_tp, max_con_tp)
-            plt.ylabel("ECDF")
+            plt.ylabel("Exceedance probability")
             image_buffer = StringIO()
             plt.tight_layout()
             plt.savefig(output_plot_file, dpi=plot_resolution)
@@ -798,9 +798,11 @@ def probabilistic_tracking_points():
 
     delta_quantile = 0.01
     quantiles = []
+    ex_probabilities = []
     quantile_string = ''
     for m in range(0, int(1 / delta_quantile + 1)):
         quantiles.append(m * delta_quantile)
+        ex_probabilities.append(1 - quantiles[-1])
         quantile_string += '\t' + "{0:.3f}".format(quantiles[-1])
     output_quantile = [[[[0 for i in range(0, len(all_time_steps))] for m in range(0, len(quantiles))]
                        for k in range(0, len(stations))] for l in range (0, len(stations))]

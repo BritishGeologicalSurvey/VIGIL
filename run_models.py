@@ -543,7 +543,7 @@ def pre_process(run_type):
             dx.append(source_dx)
             dy.append(source_dy)
             dur.append(source_dur)
-    n_sources = len(easting)
+        n_sources = len(easting)
 
     # Set DIAGNO folder
     diagno = os.path.join(root, "simulations", "diagno")

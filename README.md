@@ -217,7 +217,7 @@ installation of the different packages and the management of the Python installa
 Instructions for setting the Conda environment:
 
 1) create the environment with all the needed additional packages:
-	`conda create -f environment.yml`
+	`conda env create -f environment.yml`
 2) activate the environment with:
 	`conda activate vigil`
 3) to exit from the environment:

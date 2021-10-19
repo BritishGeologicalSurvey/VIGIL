@@ -910,7 +910,7 @@ def converter(input_file, processed_file, specie_input, model):
                 if specie["specie_name"] == specie_input:
                     molar_weight = specie["molar_weight"]
             conversion_factor = (
-                (22.4 / molar_weight) * ((273 + t2m) / 273) * (1013 / p2m)
+                (22.4 / molar_weight) * (t2m / 273) * (1013 / p2m)
             ) * 1000000
             Z_converted = np.multiply(Z, conversion_factor)  # convert kg/m3 to ppm
         else:
@@ -941,7 +941,7 @@ def converter(input_file, processed_file, specie_input, model):
                 if specie["specie_name"] == specie_input:
                     molar_weight = specie["molar_weight"]
             conversion_factor = (
-                (molar_weight / 22.4) * (273 / (273 + t2m)) * (p2m / 1013)
+                (molar_weight / 22.4) * (273 / t2m) * (p2m / 1013)
             ) / 1000000
             Z_converted = np.multiply(Z, conversion_factor)  # convert ppm to kg/m3
         else:

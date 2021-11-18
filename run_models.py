@@ -75,6 +75,34 @@ def read_arguments():
              "and top right corner of the domain",
     )
     parser.add_argument(
+        "-NX",
+        "--nx",
+        default=-1,
+        help="Number of grid cells along the x-direction. If not provided, the grid spacing along the x-direction "
+             "must be provided",
+    )
+    parser.add_argument(
+        "-NY",
+        "--ny",
+        default=-1,
+        help="Number of grid cells along the y-direction. If not provided, the grid spacing along the y-direction "
+             "must be provided",
+    )
+    parser.add_argument(
+        "-DX",
+        "--dx",
+        default=-1,
+        help="Grid spacing (in m) along the x-direction. If not provided, the number of grid cells along the "
+             "x-direction must be provided",
+    )
+    parser.add_argument(
+        "-DY",
+        "--dy",
+        default=-1,
+        help="Grid spacing (in m) along the y-direction. If not provided, the number of grid cells along the "
+             "y-direction must be provided",
+    )
+    parser.add_argument(
         "-SEM",
         "--source_emission",
         default="999",
@@ -106,6 +134,10 @@ def read_arguments():
     source_location_in = args.source_location
     sources_interval_in = args.sources_interval
     domain_in = args.domain
+    nx = args.nx
+    ny = args.ny
+    dx = args.dx
+    dy = args.dy
     source_emission = args.source_emission
     random_emission = args.random_emission
     max_number_processes = int(nproc)
@@ -193,6 +225,49 @@ def read_arguments():
             temp = bottom_left_easting
             bottom_left_easting = top_right_easting
             top_right_easting = temp
+    try:
+        nx = int(nx)
+    except ValueError:
+        print("Please provide a valid number for -NX --nx")
+        sys.exit()
+    try:
+        ny = int(ny)
+    except ValueError:
+        print("Please provide a valid number for -NY --ny")
+        sys.exit()
+    try:
+        dx = float(dx)
+    except ValueError:
+        print("Please provide a valid number for -DX --dx")
+        sys.exit()
+    try:
+        dy = float(dy)
+    except ValueError:
+        print("Please provide a valid number for -DY --dy")
+        sys.exit()
+    if nx == -1 or ny == -1:
+        if dx == -1 or dy == -1:
+            print("ERROR. Either (NX, NY) or (DX, DY) must be specified")
+            sys.exit()
+    if nx < 0 or ny < 0:
+        print("ERROR. Please provide a valid number for (NX, NY)")
+        sys.exit()
+    if dx < 0 or dx > (top_right_easting - bottom_left_easting) or dy < 0 \
+            or dy > (top_right_northing - bottom_left_northing):
+        print("ERROR. Please provide a valid number for (DX, DY)")
+        sys.exit()
+    if dx != -1 and dy != -1:
+        nx = int((top_right_easting - bottom_left_easting) / dx)
+        ny = int((top_right_northing - bottom_left_northing) / dy)
+    elif nx != -1 and ny != -1:
+        dx = (top_right_easting - bottom_left_easting) / float(nx)
+        dy = (top_right_northing - bottom_left_northing) / float(ny)
+    # Check provided nx, ny or dx, dy match the provided domain extent, otherwise correct
+    if bottom_left_easting + dx * nx != top_right_easting:
+        top_right_easting = bottom_left_easting + dx * nx
+    if bottom_left_northing + dy * ny != top_right_northing:
+        top_right_northing = bottom_left_northing + dy * ny
+
     if random_sources == "on":
         try:
             np.loadtxt("probability_map.grd", skiprows=5)
@@ -344,6 +419,10 @@ def read_arguments():
         bottom_left_easting,
         top_right_northing,
         top_right_easting,
+        nx,
+        ny,
+        dx,
+        dy,
         source_dx,
         source_dy,
         source_dur,
@@ -690,6 +769,14 @@ def pre_process(run_type):
                             simulation_interval = 86400
                         disgas_input_file.write("  SIMULATION_INTERVAL_(SEC) = " +
                                                     "{0:7.0f}".format(simulation_interval) +  "\n")
+                    elif 'NX' in record:
+                        disgas_input_file.write("  NX     = " + str(nx))
+                    elif 'NY' in record:
+                        disgas_input_file.write("  NY     = " + str(ny))
+                    elif 'DX_(M)' in record:
+                        disgas_input_file.write("  DX_(M) = " + str(dx))
+                    elif 'DY_(M)' in record:
+                        disgas_input_file.write("  DY_(M) = " + str(dy))
                     elif 'RESTART_RUN' in record:
                         if run_type == 'restart':
                             disgas_input_file.write("  RESTART_RUN = YES\n")
@@ -831,6 +918,14 @@ def pre_process(run_type):
                             simulation_interval -= hour_start * 3600
                         twodee_input_file.write("  SIMULATION_INTERVAL_(SEC) = " +
                                                     "{0:7.0f}".format(simulation_interval) + "\n")
+                    elif 'NX' in record:
+                        disgas_input_file.write("  NX     = " + str(nx))
+                    elif 'NY' in record:
+                        disgas_input_file.write("  NY     = " + str(ny))
+                    elif 'DX_(M)' in record:
+                        disgas_input_file.write("  DX_(M) = " + str(dx))
+                    elif 'DY_(M)' in record:
+                        disgas_input_file.write("  DY_(M) = " + str(dy))
                     elif 'RESTART_RUN' in record:
                         if run_type == 'restart':
                             twodee_input_file.write("  RESTART_RUN = YES\n")
@@ -899,6 +994,34 @@ def run_diagno(max_number_processes):
         try:
             for day in days[start:end]:
                 diagno_folder = os.path.join(root, "simulations", "diagno", day)
+                # read and memorize diagno.inp file
+                diagno_input_records = []
+                diagno_input = os.path.join(diagno_folder, 'diagno.inp')
+                with open(
+                        diagno_original, "r", encoding="utf-8", errors="surrogateescape"
+                ) as diagno_or_input:
+                    for line in diagno_or_input:
+                        diagno_input_records.append(line)
+                with open(
+                        diagno_input, "w", encoding="utf-8", errors="surrogateescape"
+                ) as diagno_input_file:
+                    for record in diagno_input_records:
+                        if 'NX' in record:
+                            diagno_input_file.write(str(nx) + '          NX\n')
+                        elif 'NY' in record:
+                            diagno_input_file.write(str(ny) + '          NY\n')
+                        elif 'DXK' in record:
+                            diagno_input_file.write("{0:7.3f}".format(dx / 1000) + '          DXK (km)\n')
+                        elif 'DYK' in record:
+                            diagno_input_file.write("{0:7.3f}".format(dy / 1000) + '          DYK (km)\n')
+                        elif 'UTMXOR' in record:
+                            diagno_input_file.write("{0:7.3f}".format(bottom_left_easting / 1000) + '      '
+                                                                                                    'UTMXOR (km)\n')
+                        elif 'UTMYOR' in record:
+                            diagno_input_file.write("{0:7.3f}".format(bottom_left_northing / 1000) + '      '
+                                                                                                     'UTMYOR  (km)\n')
+                        else:
+                            diagno_input_file.write(record)
                 os.chdir(diagno_folder)
                 try:
                     p = subprocess.Popen(["srun", "-n", "1", "presfc", "&"])
@@ -1082,6 +1205,10 @@ topography = os.path.join(root, "topography.grd")
     bottom_left_easting,
     top_right_northing,
     top_right_easting,
+    nx,
+    ny,
+    dx,
+    dy,
     source_dx,
     source_dy,
     source_dur,

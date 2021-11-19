@@ -252,16 +252,16 @@ def read_arguments():
     if nx < 0 or ny < 0:
         print("ERROR. Please provide a valid number for (NX, NY)")
         sys.exit()
-    if dx < 0 or dx > (top_right_easting - bottom_left_easting) or dy < 0 \
-            or dy > (top_right_northing - bottom_left_northing):
-        print("ERROR. Please provide a valid number for (DX, DY)")
-        sys.exit()
     if dx != -1 and dy != -1:
         nx = int((top_right_easting - bottom_left_easting) / dx)
         ny = int((top_right_northing - bottom_left_northing) / dy)
     elif nx != -1 and ny != -1:
         dx = (top_right_easting - bottom_left_easting) / float(nx)
         dy = (top_right_northing - bottom_left_northing) / float(ny)
+    if dx < 0 or dx > (top_right_easting - bottom_left_easting) or dy < 0 \
+            or dy > (top_right_northing - bottom_left_northing):
+        print("ERROR. Please provide a valid number for (DX, DY)")
+        sys.exit()
     # Check provided nx, ny or dx, dy match the provided domain extent, otherwise correct
     if bottom_left_easting + dx * nx != top_right_easting:
         top_right_easting = bottom_left_easting + dx * nx
@@ -589,8 +589,8 @@ def pre_process(run_type):
     elevations = random_elevations
     probabilities = random_probabilities
     fluxes_input = random_fluxes
-    dx = random_dx
-    dy = random_dy
+    dx_sources = random_dx
+    dy_sources = random_dy
     dur = random_dur
     n_sources = 0
     try:
@@ -606,8 +606,8 @@ def pre_process(run_type):
                     probabilities.append(float(records[3]))
                     fluxes_input.append(float(records[4]))
                     if twodee_on:
-                        dx.append(float(records[5]))
-                        dy.append(float(records[6]))
+                        dx_sources.append(float(records[5]))
+                        dy_sources.append(float(records[6]))
                         dur.append(float(records[7]))
                     n_sources += 1
                 except ValueError:
@@ -619,8 +619,8 @@ def pre_process(run_type):
             elevations.append(source_el)
             probabilities.append(1.0)
             fluxes_input.append(source_emission)
-            dx.append(source_dx)
-            dy.append(source_dy)
+            dx_sources.append(source_dx)
+            dy_sources.append(source_dy)
             dur.append(source_dur)
         n_sources = len(easting)
 
@@ -770,13 +770,13 @@ def pre_process(run_type):
                         disgas_input_file.write("  SIMULATION_INTERVAL_(SEC) = " +
                                                     "{0:7.0f}".format(simulation_interval) +  "\n")
                     elif 'NX' in record:
-                        disgas_input_file.write("  NX     = " + str(nx))
+                        disgas_input_file.write("  NX     = " + str(nx) + "\n")
                     elif 'NY' in record:
-                        disgas_input_file.write("  NY     = " + str(ny))
+                        disgas_input_file.write("  NY     = " + str(ny) + "\n")
                     elif 'DX_(M)' in record:
-                        disgas_input_file.write("  DX_(M) = " + str(dx))
+                        disgas_input_file.write("  DX_(M) = " + str(dx) + "\n")
                     elif 'DY_(M)' in record:
-                        disgas_input_file.write("  DY_(M) = " + str(dy))
+                        disgas_input_file.write("  DY_(M) = " + str(dy) + "\n")
                     elif 'RESTART_RUN' in record:
                         if run_type == 'restart':
                             disgas_input_file.write("  RESTART_RUN = YES\n")
@@ -829,6 +829,7 @@ def pre_process(run_type):
                         )
                     else:
                         disgas_input_file.write(record)
+            shutil.copy(disgas_input, disgas_original)
         if twodee_on:
             twodee_daily = os.path.join(twodee, str(day))
             outfiles_twodee = os.path.join(twodee_daily, "outfiles")
@@ -872,9 +873,9 @@ def pre_process(run_type):
                         + " "
                         + "{0:7.3f}".format(gas_flux)
                         + " "
-                        + "{0:7.2f}".format(dx[i])
+                        + "{0:7.2f}".format(dx_sources[i])
                         + " "
-                        + "{0:7.2f}".format(dy[i])
+                        + "{0:7.2f}".format(dy_sources[i])
                         + " KG_SEC 0 "
                         + "{0:7.3f}".format(dur[i])
                         + "\n"
@@ -919,13 +920,13 @@ def pre_process(run_type):
                         twodee_input_file.write("  SIMULATION_INTERVAL_(SEC) = " +
                                                     "{0:7.0f}".format(simulation_interval) + "\n")
                     elif 'NX' in record:
-                        disgas_input_file.write("  NX     = " + str(nx))
+                        twodee_input_file.write("  NX     = " + str(nx) + "\n")
                     elif 'NY' in record:
-                        disgas_input_file.write("  NY     = " + str(ny))
+                        twodee_input_file.write("  NY     = " + str(ny) + "\n")
                     elif 'DX_(M)' in record:
-                        disgas_input_file.write("  DX_(M) = " + str(dx))
+                        twodee_input_file.write("  DX_(M) = " + str(dx) + "\n")
                     elif 'DY_(M)' in record:
-                        disgas_input_file.write("  DY_(M) = " + str(dy))
+                        twodee_input_file.write("  DY_(M) = " + str(dy) + "\n")
                     elif 'RESTART_RUN' in record:
                         if run_type == 'restart':
                             twodee_input_file.write("  RESTART_RUN = YES\n")
@@ -979,6 +980,7 @@ def pre_process(run_type):
                             )
                     else:
                         twodee_input_file.write(record)
+            shutil.copy(twodee_input, twodee_original)
         shutil.rmtree(path)
     return days
 
@@ -998,7 +1000,7 @@ def run_diagno(max_number_processes):
                 diagno_input_records = []
                 diagno_input = os.path.join(diagno_folder, 'diagno.inp')
                 with open(
-                        diagno_original, "r", encoding="utf-8", errors="surrogateescape"
+                        diagno_input, "r", encoding="utf-8", errors="surrogateescape"
                 ) as diagno_or_input:
                     for line in diagno_or_input:
                         diagno_input_records.append(line)

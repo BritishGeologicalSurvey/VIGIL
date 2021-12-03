@@ -249,19 +249,21 @@ def read_arguments():
         if dx == -1 or dy == -1:
             print("ERROR. Either (NX, NY) or (DX, DY) must be specified")
             sys.exit()
-    if nx < 0 or ny < 0:
-        print("ERROR. Please provide a valid number for (NX, NY)")
-        sys.exit()
-    if dx != -1 and dy != -1:
-        nx = int((top_right_easting - bottom_left_easting) / dx)
-        ny = int((top_right_northing - bottom_left_northing) / dy)
+        elif dx != -1 and dy != -1:
+            if dx < 0 or dx > (top_right_easting - bottom_left_easting) or dy < 0 \
+                    or dy > (top_right_northing - bottom_left_northing):
+                print("ERROR. Please provide a valid number for (DX, DY)")
+                sys.exit()
+            else:
+                nx = int((top_right_easting - bottom_left_easting) / dx)
+                ny = int((top_right_northing - bottom_left_northing) / dy)
     elif nx != -1 and ny != -1:
-        dx = (top_right_easting - bottom_left_easting) / float(nx)
-        dy = (top_right_northing - bottom_left_northing) / float(ny)
-    if dx < 0 or dx > (top_right_easting - bottom_left_easting) or dy < 0 \
-            or dy > (top_right_northing - bottom_left_northing):
-        print("ERROR. Please provide a valid number for (DX, DY)")
-        sys.exit()
+        if nx < 0 or ny < 0:
+            print("ERROR. Please provide a valid number for (NX, NY)")
+            sys.exit()
+        else:
+            dx = (top_right_easting - bottom_left_easting) / float(nx)
+            dy = (top_right_northing - bottom_left_northing) / float(ny)
     # Check provided nx, ny or dx, dy match the provided domain extent, otherwise correct
     if bottom_left_easting + dx * nx != top_right_easting:
         top_right_easting = bottom_left_easting + dx * nx

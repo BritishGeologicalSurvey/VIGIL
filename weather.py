@@ -1408,7 +1408,7 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
             simulation_day += timedelta(hours=1)
 
 
-def extract_station_data(station_data_files, eastings, northings, zst, data_folder):
+def extract_station_data(station_data_files, eastings, northings, zst, data_folder, time_in):
     global n_stations
     import math
 
@@ -1434,9 +1434,9 @@ def extract_station_data(station_data_files, eastings, northings, zst, data_fold
     um = [[0 for x in range(24)] for y in range(n_weather_stations)]
     vm = [[0 for x in range(24)] for y in range(n_weather_stations)]
     gamma = [[0 for x in range(24)] for y in range(n_weather_stations)]
-    year_start = str(time_start)[0:4]
-    month_start = str(int(str(time_start)[5:7]))
-    day_start = str(int(str(time_start)[8:10]))
+    year_start = str(time_in)[0:4]
+    month_start = str(int(str(time_in)[5:7]))
+    day_start = str(int(str(time_in)[8:10]))
     ii = 0
     tinf = 0
     n_tinf = 0
@@ -1457,7 +1457,7 @@ def extract_station_data(station_data_files, eastings, northings, zst, data_fold
                 day_record = datetime.datetime.strptime(time_record, "%Y%m%d")
             except ValueError:
                 continue
-            if day_record == time_start or day_record == time_stop:
+            if day_record == time_in:
                 try:
                     wind_speed = float(records[i][3]) * 0.28
                     wind_station = int(round(float(records[i][3]) * 0.28 * 10))
@@ -1727,7 +1727,7 @@ def automatic_weather(analysis_start):
                 i += 1
                 continue
         tref, tsoil, press = extract_station_data(
-            station_data_files, eastings, northings, zst, data_folder
+            station_data_files, eastings, northings, zst, data_folder, analysis_start
         )
     save_surface_data(tref, tsoil, press, data_folder)
     if not os.path.exists(os.path.join(data_folder, "upper.dat")):

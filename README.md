@@ -187,11 +187,11 @@ $PATH):
 
 Gas modelling software:
 
-- DIAGNO v1.1.1: the diagnostic wind model (Douglas et al., 1990)
+- DIAGNO v1.1.6: the diagnostic wind model (Douglas et al., 1990)
   Link: http://datasim.ov.ingv.it/models/diagno.html
-- DISGAS v2.1: the dilute gas dispersion simulation tool (Costa et al., 2005; Costa and Macedonio, 2016)
+- DISGAS v2.2.2: the dilute gas dispersion simulation tool (Costa et al., 2005; Costa and Macedonio, 2016)
   Link: http://datasim.ov.ingv.it/models/disgas.html
-- TWODEE v2.3: the dense gas dispersion simulation tool (Hankin and Britter, 1999; Folch et al., 2009)
+- TWODEE v2.6: the dense gas dispersion simulation tool (Hankin and Britter, 1999; Folch et al., 2009)
   Link: http://datasim.ov.ingv.it/models/twodee.html
 
 Weather data software:

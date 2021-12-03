@@ -66,45 +66,50 @@ usage: weather.py [-h] [-M MODE] [-RT RUN_TYPE] [-CS CONTINUOUS_SIMULATION] [-S 
 Python script to run Diagno and DISGAS for the days sampled with weather.py. 
 The following flags control the execution of hazard_fumaroles.py:
 usage: run_models.py [-h] [-N NPROC] [-RT RUN_TYPE] [-CS CONTINUOUS_SIMULATION] [-RS RANDOM_SOURCES] [-NS NSOURCES]
-                     [-SINT SOURCES_INTERVAL [SOURCES_INTERVAL ...]] [-SLOC SOURCE_LOCATION [SOURCE_LOCATION ...]]
-                     [-SDX SOURCE_DX] [-SDY SOURCE_DY] [-SDUR SOURCE_DUR] [-D DOMAIN [DOMAIN ...]]
-                     [-SEM SOURCE_EMISSION] [-RER RANDOM_EMISSION] [-TD TWODEE] [-DG DISGAS]
+                     [-SINT SOURCES_INTERVAL] [-SLOC SOURCE_LOCATION] [-SDX SOURCE_DX] [-SDY SOURCE_DY] [-SDUR SOURCE_DUR]
+                     [-D DOMAIN] [-NX NX] [-NY NY] [-DX DX] [-DY DY] [-SEM SOURCE_EMISSION] [-RER RANDOM_EMISSION] [-DI DIAGNO]
+                     [-TD TWODEE] [-DG DISGAS]
+
   -h, --help            show this help message and exit
   -N NPROC, --nproc NPROC
                         Maximum number of allowed simultaneous processes
   -RT RUN_TYPE, --run_type RUN_TYPE
-                        Specify if the simulation is a new one or a restart. Possible options are: new, restart
+                        Specify if the simulation is a new one or a restart.Possible options are: new, restart
   -CS CONTINUOUS_SIMULATION, --continuous_simulation CONTINUOUS_SIMULATION
-                        Specify if the simulation is continuous between the specified start and end dates. Possible options are True or False
+                        Specify if the simulation is continuous between the specified start and end dates. Possible options are True
+                        or False
   -RS RANDOM_SOURCES, --random_sources RANDOM_SOURCES
-                        on: randomly select NS locations from a probability
-                        map. off: fixed source locations
+                        on: randomly select NS locations from a probability map. off: fixed source locations from file
+                        sources_input.txt
   -NS NSOURCES, --nsources NSOURCES
-                        Specify a number for a fixed number of sources. If
-                        random, then randomly select the number of sources
-                        from an interval
-  -SINT SOURCES_INTERVAL [SOURCES_INTERVAL ...], --sources_interval SOURCES_INTERVAL [SOURCES_INTERVAL ...]
-                        Type the minimum and maximum number of sources  (comma separated values)
-  -SLOC SOURCE_LOCATION [SOURCE_LOCATION ...], --source_location SOURCE_LOCATION [SOURCE_LOCATION ...]
-                        Coordinate type (UTM/GEO), latitude/northing,
-                        longitude/easting, elevation (above ground in m) of 1
-                        fixed source (comma separated values)
+                        Specify a number for a fixed number of sources. If random, then randomly select the number of sources from
+                        an interval
+  -SINT SOURCES_INTERVAL, --sources_interval SOURCES_INTERVAL
+                        Type the minimum and maximum number of sources
+  -SLOC SOURCE_LOCATION, --source_location SOURCE_LOCATION
+                        Coordinate type (UTM/GEO), latitude/northing, longitude/easting, elevation (above ground in m) of 1 fixed
+                        source
   -SDX SOURCE_DX, --source_dx SOURCE_DX
                         Extension [m] along the X direction of 1 single source. Option valid for Twodee only
   -SDY SOURCE_DY, --source_dy SOURCE_DY
                         Extension [m] along the Y direction of 1 single source. Option valid for Twodee only
   -SDUR SOURCE_DUR, --source_dur SOURCE_DUR
                         Emission duration [s] of 1 single source. Option valid for Twodee only
-  -D DOMAIN [DOMAIN ...], --domain DOMAIN [DOMAIN ...]
-                        Coordinates type (UTM/GEO), coordinates
-                        (latitude/northing, longitude/easting) of the bottom
-                        left corner and top right corner of the domain (comma separated values)
+  -D DOMAIN, --domain DOMAIN
+                        Coordinates type (UTM/GEO), coordinates (latitude/northing, longitude/easting) of the bottom left corner and
+                        top right corner of the domain
+  -NX NX, --nx NX       Number of grid cells along the x-direction. If not provided, the grid spacing along the x-direction must be
+                        provided
+  -NY NY, --ny NY       Number of grid cells along the y-direction. If not provided, the grid spacing along the y-direction must be
+                        provided
+  -DX DX, --dx DX       Grid spacing (in m) along the x-direction. If not provided, the number of grid cells along the x-direction
+                        must be provided
+  -DY DY, --dy DY       Grid spacing (in m) along the y-direction. If not provided, the number of grid cells along the y-direction
+                        must be provided
   -SEM SOURCE_EMISSION, --source_emission SOURCE_EMISSION
-                        Source emission rate [kg/s]. If specified, it is
-                        assigned to all the sources in the domain
+                        Source emission rate [kg/s]. If specified, it is assigned to all the sources in the domain
   -RER RANDOM_EMISSION, --random_emission RANDOM_EMISSION
-                        on: randomly assign emission rate for each source in
-                        the domain sampled from a flux.csv file. off: use
+                        on: randomly assign emission rate for each source in the domain sampled from a flux.txt file. off: use
                         specified emission rate
   -DI DIAGNO, --diagno DIAGNO
                         on or off, to run Diagno. Turn it off only if Diagno has already been run

@@ -1,0 +1,42 @@
+03/12/2021 Fabio Dioguardi <fabiod@bgs.ac.uk>
+Improved continuous simulation option, which now supports also the reanalysis mode
+
+22/11/2021 Fabio Dioguardi <fabiod@bgs.ac.uk>
+Fixed bug in the resizing of the topography layer to plot
+
+19/11/2021 Fabio Dioguardi <fabiod@bgs.ac.uk>
+Implemented new argument to provide either the number of cells or the cell sizes in the x and y direction. This is to better interface with the grid convention of the new version of DISGAS and TWODEE
+
+20/10/2021 Fabio Dioguardi <fabiod@bgs.ac.uk>
+Version 1.2 released
+
+23/09/2021 Fabio Dioguardi <fabiod@bgs.ac.uk>
+Hazard curves at tracking points now has the exceedance probability on the Y axis
+
+19/07/2021 Fabio Dioguardi <fabiod@bgs.ac.uk>
+Tracking points now handle ECDF (hazard curves) and time-averaged outputs
+
+15/07/2021 Fabio Dioguardi <fabiod@bgs.ac.uk>
+VIGIL tracking points implemented
+
+09/07/2021 Fabio Dioguardi <fabiod@bgs.ac.uk>
+* New naming convention of the VIGIL-generated output files implemented
+* New option to plot concentration isolines implemented
+
+07/07/2021 Fabio Dioguardi <fabiod@bgs.ac.uk>
+Implemented the gas specie name in the plot title
+
+21/06/2021 Fabio Dioguardi <fabiod@bgs.ac.uk>
+Option for time-averaging of outputs implemented
+
+16/06/2021 Fabio Dioguardi <fabiod@bgs.ac.uk>
+Version 1.1 Released
+
+03/06/2021 Fabio Dioguardi <fabiod@bgs.ac.uk>
+Implemented the continuous simulation option in forecast mode
+
+19/05/2021 Fabio Dioguardi <fabiod@bgs.ac.uk>
+Arguments with multiple entries are now comma-separated
+
+18/05/2021 Fabio Dioguardi <fabiod@bgs.ac.uk>
+Version 1.0 Released

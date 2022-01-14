@@ -623,7 +623,7 @@ def pre_process(run_type):
                         + " "
                         + "{0:7.2f}".format(elevations[i])
                         + " "
-                        + "{0:7.3f}".format(gas_flux)
+                        + str(gas_flux)
                         + "\n"
                     )
             source_file.close()

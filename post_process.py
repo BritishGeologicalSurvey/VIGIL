@@ -161,6 +161,14 @@ def read_arguments():
     plot_isolines = []
     species = species_in.split(',')
     days_to_plot_in = []
+    try:
+        max_number_processes = int(os.environ["SLURM_NTASKS"])
+    except ValueError:
+        try:
+            max_number_processes = int(nproc)
+        except ValueError:
+            print("Please provide a valid number for the maximum number of process")
+            sys.exit()
     if plot.lower() == "true":
         plot = True
         if days_plot_in == '':
@@ -313,7 +321,7 @@ def read_arguments():
         species,
         original_specie,
         exceedance_probabilities,
-        nproc,
+        max_number_processes,
         convert,
         models,
         merge_outputs,
@@ -1785,7 +1793,7 @@ root = os.getcwd()
     species,
     original_specie,
     exceedance_probabilities,
-    nproc,
+    max_number_processes,
     convert,
     models,
     merge_outputs,
@@ -1801,10 +1809,6 @@ root = os.getcwd()
     tracking_points
 ) = read_arguments()
 
-try:
-    max_number_processes = int(os.environ["SLURM_NPROCS"])
-except KeyError:
-    max_number_processes = int(nproc)
 
 (
     disgas_outputs,

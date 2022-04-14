@@ -140,7 +140,11 @@ def read_arguments():
     dy = args.dy
     source_emission = args.source_emission
     random_emission = args.random_emission
-    max_number_processes = int(nproc)
+    try:
+        max_number_processes = int(nproc)
+    except ValueError:
+        print("Please provide a valid number for the maximum number of process")
+        sys.exit()
     twodee = args.twodee
     disgas = args.disgas
     diagno = args.diagno
@@ -1061,6 +1065,7 @@ def run_disgas(max_number_processes):
     import datetime
     disgas = os.path.join(root, "simulations", "disgas")
     n_elaborated_days = 0
+    n_node = 0
     if continuous_simulation:
         max_number_processes = 1
     while n_elaborated_days <= len(days):
@@ -1071,6 +1076,10 @@ def run_disgas(max_number_processes):
             end = len(days)
         try:
             for day in days[start:end]:
+                try:
+                    node = nodes_list[n_node]
+                except IndexError:
+                    node = ''
                 disgas_folder = os.path.join(disgas, day)
                 disgas_input_file = os.path.join(disgas_folder, "disgas.inp")
                 disgas_log_file = os.path.join(
@@ -1096,28 +1105,23 @@ def run_disgas(max_number_processes):
                         shutil.rmtree(disgas_output_folder)
                         os.mkdir(disgas_output_folder)
                 try:
-                    p = subprocess.Popen(
-                        [
-                            "srun",
-                            "-n",
-                            "1",
-                            "disgas",
-                            disgas_input_file,
-                            disgas_log_file,
-                        ]
-                    )
+                    p = subprocess.Popen(["srun", "-n", "1", '--nodelist=' + node, "disgas", disgas_input_file,
+                                          disgas_log_file])
                 except BaseException:
                     p = subprocess.Popen(["disgas", disgas_input_file, disgas_log_file])
                 ps.append(p)
-            for p in ps:
-                p.wait()
+                n_node += 1
+                if n_node >= len(nodes_list):
+                    n_node = 0
         except BaseException:
             print("Unable to run DISGAS")
             sys.exit()
-        print("DISGAS successfully processed days " + str(days[start:end]))
         n_elaborated_days = end
         if n_elaborated_days == len(days):
             break
+    for p in ps:
+       p.wait()
+    print("DISGAS successfully processed days " + str(days))
 
 
 def run_twodee(max_number_processes):
@@ -1224,6 +1228,28 @@ topography = os.path.join(root, "topography.grd")
 if disgas_on == "off" and twodee_on == "off":
     print("Both DISGAS and TWODEE are turned off")
     sys.exit()
+
+if shutil.which('sbatch') is not None:
+    list_available_nodes = []
+    result = subprocess.run(['sinfo'], stdout=subprocess.PIPE)
+    sinfo_output = result.stdout.decode("utf-8")
+    nodes_list = sinfo_output.split('idle node[')[1]
+    nodes_list = nodes_list.split(']')[0]
+    nodes_ranges = nodes_list.split(',')
+    for node_range in nodes_ranges:
+        node_range = node_range.split('-')
+        start = int(node_range[0])
+        try:
+            end = int(node_range[1])
+        except IndexError:
+            end = start
+        for i in range(start, end + 1):
+            list_available_nodes.append('node' + '{:0>2}'.format(i))
+    result = subprocess.run(['sinfo', '-o=%c'], stdout=subprocess.PIPE)
+    sinfo_output = result.stdout.decode("utf-8")
+    ncpus_per_node = int(sinfo_output.split('=')[-1])
+    n_nodes = - (-max_number_processes // ncpus_per_node)
+    nodes_list = list_available_nodes[0:n_nodes]
 
 if diagno_on:
     try:

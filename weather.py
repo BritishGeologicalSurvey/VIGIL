@@ -221,13 +221,10 @@ def read_arguments():
                     print('ERROR. Please provide a valid entry for -SY --sampled_years')
                     sys.exit()
     try:
-        max_number_processes = int(os.environ["SLURM_NTASKS"])
+        max_number_processes = int(nproc)
     except ValueError:
-        try:
-            max_number_processes = int(nproc)
-        except ValueError:
-            print("Please provide a valid number for the maximum number of process")
-            sys.exit()
+        print("Please provide a valid number for the maximum number of process")
+        sys.exit()
     out_utm = utm.from_latlon(volc_lat, volc_lon)
     easting = int(round(out_utm[0] / 1000))
     northing = int(round(out_utm[1] / 1000))

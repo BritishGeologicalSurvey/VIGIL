@@ -993,6 +993,7 @@ def pre_process(run_type):
 
 def run_diagno(max_number_processes):
     n_elaborated_days = 0
+    n_node = 0
     while n_elaborated_days <= len(days):
         ps = []
         start = n_elaborated_days
@@ -1001,6 +1002,10 @@ def run_diagno(max_number_processes):
             end = len(days)
         try:
             for day in days[start:end]:
+                try:
+                    node = nodes_list[n_node]
+                except IndexError:
+                    node = ''
                 diagno_folder = os.path.join(root, "simulations", "diagno", day)
                 # read and memorize diagno.inp file
                 diagno_input_records = []
@@ -1034,22 +1039,35 @@ def run_diagno(max_number_processes):
                 try:
                     p = subprocess.Popen(["srun", "-n", "1", "presfc", "&"])
                 except FileNotFoundError:
-                    p = subprocess.Popen(["presfc"])
+                    try:
+                        p = subprocess.Popen(["presfc"])
+                    except FileNotFoundError:
+                        print('Unable to run presfc for DIAGNO')
+                        sys.exit()
                 p.wait()
                 ps.append(p)
                 try:
                     p = subprocess.Popen(["srun", "-n", "1", "preupr", "&"])
                 except FileNotFoundError:
-                    p = subprocess.Popen(["preupr"])
+                    try:
+                        p = subprocess.Popen(["preupr"])
+                    except FileNotFoundError:
+                        print('Unable to run preupr for DIAGNO')
+                        sys.exit()
                 p.wait()
                 ps.append(p)
                 try:
-                    p = subprocess.Popen(["srun", "-n", "1", "diagno", "&"])
+                    p = subprocess.Popen(["srun", "-n", "1", '--nodelist=' + node, "diagno", "&"])
                 except FileNotFoundError:
-                    p = subprocess.Popen(["diagno"])
+                    try:
+                        p = subprocess.Popen(["diagno"])
+                    except FileNotFoundError:
+                        print('Unable to run DIAGNO')
+                        sys.exit()
                 ps.append(p)
-            for p in ps:
-                p.wait()
+                n_node += 1
+                if n_node >= len(nodes_list):
+                    n_node = 0
         except BaseException:
             print("Unable to process weather data with Diagno")
             sys.exit()
@@ -1057,6 +1075,8 @@ def run_diagno(max_number_processes):
         n_elaborated_days = end
         if n_elaborated_days == len(days):
             break
+    for p in ps:
+        p.wait()
     print("All weather data have been successfully processed with Diagno")
     os.chdir(root)
 

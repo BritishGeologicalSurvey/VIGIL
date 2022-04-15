@@ -19,9 +19,10 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f50961a5-539f-4832-9b59-102ca19d47fd" name="Default Changelist" comment="Fixed various bugs, now capable of dealing with nx, ny, dx, dy provided in input.">
+    <list default="true" id="f50961a5-539f-4832-9b59-102ca19d47fd" name="Default Changelist" comment="Implemented Slurm compatibility in run_twodee">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/run_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/run_models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/weather.py" beforeDir="false" afterPath="$PROJECT_DIR$/weather.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -238,13 +239,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1606761853551</updated>
-    </task>
-    <task id="LOCAL-00154" summary="Processed file names now includes the real height above the ground and time validity for both DISGAS and TWODEE">
-      <created>1624271998004</created>
-      <option name="number" value="00154" />
-      <option name="presentableId" value="LOCAL-00154" />
-      <option name="project" value="LOCAL" />
-      <updated>1624271998004</updated>
     </task>
     <task id="LOCAL-00155" summary="t-averaging implemented but to be improved for DISGAS outputs">
       <created>1624290839881</created>
@@ -582,7 +576,14 @@
       <option name="project" value="LOCAL" />
       <updated>1637338783165</updated>
     </task>
-    <option name="localTasksCounter" value="203" />
+    <task id="LOCAL-00203" summary="Implemented Slurm compatibility in run_twodee">
+      <created>1650013087175</created>
+      <option name="number" value="00203" />
+      <option name="presentableId" value="LOCAL-00203" />
+      <option name="project" value="LOCAL" />
+      <updated>1650013087175</updated>
+    </task>
+    <option name="localTasksCounter" value="204" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -598,7 +599,6 @@
     <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Added argument -TP --tracking_points" />
     <MESSAGE value="Started the implementation of the tracking points" />
     <MESSAGE value="Implementing reading of tracking_points.txt" />
     <MESSAGE value="First implementation of tracking points completed" />
@@ -623,6 +623,7 @@
     <MESSAGE value="Fixed minor error in the Manual" />
     <MESSAGE value="Implemented new domain options in the arguments (all domain data are now provided in input and written in the models' input files)" />
     <MESSAGE value="Fixed various bugs, now capable of dealing with nx, ny, dx, dy provided in input." />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixed various bugs, now capable of dealing with nx, ny, dx, dy provided in input." />
+    <MESSAGE value="Implemented Slurm compatibility in run_twodee" />
+    <option name="LAST_COMMIT_MESSAGE" value="Implemented Slurm compatibility in run_twodee" />
   </component>
 </project>

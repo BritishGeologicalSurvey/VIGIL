@@ -1033,19 +1033,19 @@ def run_diagno(max_number_processes):
                 os.chdir(diagno_folder)
                 try:
                     p = subprocess.Popen(["srun", "-n", "1", "presfc", "&"])
-                except BaseException:
+                except FileNotFoundError:
                     p = subprocess.Popen(["presfc"])
                 p.wait()
                 ps.append(p)
                 try:
                     p = subprocess.Popen(["srun", "-n", "1", "preupr", "&"])
-                except BaseException:
+                except FileNotFoundError:
                     p = subprocess.Popen(["preupr"])
                 p.wait()
                 ps.append(p)
                 try:
                     p = subprocess.Popen(["srun", "-n", "1", "diagno", "&"])
-                except BaseException:
+                except FileNotFoundError:
                     p = subprocess.Popen(["diagno"])
                 ps.append(p)
             for p in ps:
@@ -1107,8 +1107,12 @@ def run_disgas(max_number_processes):
                 try:
                     p = subprocess.Popen(["srun", "-n", "1", '--nodelist=' + node, "disgas", disgas_input_file,
                                           disgas_log_file])
-                except BaseException:
-                    p = subprocess.Popen(["disgas", disgas_input_file, disgas_log_file])
+                except FileNotFoundError:
+                    try:
+                        p = subprocess.Popen(["disgas", disgas_input_file, disgas_log_file])
+                    except FileNotFoundError:
+                        print('Unable to run DISGAS')
+                        sys.exit()
                 ps.append(p)
                 n_node += 1
                 if n_node >= len(nodes_list):
@@ -1128,6 +1132,7 @@ def run_twodee(max_number_processes):
     import datetime
     twodee = os.path.join(root, "simulations", "twodee")
     n_elaborated_days = 0
+    n_node = 0
     if continuous_simulation:
         max_number_processes = 1
     while n_elaborated_days <= len(days):
@@ -1138,6 +1143,10 @@ def run_twodee(max_number_processes):
             end = len(days)
         try:
             for day in days[start:end]:
+                try:
+                    node = nodes_list[n_node]
+                except IndexError:
+                    node = ''
                 diagno = os.path.join(root, "simulations", "diagno", day)
                 twodee_folder = os.path.join(twodee, day)
                 shutil.copyfile(
@@ -1168,28 +1177,27 @@ def run_twodee(max_number_processes):
                         shutil.rmtree(twodee_output_folder)
                         os.mkdir(twodee_output_folder)
                 try:
-                    p = subprocess.Popen(
-                        [
-                            "srun",
-                            "-n",
-                            "1",
-                            "twodee",
-                            twodee_input_file,
-                            twodee_log_file,
-                        ]
-                    )
-                except BaseException:
-                    p = subprocess.Popen(["twodee", twodee_input_file, twodee_log_file])
+                    p = subprocess.Popen(["srun", "-n", "1", '--nodelist=' + node, "twodee", twodee_input_file,
+                                          twodee_log_file,])
+                except FileNotFoundError:
+                    try:
+                        p = subprocess.Popen(["twodee", twodee_input_file, twodee_log_file])
+                    except FileNotFoundError:
+                        print('Unable to run TWODEE')
+                        sys.exit()
                 ps.append(p)
-            for p in ps:
-                p.wait()
+                n_node += 1
+                if n_node >= len(nodes_list):
+                    n_node = 0
         except BaseException:
             print("Unable to run TWODEE")
             sys.exit()
-        print("TWODEE successfully processed days " + str(days[start:end]))
         n_elaborated_days = end
         if n_elaborated_days == len(days):
             break
+    for p in ps:
+        p.wait()
+    print("TWODEE successfully processed days " + str(days))
 
 
 root = os.getcwd()

@@ -163,7 +163,7 @@ def read_arguments():
     days_to_plot_in = []
     try:
         max_number_processes = int(os.environ["SLURM_NTASKS"])
-    except ValueError:
+    except (ValueError, KeyError) as e:
         try:
             max_number_processes = int(nproc)
         except ValueError:

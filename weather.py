@@ -8,10 +8,6 @@ import argparse
 import pandas as pd
 import sys
 
-root = os.getcwd()
-simulations = os.path.join(root, "simulations")
-n_stations = 1
-
 
 def read_arguments():
     parser = argparse.ArgumentParser(description="Input data")
@@ -221,13 +217,10 @@ def read_arguments():
                     print('ERROR. Please provide a valid entry for -SY --sampled_years')
                     sys.exit()
     try:
-        max_number_processes = int(os.environ["SLURM_NTASKS"])
+        max_number_processes = int(nproc)
     except ValueError:
-        try:
-            max_number_processes = int(nproc)
-        except ValueError:
-            print("Please provide a valid number for the maximum number of process")
-            sys.exit()
+        print("Please provide a valid number for the maximum number of process")
+        sys.exit()
     out_utm = utm.from_latlon(volc_lat, volc_lon)
     easting = int(round(out_utm[0] / 1000))
     northing = int(round(out_utm[1] / 1000))
@@ -750,10 +743,12 @@ def prepare_diagno_files(data_folder, year, month, day):
         except BaseException:
             print("Unable to process diagno.inp")
     except BaseException:
-        with open(
-                "log.txt", "a+", encoding="utf-8", errors="surrogateescape"
-        ) as logger:
-            logger.write(retrieved_day_s + "\n")
+        with open("log.txt", "a+", encoding="utf-8", errors="surrogateescape") as logger:
+            logger.write('Unable to prepare DIAGNO input file for day ' + retrieved_day_s + '\n')
+        #with open(
+        #        "log.txt", "a+", encoding="utf-8", errors="surrogateescape"
+        #) as logger:
+        #    logger.write(retrieved_day_s + "\n")
     new_file_list = os.listdir(data_folder)
     for file in new_file_list:
         if file.startswith('data_') or file.startswith('profile_') or file.startswith('weather_'):
@@ -940,12 +935,21 @@ def era5_retrieve(lon_source, lat_source, retrieved_day):
         check_pl = era5_request_pressure(data_folder, year, month, day)
 
         check_sl = era5_request_single(data_folder, year, month, day)
-        if check_pl == 0 or check_sl == 0:
-            with open(
-                    "log.txt", "a+", encoding="utf-8", errors="surrogateescape"
-            ) as logger:
-                logger.write(retrieved_day_s + "\n")
+
+        if check_pl == 0:
+            with open("log.txt", "a+", encoding="utf-8", errors="surrogateescape") as logger:
+                logger.write('Unable to download pressure level data for day ' + retrieved_day_s + '\n')
             return
+        if check_sl == 0:
+            with open("log.txt", "a+", encoding="utf-8", errors="surrogateescape") as logger:
+                logger.write('Unable to download surface data for day ' + retrieved_day_s + '\n')
+            return
+        #if check_pl == 0 or check_sl == 0:
+        #    with open(
+        #            "log.txt", "a+", encoding="utf-8", errors="surrogateescape"
+        #    ) as logger:
+        #        logger.write(retrieved_day_s + "\n")
+        #    return
 
         # Convert grib1 to grib2 with the NOAA Perl script. To make it more portable and avoiding the need to set up
         # many paths, I have included in the package also the required files and scripts that are originally available
@@ -1033,10 +1037,12 @@ def era5_retrieve(lon_source, lat_source, retrieved_day):
         input.close()
         dest.close()
     except BaseException:
-        with open(
-                "log.txt", "a+", encoding="utf-8", errors="surrogateescape"
-        ) as logger:
-            logger.write(retrieved_day_s + "\n")
+        with open("log.txt", "a+", encoding="utf-8", errors="surrogateescape") as logger:
+            logger.write('Unable to download weather data for day ' + retrieved_day_s + '\n')
+        #with open(
+        #        "log.txt", "a+", encoding="utf-8", errors="surrogateescape"
+        #) as logger:
+        #    logger.write(retrieved_day_s + "\n")
 
 
 def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
@@ -1740,6 +1746,10 @@ def automatic_weather(analysis_start):
             fake_upper.write("Fake upper.dat file")
         fake_upper.close()
 
+root = os.getcwd()
+simulations = os.path.join(root, "simulations")
+n_stations = 1
+
 
 (
     mode,
@@ -1843,54 +1853,50 @@ else:
         if n_elaborated_days == nsamples:
             break
 
-    attempt = 0
-    while attempt < 5:
+    attempt = 1
+    while attempt < 10:
         days_to_reelaborate = []
-        with open("log.txt", "r", encoding="utf-8", errors="surrogateescape") as log_file:
-            for line in log_file:
-                try:
-                    record = line.split("\n")[0]
-                    days_to_reelaborate.append(
-                        datetime.datetime.strptime(record, "%Y-%m-%d %H:%M:%S")
-                    )
-                except ValueError:
-                    continue
+        simulation_folders = os.listdir(simulations)
+        for folder in simulation_folders:
+            if len(os.listdir(os.path.join(simulations, folder))) < 7:
+                days_to_reelaborate.append(datetime.datetime.strptime(folder, "%Y%m%d"))
         if len(days_to_reelaborate) == 0:
+            with open("log.txt", "a", encoding="utf-8", errors="surrogateescape") as log_file:
+                log_file.write('There are no days to re-elaborate\n')
             break
-        log_file.close()
-        os.remove("log.txt")
-        n_elaborated_days = 0
-        pools = []
-        n_pool = 0
-        while n_elaborated_days <= len(days_to_reelaborate):
-            start = n_elaborated_days
-            end = n_elaborated_days + max_number_processes
-            if end > len(days_to_reelaborate):
-                end = len(days_to_reelaborate)
-            n_elaborated_days = end
-            pools.append(n_pool)
-            n_pool += 1
-            if n_elaborated_days == len(days_to_reelaborate):
-                break
-        n_elaborated_days = 0
-        n_pool = 0
-        while n_elaborated_days <= len(days_to_reelaborate):
-            logger = open("log.txt", "w", encoding="utf-8", errors="surrogateescape")
-            logger.write(
-                "Unable to complete weather data processing for the following days\n"
-            )
-            start = n_elaborated_days
-            end = n_elaborated_days + max_number_processes
-            if end > len(days_to_reelaborate):
-                end = len(days_to_reelaborate)
-            try:
-                pools[n_pool] = ThreadingPool(max_number_processes)
-                pools[n_pool].map(automatic_weather, days_to_reelaborate[start:end])
-            except BaseException:
-                print("Unable to process weather data")
-                sys.exit()
-            n_elaborated_days = end
-            n_pool += 1
-            if n_elaborated_days == len(days_to_reelaborate):
-                break
-        attempt += 1
+        else:
+            with open("log.txt", "a", encoding="utf-8", errors="surrogateescape") as log_file:
+                log_file.write('Re-elaboratoring the following days\n')
+                for day_to_reelaborate in days_to_reelaborate:
+                    log_file.write(datetime.datetime.strftime(day_to_reelaborate, "%Y-%m-%d %H:%M:%S") + '\n')
+            n_elaborated_days = 0
+            pools = []
+            n_pool = 0
+            while n_elaborated_days <= len(days_to_reelaborate):
+                start = n_elaborated_days
+                end = n_elaborated_days + max_number_processes
+                if end > len(days_to_reelaborate):
+                    end = len(days_to_reelaborate)
+                n_elaborated_days = end
+                pools.append(n_pool)
+                n_pool += 1
+                if n_elaborated_days == len(days_to_reelaborate):
+                    break
+            n_elaborated_days = 0
+            n_pool = 0
+            while n_elaborated_days <= len(days_to_reelaborate):
+                start = n_elaborated_days
+                end = n_elaborated_days + max_number_processes
+                if end > len(days_to_reelaborate):
+                    end = len(days_to_reelaborate)
+                try:
+                    pools[n_pool] = ThreadingPool(max_number_processes)
+                    pools[n_pool].map(automatic_weather, days_to_reelaborate[start:end])
+                except BaseException:
+                    print("Unable to process weather data")
+                    sys.exit()
+                n_elaborated_days = end
+                n_pool += 1
+                if n_elaborated_days == len(days_to_reelaborate):
+                    break
+            attempt += 1

@@ -1,3 +1,12 @@
+19/04/2022 Fabio Dioguardi <fabiod@bgs.ac.uk>
+Improved the way VIGIL uses HPC cluster resources via Slurm
+
+19/04/2022 Fabio Dioguardi <fabiod@bgs.ac.uk>
+Domain origin now written in the disgas or twodee input file based on the domain specification provided in input by the user 
+
+19/04/2022 Fabio Dioguardi <fabiod@bgs.ac.uk>
+Improved the way weather.py handles failed weather data retrieval
+
 03/12/2021 Fabio Dioguardi <fabiod@bgs.ac.uk>
 Improved continuous simulation option, which now supports also the reanalysis mode
 

@@ -744,11 +744,8 @@ def prepare_diagno_files(data_folder, year, month, day):
             print("Unable to process diagno.inp")
     except BaseException:
         with open("log.txt", "a+", encoding="utf-8", errors="surrogateescape") as logger:
-            logger.write('Unable to prepare DIAGNO input file for day ' + retrieved_day_s + '\n')
-        #with open(
-        #        "log.txt", "a+", encoding="utf-8", errors="surrogateescape"
-        #) as logger:
-        #    logger.write(retrieved_day_s + "\n")
+            logger.write(datetime.datetime.strftime(datetime.datetime.utcnow(), "%Y-%m-%d-%H:%M:%S") +
+                         ' Unable to prepare DIAGNO input file for day ' + retrieved_day_s + '\n')
     new_file_list = os.listdir(data_folder)
     for file in new_file_list:
         if file.startswith('data_') or file.startswith('profile_') or file.startswith('weather_'):
@@ -938,18 +935,14 @@ def era5_retrieve(lon_source, lat_source, retrieved_day):
 
         if check_pl == 0:
             with open("log.txt", "a+", encoding="utf-8", errors="surrogateescape") as logger:
-                logger.write('Unable to download pressure level data for day ' + retrieved_day_s + '\n')
+                logger.write(datetime.datetime.strftime(datetime.datetime.utcnow(), "%Y-%m-%d-%H:%M:%S") +
+                             ' Unable to download pressure level data for day ' + retrieved_day_s + '\n')
             return
         if check_sl == 0:
             with open("log.txt", "a+", encoding="utf-8", errors="surrogateescape") as logger:
-                logger.write('Unable to download surface data for day ' + retrieved_day_s + '\n')
+                logger.write(datetime.datetime.strftime(datetime.datetime.utcnow(), "%Y-%m-%d-%H:%M:%S") +
+                             ' Unable to download surface data for day ' + retrieved_day_s + '\n')
             return
-        #if check_pl == 0 or check_sl == 0:
-        #    with open(
-        #            "log.txt", "a+", encoding="utf-8", errors="surrogateescape"
-        #    ) as logger:
-        #        logger.write(retrieved_day_s + "\n")
-        #    return
 
         # Convert grib1 to grib2 with the NOAA Perl script. To make it more portable and avoiding the need to set up
         # many paths, I have included in the package also the required files and scripts that are originally available
@@ -1038,11 +1031,8 @@ def era5_retrieve(lon_source, lat_source, retrieved_day):
         dest.close()
     except BaseException:
         with open("log.txt", "a+", encoding="utf-8", errors="surrogateescape") as logger:
-            logger.write('Unable to download weather data for day ' + retrieved_day_s + '\n')
-        #with open(
-        #        "log.txt", "a+", encoding="utf-8", errors="surrogateescape"
-        #) as logger:
-        #    logger.write(retrieved_day_s + "\n")
+            logger.write(datetime.datetime.strftime(datetime.datetime.utcnow(), "%Y-%m-%d-%H:%M:%S") +
+                         ' Unable to download weather data for day ' + retrieved_day_s + '\n')
 
 
 def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
@@ -1118,7 +1108,7 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
     if time_in != 999:
         now = str(time_in)
     else:
-        now = str(datetime.utcnow())
+        now = str(datetime.datetime.utcnow()())
     day_before = str(time_in - timedelta(1))
     year = now[0:4]
     month = now[5:7]
@@ -1811,7 +1801,8 @@ if os.path.exists("log.txt"):
 if os.path.exists("days_list.txt"):
     os.remove("days_list.txt")
 logger = open("log.txt", "w", encoding="utf-8", errors="surrogateescape")
-logger.write("Unable to complete weather data processing for the following days\n")
+logger.write(datetime.datetime.strftime(datetime.datetime.utcnow(), "%Y-%m-%d-%H:%M:%S") +
+             " Unable to complete weather data processing for the following days\n")
 
 # Create a text file with the list of sampled days
 days_list_file = open("days_list.txt", "a+", encoding="utf-8", errors="surrogateescape")
@@ -1862,11 +1853,13 @@ else:
                 days_to_reelaborate.append(datetime.datetime.strptime(folder, "%Y%m%d"))
         if len(days_to_reelaborate) == 0:
             with open("log.txt", "a", encoding="utf-8", errors="surrogateescape") as log_file:
-                log_file.write('There are no days to re-elaborate\n')
+                log_file.write(datetime.datetime.strftime(datetime.datetime.utcnow(), "%Y-%m-%d-%H:%M:%S") +
+                               ' There are no days to re-elaborate\n')
             break
         else:
             with open("log.txt", "a", encoding="utf-8", errors="surrogateescape") as log_file:
-                log_file.write('Re-elaboratoring the following days\n')
+                log_file.write(datetime.datetime.strftime(datetime.datetime.utcnow(), "%Y-%m-%d-%H:%M:%S") +
+                               ' Re-elaboratoring the following days\n')
                 for day_to_reelaborate in days_to_reelaborate:
                     log_file.write(datetime.datetime.strftime(day_to_reelaborate, "%Y-%m-%d %H:%M:%S") + '\n')
             n_elaborated_days = 0

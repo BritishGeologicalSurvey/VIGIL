@@ -783,6 +783,10 @@ def pre_process(run_type):
                         disgas_input_file.write("  DX_(M) = " + str(dx) + "\n")
                     elif 'DY_(M)' in record:
                         disgas_input_file.write("  DY_(M) = " + str(dy) + "\n")
+                    elif 'X_ORIGIN_(UTM_M)' in record:
+                        disgas_input_file.write("  X_ORIGIN_(UTM_M) = " + str(bottom_left_easting) + "\n")
+                    elif 'Y_ORIGIN_(UTM_M)' in record:
+                        disgas_input_file.write("  Y_ORIGIN_(UTM_M) = " + str(bottom_left_northing) + "\n")
                     elif 'RESTART_RUN' in record:
                         if run_type == 'restart':
                             disgas_input_file.write("  RESTART_RUN = YES\n")
@@ -933,6 +937,10 @@ def pre_process(run_type):
                         twodee_input_file.write("  DX_(M) = " + str(dx) + "\n")
                     elif 'DY_(M)' in record:
                         twodee_input_file.write("  DY_(M) = " + str(dy) + "\n")
+                    elif 'X_ORIGIN_(UTM_M)' in record:
+                        twodee_input_file.write("  X_ORIGIN_(UTM_M) = " + str(bottom_left_easting) + "\n")
+                    elif 'Y_ORIGIN_(UTM_M)' in record:
+                        twodee_input_file.write("  Y_ORIGIN_(UTM_M) = " + str(bottom_left_northing) + "\n")
                     elif 'RESTART_RUN' in record:
                         if run_type == 'restart':
                             twodee_input_file.write("  RESTART_RUN = YES\n")

@@ -950,33 +950,37 @@ def era5_retrieve(lon_source, lat_source, retrieved_day):
         print("Converting grib1 data to grib2")
         pl_grib_file = os.path.join(data_folder, "pressure_levels.grib ")
         sl_grib_file = os.path.join(data_folder, "surface.grib ")
-        os.system("grib_set -s edition=2 " + pl_grib_file + wtfile)
-        os.system("grib_set -s edition=2 " + sl_grib_file + wtfile_sl)
+        try:
+            os_cmd = os.system("srun -n 1 grib_set -s edition=2 " + pl_grib_file + wtfile)
+            if os_cmd != 0:
+                raise Exception('Command srun not found in the system')
+        except:
+            os.system("grib_set -s edition=2 " + pl_grib_file + wtfile)
+        try:
+            os_cmd = os.system("srun -n 1 grib_set -s edition=2 " + sl_grib_file + wtfile_sl)
+            if os_cmd != 0:
+                raise Exception('Command srun not found in the system')
+        except:
+            os.system("grib_set -s edition=2 " + sl_grib_file + wtfile_sl)
         wtfile_prof = os.path.join(data_folder, "profile_" + date_bis + ".txt")
         wtfile_sl_location = os.path.join(
             data_folder, "data_location_" + date_bis + ".txt"
         )
         print("Saving weather data along the vertical at the vent location")
-        os.system(
-            "wgrib2 "
-            + wtfile
-            + " -s -lon "
-            + slon_source
-            + " "
-            + slat_source
-            + "  >"
-            + wtfile_prof
-        )
-        os.system(
-            "wgrib2 "
-            + wtfile_sl
-            + " -s -lon "
-            + slon_source
-            + " "
-            + slat_source
-            + "  >"
-            + wtfile_sl_location
-        )
+        try:
+            os_cmd = os.system("srun -n 1 wgrib2 " + wtfile + " -s -lon " + slon_source + " " + slat_source + "  >" + wtfile_prof)
+            if os_cmd != 0:
+                raise Exception('Command srun not found in the system')
+        except:
+            os.system("wgrib2 " + wtfile + " -s -lon " + slon_source + " " + slat_source + "  >" + wtfile_prof)
+        try:
+            os_cmd = os.system("srun -n 1 wgrib2 " + wtfile_sl + " -s -lon " + slon_source + " " + slat_source + "  >" +
+                      wtfile_sl_location)
+            if os_cmd != 0:
+                raise Exception('Command srun not found in the system')
+        except:
+            os.system("wgrib2 " + wtfile_sl + " -s -lon " + slon_source + " " + slat_source + "  >" +
+                          wtfile_sl_location)
 
         # Split wtfile_prof into multiple file, each one for a specific time step
         splitLen = 148
@@ -1071,29 +1075,23 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
         from shutil import copyfile
 
         if zoom:
-            os.system(
-                "wgrib2 "
-                + wtfile
-                + " -set_grib_type same -new_grid_winds earth -new_grid latlon "
-                + lon_corner
-                + ":400:0.01 "
-                + lat_corner
-                + ":400:0.01 "
-                + wtfile_int
-            )
+            try:
+                os_cmd = os.system("srun -n 1 wgrib2 " + wtfile + " -set_grib_type same -new_grid_winds earth -new_grid latlon " +
+                          lon_corner + ":400:0.01 " + lat_corner + ":400:0.01 " + wtfile_int)
+                if os_cmd != 0:
+                    raise Exception('Command srun not found in the system')
+            except:
+                os.system("wgrib2 " + wtfile + " -set_grib_type same -new_grid_winds earth -new_grid latlon " +
+                          lon_corner + ":400:0.01 " + lat_corner + ":400:0.01 " + wtfile_int)
         else:
             copyfile(wtfile, wtfile_int)
         print("Saving weather data along the vertical at the vent location")
-        os.system(
-            "wgrib2 "
-            + wtfile
-            + " -s -lon "
-            + slon
-            + " "
-            + slat
-            + "  >"
-            + wtfile_interpolated
-        )
+        try:
+            os_cmd = os.system("srun -n 1 wgrib2 " + wtfile + " -s -lon " + slon + " " + slat + " >" + wtfile_interpolated)
+            if os_cmd != 0:
+                raise Exception('Command srun not found in the system')
+        except:
+            os.system("wgrib2 " + wtfile + " -s -lon " + slon + " " + slat + " >" + wtfile_interpolated)
 
     slon_source_left = str(lon_source - 2)
     slon_source_right = str(lon_source + 2)

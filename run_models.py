@@ -9,7 +9,8 @@ import utm
 
 
 def read_arguments():
-    parser = argparse.ArgumentParser(description="Input data")
+    parser = argparse.ArgumentParser(description="Input data", 
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "-N",
         "--nproc",

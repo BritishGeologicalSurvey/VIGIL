@@ -75,12 +75,6 @@ def read_arguments():
         help="Model outputs to post-process. Options: disgas, twodee, all",
     )
     parser.add_argument(
-        "-MO",
-        "--merge_outputs",
-        default="False",
-        help="Merge Twodee and Disgas outputs (true or false)",
-    )
-    parser.add_argument(
         "-U",
         "--units",
         default=None,
@@ -142,7 +136,6 @@ def read_arguments():
     nproc = args.nproc
     convert = args.convert
     models = args.models
-    merge_outputs = args.merge_outputs
     units = args.units
     plot_limits_in = args.plot_limits
     plot_isolines_in = args.plot_isolines
@@ -233,13 +226,6 @@ def read_arguments():
     ):
         print("ERROR. Wrong value for variable -M --models")
         sys.exit()
-    if merge_outputs.lower() == "true":
-        merge_outputs = True
-    elif merge_outputs.lower() == "false":
-        merge_outputs = False
-    else:
-        print("ERROR. Wrong value for variable -MO --merge_outputs")
-        sys.exit()
     try:
         units = units.lower()
     except AttributeError:
@@ -324,7 +310,6 @@ def read_arguments():
         max_number_processes,
         convert,
         models,
-        merge_outputs,
         units,
         time_av,
         min_con,
@@ -1796,7 +1781,6 @@ root = os.getcwd()
     max_number_processes,
     convert,
     models,
-    merge_outputs,
     units,
     time_av,
     min_con,

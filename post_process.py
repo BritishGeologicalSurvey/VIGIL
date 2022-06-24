@@ -473,9 +473,10 @@ def folder_structure():
 
 def gas_properties():
     def extract_gas_properties(specie):
-        data = pd.read_csv(gas_properties_file, error_bad_lines=False)
+        data = pd.read_csv(gas_properties_file, on_bad_lines='skip')
         molar_ratio = None
-        molar_weight = None
+        conc_thresholds = []
+        exp_times = []
         if convert:
             if specie == original_specie:
                 molar_ratio = 1
@@ -489,7 +490,7 @@ def gas_properties():
                     print('ERROR. Molar ratio ' + specie + '/' + original_specie + ' not found in gas_properties.csv')
                     exit()
         try:
-            y = np.sort(data[specie])
+            y = np.sort(data['M_' + specie])
             molar_weight = list(y)[0]
             if molar_weight != molar_weight:
                 print('ERROR. Molar weight of ' + specie + ' not found in gas_properties.csv')
@@ -497,7 +498,27 @@ def gas_properties():
         except KeyError:
             print('ERROR. Molar weight of ' + specie + ' not found in gas_properties.csv')
             sys.exit()
-        return molar_ratio, molar_weight
+        try:
+            y = data['CT_' + specie]
+            conc_thresholds_temp = list(y)
+            conc_thresholds = [x for x in conc_thresholds_temp if x == x]
+            if len(conc_thresholds) == 0:
+                print('WARNING. Concentration thresholds of ' + specie + ' not found in gas_properties.csv. Gas '
+                      'persistence calculation not possible')
+        except KeyError:
+            print('WARNING. Concentration thresholds of ' + specie + ' not found in gas_properties.csv. Gas '
+                  'persistence calculation not possible')
+        try:
+            y = data['ET_' + specie]
+            exp_times_temp = list(y)
+            exp_times = [x for x in exp_times_temp if x == x]
+            if len(exp_times) == 0:
+                print('WARNING. Exposure times of ' + specie + ' not found in gas_properties.csv. Gas '
+                      'persistence calculation not possible for gas specie ' + specie)
+        except KeyError:
+            print('WARNING. Exposure times of ' + specie + ' not found in gas_properties.csv. Gas '
+                  'persistence calculation not possible for gas specie' + specie)
+        return molar_ratio, molar_weight, conc_thresholds, exp_times
 
     gas_properties_file = os.path.join(root, "gas_properties.csv")
     try:
@@ -507,24 +528,36 @@ def gas_properties():
         sys.exit()
     molar_ratios = []
     molar_weights = []
+    concentration_thresholds = []
+    exposure_times = []
     for specie in species:
-        molar_ratio, molar_weight = extract_gas_properties(specie)
+        molar_ratio, molar_weight, concentration_thresholds_specie, exposure_times_specie = extract_gas_properties(
+            specie)
         molar_ratios.append(molar_ratio)
         molar_weights.append(molar_weight)
-    molar_ratio, molar_weight = extract_gas_properties(original_specie)
+        concentration_thresholds.append(concentration_thresholds_specie)
+        exposure_times.append(exposure_times_specie)
+    molar_ratio, molar_weight, concentration_thresholds_specie, exposure_times_specie = extract_gas_properties(
+        original_specie)
     molar_ratios_tracking_specie = molar_ratio
     molar_weights_tracking_specie = molar_weight
+    concentration_thresholds_tracking_specie = concentration_thresholds_specie
+    exposure_times_tracking_specie = exposure_times_specie
     species_properties = []
     for i in range(0, len(species)):
         gas_specie = {}
         gas_specie["specie_name"] = species[i]
         gas_specie["molar_ratio"] = molar_ratios[i]
         gas_specie["molar_weight"] = molar_weights[i]
+        gas_specie["concentration_thresholds"] = concentration_thresholds[i]
+        gas_specie["exposure_times"] = exposure_times[i]
         species_properties.append(gas_specie)
     gas_specie = {}
     gas_specie["specie_name"] = original_specie
     gas_specie["molar_ratio"] = molar_ratios_tracking_specie
     gas_specie["molar_weight"] = molar_weights_tracking_specie
+    gas_specie["concentration_thresholds"] = concentration_thresholds_tracking_specie
+    gas_specie["exposure_times"] = exposure_times_tracking_specie
     species_properties.append(gas_specie)
     return species_properties
 

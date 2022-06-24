@@ -129,7 +129,7 @@ Python script that:
 	+ plot the converted outputs and those at selected exceedance probabilities at user's selectd time steps and vertical levels; the plots are stored in the folder graphical_outputs.
 The following flags control the execution of post_process.py:
 usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB] [-EX EX_PROB [EX_PROB ...]] [-T TIME_STEPS [TIME_STEPS ...]]
-                       [-L LEVELS [LEVELS ...]] [-D DAYS_PLOT [DAYS_PLOT ...]] [-C CONVERT] [-S SPECIES [SPECIES ...]]
+                       [-L LEVELS [LEVELS ...]] [-D DAYS_PLOT [DAYS_PLOT ...]] [-C CONVERT] [-S SPECIES [SPECIES ...]] [-PER PERSISTENCE]
                        [-N NPROC] [-M MODELS] [-MO MERGE_OUTPUTS] [-U UNITS] [-PL PLOT_LIMITS [PLOT_LIMITS ...]] [-TA TIME_AV] 
 		       [-OF OUTPUT_FORMAT] [-PT PLOT_TOPOGRAPHY] [-PR PLOT_RESOLUTION] [-TP TRACKING_POINTS]
 
@@ -157,6 +157,9 @@ usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB] [-EX EX_PROB [EX_PROB .
                         List of gas species (e.g. CO2) (comma separated values)
   -TS TRACKING_SPECIE, --tracking_specie TRACKING_SPECIE
                         The original emitted specie that is tracked in the simulation
+  -PER PERSISTENCE, --persistence PERSISTENCE
+                        If True, calculate the persistence of the gas specie, i.e. the probability to be exposed to a gas specie above specified concentration thresholds for times longer than the specified exposure times for those thresholds. 
+                        Concentration thresholds and exposure times should be provided in gas_properties.csv
   -N NPROC, --nproc NPROC
                         Maximum number of allowed simultaneous processes
   -M MODELS, --models MODELS

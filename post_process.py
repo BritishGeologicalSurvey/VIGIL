@@ -64,6 +64,14 @@ def read_arguments():
         "-TS", "--tracking_specie", default=None, help="The original emitted specie that is tracked in the simulation"
     )
     parser.add_argument(
+        "-PER",
+        "--persistence",
+        default="False",
+        help="If True, calculate the persistence of the gas specie, i.e. the probability to be exposed to a gas species"
+             " above specified concentration thresholds for times longer than the specified exposure times for those"
+             " thresholds.\n" + "Concentration thresholds and exposure times should be provided in gas_properties.csv",
+    )
+    parser.add_argument(
         "-N",
         "--nproc",
         default=1,
@@ -136,6 +144,7 @@ def read_arguments():
     original_specie = args.tracking_specie
     nproc = args.nproc
     convert = args.convert
+    persistence = args.persistence
     models = args.models
     units = args.units
     plot_limits_in = args.plot_limits
@@ -215,6 +224,13 @@ def read_arguments():
         convert = False
     else:
         print("ERROR. Wrong value for variable -C --convert")
+        sys.exit()
+    if persistence.lower() == "true":
+        persistence= True
+    elif persistence.lower() == "false":
+        persistence = False
+    else:
+        print("ERROR. Wrong value for variable -PER --persistence")
         sys.exit()
     exceedance_probabilities = []
     if ex_prob_in != '':
@@ -310,6 +326,7 @@ def read_arguments():
         exceedance_probabilities,
         max_number_processes,
         convert,
+        persistence,
         models,
         units,
         time_av,
@@ -1781,6 +1798,7 @@ root = os.getcwd()
     exceedance_probabilities,
     max_number_processes,
     convert,
+    persistence,
     models,
     units,
     time_av,

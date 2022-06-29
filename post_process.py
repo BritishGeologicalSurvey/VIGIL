@@ -346,6 +346,7 @@ def folder_structure():
     post_processing = "post_processing"
     processed_output_folder_name = original_output_folder_name + "_processed"
     ecdf_folder_name = "output_ecdf"
+    persistence_folder_name = "output_persistence"
     disgas_outputs = os.path.join(root, post_processing, "disgas")
     twodee_outputs = os.path.join(root, post_processing, "twodee")
     disgas_original_output_folder = os.path.join(
@@ -357,13 +358,15 @@ def folder_structure():
     disgas_processed_output_folder = os.path.join(
         disgas_outputs, processed_output_folder_name
     )
-    disgas_ecdf = os.path.join(disgas_outputs, ecdf_folder_name)
     twodee_processed_output_folder = os.path.join(
         twodee_outputs, processed_output_folder_name
     )
+    disgas_ecdf = os.path.join(disgas_outputs, ecdf_folder_name)
     twodee_ecdf = os.path.join(twodee_outputs, ecdf_folder_name)
     disgas_ecdf_tracking_points = os.path.join(disgas_ecdf, 'tracking_points')
     twodee_ecdf_tracking_points = os.path.join(twodee_ecdf, 'tracking_points')
+    disgas_persistence = os.path.join(disgas_outputs, persistence_folder_name)
+    twodee_persistence = os.path.join(twodee_outputs, persistence_folder_name)
     try:
         os.mkdir(post_processing)
     except FileExistsError:
@@ -385,6 +388,10 @@ def folder_structure():
             os.mkdir(disgas_ecdf_tracking_points)
         except FileExistsError:
             print("Folder " + disgas_ecdf_tracking_points + " already exists")
+        try:
+            os.mkdir(disgas_persistence)
+        except FileExistsError:
+            print("Folder " + disgas_persistence + " already exists")
     if models == "twodee" or models == "all":
         try:
             os.mkdir(twodee_outputs)
@@ -402,6 +409,10 @@ def folder_structure():
             os.mkdir(twodee_ecdf_tracking_points)
         except FileExistsError:
             print("Folder " + twodee_ecdf_tracking_points + " already exists")
+        try:
+            os.mkdir(twodee_persistence)
+        except FileExistsError:
+            print("Folder " + twodee_persistence + " already exists")
     twodee_input_file = os.path.join(root, "twodee.inp")
     twodee_output_time_step = 0
     if models == "all":
@@ -423,10 +434,12 @@ def folder_structure():
             model_outputs = disgas_outputs
             model_processed_output_folder = disgas_processed_output_folder
             ecdf_outputs = disgas_ecdf
+            persistence_outputs = disgas_persistence
         else:
             model_outputs = twodee_outputs
             model_processed_output_folder = twodee_processed_output_folder
             ecdf_outputs = twodee_ecdf
+            persistence_outputs = twodee_persistence
         graphical_outputs = os.path.join(model_outputs, "graphical_outputs")
         graphical_outputs_simulations = os.path.join(graphical_outputs, "simulations")
         graphical_outputs_ecdf = os.path.join(graphical_outputs, "ecdf")
@@ -455,15 +468,18 @@ def folder_structure():
         ecdf_folder_name,
         disgas_ecdf,
         disgas_ecdf_tracking_points,
+        disgas_persistence,
         twodee_outputs,
         twodee_original_output_folder,
         twodee_processed_output_folder,
         twodee_ecdf,
         twodee_ecdf_tracking_points,
+        twodee_persistence,
         models_to_elaborate,
         twodee_output_time_step,
         model_processed_output_folder,
         ecdf_outputs,
+        persistence_outputs,
         graphical_outputs,
         graphical_outputs_simulations,
         graphical_outputs_ecdf,
@@ -1237,179 +1253,189 @@ def sort_levels(input_array):
 
 
 def probabilistic_output(model):
-    def ecdf(index):
-        specie = index[1]
-        file_level_s = index[2]
-        time_step = index[3]
-        ex_prob = index[0]
-        quantile = 1 - ex_prob
-        output_files = []
-        for day in days:
-            try:
-                file_time_step = int(time_step)
-                file_time_step = file_time_step * dt
-                time_start = datetime.datetime.strptime(
-                    day + str(hour_start).zfill(2) + str(minute_start).zfill(2),
-                    '%Y%m%d%H%M')
-                time_validity = time_start + datetime.timedelta(seconds=file_time_step)
-                file_validity = datetime.datetime.strftime(time_validity, '%Y%m%d%H%M')
-                time_step_s = "{:06d}".format(int(time_step))
-            except ValueError:
-                tavg_interval_start_s = day + time_step.split('-')[0] + '00'
-                tavg_interval_end_s = day + time_step.split('-')[1] + '00'
-                tavg_interval_start = datetime.datetime.strptime(tavg_interval_start_s, '%Y%m%d%H%M')
+    def calculate_quantiles():
+        def ecdf(index):
+            specie = index[1]
+            file_level_s = index[2]
+            time_step = index[3]
+            ex_prob = index[0]
+            quantile = 1 - ex_prob
+            output_files = []
+            for day in days:
                 try:
-                    datetime.datetime.strptime(tavg_interval_end_s, '%Y%m%d%H%M')
+                    file_time_step = int(time_step)
+                    file_time_step = file_time_step * dt
+                    time_start = datetime.datetime.strptime(
+                        day + str(hour_start).zfill(2) + str(minute_start).zfill(2),
+                        '%Y%m%d%H%M')
+                    time_validity = time_start + datetime.timedelta(seconds=file_time_step)
+                    file_validity = datetime.datetime.strftime(time_validity, '%Y%m%d%H%M')
+                    time_step_s = "{:06d}".format(int(time_step))
                 except ValueError:
-                    tavg_interval_end = tavg_interval_start + datetime.timedelta(hours=(int(time_step.split('-')[1]) -
-                                                                                        int(time_step.split('-')[0])))
-                    tavg_interval_end_s = datetime.datetime.strftime(tavg_interval_end, '%Y%m%d%H%M')
-                day_interval = datetime.datetime.strftime(tavg_interval_start, '%Y%m%d')
-                if day != day_interval:
+                    tavg_interval_start_s = day + time_step.split('-')[0] + '00'
+                    tavg_interval_end_s = day + time_step.split('-')[1] + '00'
+                    tavg_interval_start = datetime.datetime.strptime(tavg_interval_start_s, '%Y%m%d%H%M')
+                    try:
+                        datetime.datetime.strptime(tavg_interval_end_s, '%Y%m%d%H%M')
+                    except ValueError:
+                        tavg_interval_end = tavg_interval_start + datetime.timedelta(hours=(int(time_step.split('-')[1]) -
+                                                                                            int(time_step.split('-')[0])))
+                        tavg_interval_end_s = datetime.datetime.strftime(tavg_interval_end, '%Y%m%d%H%M')
+                    day_interval = datetime.datetime.strftime(tavg_interval_start, '%Y%m%d')
+                    if day != day_interval:
+                        continue
+                    file_validity = tavg_interval_start_s + '-' + tavg_interval_end_s + '-tavg'
+                    time_step_s = time_step
+                file_name = "c_" + file_level_s + "_" + file_validity + ".grd"
+                output_folder = os.path.join(model_processed_output_folder, day, specie)
+                output_files.append(os.path.join(output_folder, file_name))
+            ecdf_output_file = os.path.join(
+                ecdf_folder,
+                str(ex_prob),
+                specie,
+                "c_"
+                + file_level_s
+                + "_"
+                + time_step_s
+                + ".grd",
+            )
+            output_quantile = np.zeros((ny, nx))
+            c_arrays = []
+            files_not_available = []
+            for file in output_files:
+                try:
+                    input_file = open(file)
+                except FileNotFoundError:
+                    print("File " + file + " not found")
+                    files_not_available.append(file)
                     continue
-                file_validity = tavg_interval_start_s + '-' + tavg_interval_end_s + '-tavg'
-                time_step_s = time_step
-            file_name = "c_" + file_level_s + "_" + file_validity + ".grd"
-            output_folder = os.path.join(model_processed_output_folder, day, specie)
-            output_files.append(os.path.join(output_folder, file_name))
-        ecdf_output_file = os.path.join(
-            ecdf_folder,
-            str(ex_prob),
-            specie,
-            "c_"
-            + file_level_s
-            + "_"
-            + time_step_s
-            + ".grd",
-        )
-        output_quantile = np.zeros((ny, nx))
-        c_arrays = []
-        files_not_available = []
-        for file in output_files:
-            try:
-                input_file = open(file)
-            except FileNotFoundError:
-                print("File " + file + " not found")
-                files_not_available.append(file)
-                continue
-            records = []
-            nline = 1
-            for line in input_file:
-                if nline > 5:
-                    records.append(line.split(" "))
-                nline += 1
-            c_arrays.append(records)
-        for file in files_not_available:
-            output_files.remove(file)
-        for j in range(0, ny):
-            for i in range(0, nx):
-                c_list = []
-                for k in range(0, len(output_files)):
-                    c_list.append(float(c_arrays[k][j][i]))
-                output_quantile[j, i] = np.quantile(c_list, q=quantile)
-        # Create header of the processed file
-        with open(ecdf_output_file, "a") as processed_file:
-            if output_format == "grd":
-                processed_file.write("DSAA\n")
-                processed_file.write(str(nx) + "  " + str(ny) + "\n")
-                processed_file.write(str(x0) + "  " + str(xf) + "\n")
-                processed_file.write(str(y0) + "  " + str(yf) + "\n")
-                processed_file.write(
-                    str(np.amin(output_quantile))
-                    + "  "
-                    + str(np.amax(output_quantile))
-                    + "\n"
-                )
-            np.savetxt(processed_file, output_quantile, fmt="%.2e")
+                records = []
+                nline = 1
+                for line in input_file:
+                    if nline > 5:
+                        records.append(line.split(" "))
+                    nline += 1
+                c_arrays.append(records)
+            for file in files_not_available:
+                output_files.remove(file)
+            for j in range(0, ny):
+                for i in range(0, nx):
+                    c_list = []
+                    for k in range(0, len(output_files)):
+                        c_list.append(float(c_arrays[k][j][i]))
+                    output_quantile[j, i] = np.quantile(c_list, q=quantile)
+            # Create header of the processed file
+            with open(ecdf_output_file, "a") as processed_file:
+                if output_format == "grd":
+                    processed_file.write("DSAA\n")
+                    processed_file.write(str(nx) + "  " + str(ny) + "\n")
+                    processed_file.write(str(x0) + "  " + str(xf) + "\n")
+                    processed_file.write(str(y0) + "  " + str(yf) + "\n")
+                    processed_file.write(
+                        str(np.amin(output_quantile))
+                        + "  "
+                        + str(np.amax(output_quantile))
+                        + "\n"
+                    )
+                np.savetxt(processed_file, output_quantile, fmt="%.2e")
 
-    if model == "disgas":
-        ecdf_folder = disgas_ecdf
-        model_processed_output_folder = disgas_processed_output_folder
-    else:
-        ecdf_folder = twodee_ecdf
-        model_processed_output_folder = twodee_processed_output_folder
-    for probability in exceedance_probabilities:
-        prob_folder = os.path.join(ecdf_folder, str(probability))
-        try:
-            os.mkdir(prob_folder)
-        except FileExistsError:
-            print("Folder " + prob_folder + " already exists")
-        for specie in species:
-            specie_folder = os.path.join(ecdf_folder, prob_folder, specie)
+        if model == "disgas":
+            ecdf_folder = disgas_ecdf
+            model_processed_output_folder = disgas_processed_output_folder
+        else:
+            ecdf_folder = twodee_ecdf
+            model_processed_output_folder = twodee_processed_output_folder
+        for probability in exceedance_probabilities:
+            prob_folder = os.path.join(ecdf_folder, str(probability))
             try:
-                os.mkdir(specie_folder)
+                os.mkdir(prob_folder)
             except FileExistsError:
-                print("Folder " + specie_folder + " already exists")
-    indexes = []
-    pools_ecdfs = []
-    indexes_tavg = []
-    pools_ecdfs_tavg = []
-    n_pool = 0
-    n_pool_tavg = 0
-    for probability in exceedance_probabilities:
-        for specie in species:
-            pools_ecdfs.append(n_pool)
-            if len(tavg_intervals) > 0:
-                pools_ecdfs_tavg.append(n_pool_tavg)
-                n_pool_tavg += 1
-            if levels[0] == "all":
-                for i in range(0, nz):
-                    if time_steps[0] == "all":
-                        for j in range(0, n_time_steps + 1):
-                            indexes.append([probability, specie, processed_files_levels[i], j])
-                    else:
-                        for time_step in time_steps:
-                            indexes.append([probability, specie, processed_files_levels[i], time_step])
-                    if len(tavg_intervals) > 0:
-                        for k in range(0, len(tavg_intervals)):
-                            indexes_tavg.append(
-                                [probability, specie, processed_files_levels[i], tavg_intervals[k]]
-                            )
-            else:
-                for level in processed_files_levels:
-                    if time_steps[0] == "all":
-                        for j in range(0, n_time_steps + 1):
-                            indexes.append([probability, specie, level, j])
-                    else:
-                        for time_step in time_steps:
-                            indexes.append([probability, specie, level, time_step])
-                    if len(tavg_intervals) > 0:
-                        for k in range(0, len(tavg_intervals)):
-                            indexes_tavg.append(
-                                [probability, specie, level, tavg_intervals[k]]
-                            )
-            n_pool += 1
-    n_pool = 0
-    n_completed_processes = 0
-    while n_completed_processes <= len(indexes):
-        start = n_completed_processes
-        end = n_completed_processes + max_number_processes
-        if end > len(indexes):
-            end = len(indexes)
-        pools_ecdfs[n_pool] = ThreadingPool(max_number_processes)
-        pools_ecdfs[n_pool].map(ecdf, indexes[start:end])
-        n_completed_processes = end
-        if n_completed_processes == len(indexes):
-            break
-    n_pool += 1
-    if len(tavg_intervals) > 0:
+                print("Folder " + prob_folder + " already exists")
+            for specie in species:
+                specie_folder = os.path.join(ecdf_folder, prob_folder, specie)
+                try:
+                    os.mkdir(specie_folder)
+                except FileExistsError:
+                    print("Folder " + specie_folder + " already exists")
+        indexes = []
+        pools_ecdfs = []
+        indexes_tavg = []
+        pools_ecdfs_tavg = []
+        n_pool = 0
         n_pool_tavg = 0
+        for probability in exceedance_probabilities:
+            for specie in species:
+                pools_ecdfs.append(n_pool)
+                if len(tavg_intervals) > 0:
+                    pools_ecdfs_tavg.append(n_pool_tavg)
+                    n_pool_tavg += 1
+                if levels[0] == "all":
+                    for i in range(0, nz):
+                        if time_steps[0] == "all":
+                            for j in range(0, n_time_steps + 1):
+                                indexes.append([probability, specie, processed_files_levels[i], j])
+                        else:
+                            for time_step in time_steps:
+                                indexes.append([probability, specie, processed_files_levels[i], time_step])
+                        if len(tavg_intervals) > 0:
+                            for k in range(0, len(tavg_intervals)):
+                                indexes_tavg.append(
+                                    [probability, specie, processed_files_levels[i], tavg_intervals[k]]
+                                )
+                else:
+                    for level in processed_files_levels:
+                        if time_steps[0] == "all":
+                            for j in range(0, n_time_steps + 1):
+                                indexes.append([probability, specie, level, j])
+                        else:
+                            for time_step in time_steps:
+                                indexes.append([probability, specie, level, time_step])
+                        if len(tavg_intervals) > 0:
+                            for k in range(0, len(tavg_intervals)):
+                                indexes_tavg.append(
+                                    [probability, specie, level, tavg_intervals[k]]
+                                )
+                n_pool += 1
+        n_pool = 0
         n_completed_processes = 0
-        while n_completed_processes <= len(indexes_tavg):
+        while n_completed_processes <= len(indexes):
             start = n_completed_processes
             end = n_completed_processes + max_number_processes
-            if end > len(indexes_tavg):
-                end = len(indexes_tavg)
-            try:
-                pools_ecdfs_tavg[n_pool_tavg] = ThreadingPool(max_number_processes)
-                pools_ecdfs_tavg[n_pool_tavg].map(ecdf, indexes_tavg[start:end])
-            except BaseException:
-                print("Unable to elaborate days")
-                sys.exit()
+            if end > len(indexes):
+                end = len(indexes)
+            pools_ecdfs[n_pool] = ThreadingPool(max_number_processes)
+            pools_ecdfs[n_pool].map(ecdf, indexes[start:end])
             n_completed_processes = end
-            if n_completed_processes == len(indexes_tavg):
+            if n_completed_processes == len(indexes):
                 break
-        n_pool_tavg += 1
+        n_pool += 1
+        if len(tavg_intervals) > 0:
+            n_pool_tavg = 0
+            n_completed_processes = 0
+            while n_completed_processes <= len(indexes_tavg):
+                start = n_completed_processes
+                end = n_completed_processes + max_number_processes
+                if end > len(indexes_tavg):
+                    end = len(indexes_tavg)
+                try:
+                    pools_ecdfs_tavg[n_pool_tavg] = ThreadingPool(max_number_processes)
+                    pools_ecdfs_tavg[n_pool_tavg].map(ecdf, indexes_tavg[start:end])
+                except BaseException:
+                    print("Unable to elaborate days")
+                    sys.exit()
+                n_completed_processes = end
+                if n_completed_processes == len(indexes_tavg):
+                    break
+            n_pool_tavg += 1
+
+    def calculate_persistence():
+        print('Ciao')
+
+
+    if plot_ex_prob:
+        calculate_quantiles()
+    if persistence:
+        calculate_persistence()
 
 
 def save_plots(model, min_con, max_con):
@@ -1853,15 +1879,18 @@ root = os.getcwd()
     ecdf_folder_name,
     disgas_ecdf,
     disgas_ecdf_tracking_points,
+    disgas_persistence,
     twodee_outputs,
     twodee_original_output_folder,
     twodee_processed_output_folder,
     twodee_ecdf,
     twodee_ecdf_tracking_points,
+    twodee_persistence,
     models_to_elaborate,
     twodee_output_time_step,
     model_processed_output_folder,
     ecdf_outputs,
+    persistence_outputs,
     graphical_outputs,
     graphical_outputs_simulations,
     graphical_outputs_ecdf,
@@ -1897,6 +1926,6 @@ for model in models_to_elaborate:
         probabilistic_tracking_points()
     processed_files_levels = sort_levels(processed_files_levels)
     processed_files_steps = sorted(processed_files_steps)
-    if plot_ex_prob:
+    if plot_ex_prob or persistence:
         probabilistic_output(model)
     save_plots(model, min_con, max_con)

@@ -164,8 +164,6 @@ usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB] [-EX EX_PROB [EX_PROB .
                         Maximum number of allowed simultaneous processes
   -M MODELS, --models MODELS
                         Model outputs to post-process. Options: disgas, twodee, all
-  -MO MERGE_OUTPUTS, --merge_outputs MERGE_OUTPUTS
-                        Merge Twodee and Disgas outputs (true or false)
   -U UNITS, --units UNITS
                         Gas concentration units. Possible options are: ppm, kg/m3
   -PL PLOT_LIMITS [PLOT_LIMITS ...], --plot_limits PLOT_LIMITS [PLOT_LIMITS ...]
@@ -197,7 +195,7 @@ Gas modelling software:
 
 - DIAGNO v1.1.6: the diagnostic wind model (Douglas et al., 1990)
   Link: http://datasim.ov.ingv.it/models/diagno.html
-- DISGAS v2.2.2: the dilute gas dispersion simulation tool (Costa et al., 2005; Costa and Macedonio, 2016)
+- DISGAS v2.3: the dilute gas dispersion simulation tool (Costa et al., 2005; Costa and Macedonio, 2016)
   Link: http://datasim.ov.ingv.it/models/disgas.html
 - TWODEE v2.6: the dense gas dispersion simulation tool (Hankin and Britter, 1999; Folch et al., 2009)
   Link: http://datasim.ov.ingv.it/models/twodee.html

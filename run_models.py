@@ -1003,6 +1003,7 @@ def pre_process(run_type):
 def run_diagno(max_number_processes):
     n_elaborated_days = 0
     n_node = 0
+    node = ''
     while n_elaborated_days <= len(days):
         ps = []
         start = n_elaborated_days
@@ -1011,10 +1012,11 @@ def run_diagno(max_number_processes):
             end = len(days)
         try:
             for day in days[start:end]:
-                try:
-                    node = nodes_list[n_node]
-                except IndexError:
-                    node = ''
+                if len(nodes_list) > 0:
+                    try:
+                        node = nodes_list[n_node]
+                    except IndexError:
+                        node = ''
                 diagno_folder = os.path.join(root, "simulations", "diagno", day)
                 # read and memorize diagno.inp file
                 diagno_input_records = []
@@ -1074,9 +1076,10 @@ def run_diagno(max_number_processes):
                         print('Unable to run DIAGNO')
                         sys.exit()
                 ps.append(p)
-                n_node += 1
-                if n_node >= len(nodes_list):
-                    n_node = 0
+                if len(nodes_list) > 0:
+                    n_node += 1
+                    if n_node >= len(nodes_list):
+                        n_node = 0
         except BaseException:
             print("Unable to process weather data with Diagno")
             sys.exit()
@@ -1095,6 +1098,7 @@ def run_disgas(max_number_processes):
     disgas = os.path.join(root, "simulations", "disgas")
     n_elaborated_days = 0
     n_node = 0
+    node = ''
     if continuous_simulation:
         max_number_processes = 1
     while n_elaborated_days <= len(days):
@@ -1105,10 +1109,11 @@ def run_disgas(max_number_processes):
             end = len(days)
         try:
             for day in days[start:end]:
-                try:
-                    node = nodes_list[n_node]
-                except IndexError:
-                    node = ''
+                if len(nodes_list) > 0:
+                    try:
+                        node = nodes_list[n_node]
+                    except IndexError:
+                        node = ''
                 disgas_folder = os.path.join(disgas, day)
                 disgas_input_file = os.path.join(disgas_folder, "disgas.inp")
                 disgas_log_file = os.path.join(
@@ -1143,9 +1148,10 @@ def run_disgas(max_number_processes):
                         print('Unable to run DISGAS')
                         sys.exit()
                 ps.append(p)
-                n_node += 1
-                if n_node >= len(nodes_list):
-                    n_node = 0
+                if len(nodes_list) > 0:
+                    n_node += 1
+                    if n_node >= len(nodes_list):
+                        n_node = 0
         except BaseException:
             print("Unable to run DISGAS")
             sys.exit()
@@ -1162,6 +1168,7 @@ def run_twodee(max_number_processes):
     twodee = os.path.join(root, "simulations", "twodee")
     n_elaborated_days = 0
     n_node = 0
+    node = ''
     if continuous_simulation:
         max_number_processes = 1
     while n_elaborated_days <= len(days):
@@ -1172,10 +1179,11 @@ def run_twodee(max_number_processes):
             end = len(days)
         try:
             for day in days[start:end]:
-                try:
-                    node = nodes_list[n_node]
-                except IndexError:
-                    node = ''
+                if len(nodes_list) > 0:
+                    try:
+                        node = nodes_list[n_node]
+                    except IndexError:
+                        node = ''
                 diagno = os.path.join(root, "simulations", "diagno", day)
                 twodee_folder = os.path.join(twodee, day)
                 shutil.copyfile(
@@ -1215,9 +1223,10 @@ def run_twodee(max_number_processes):
                         print('Unable to run TWODEE')
                         sys.exit()
                 ps.append(p)
-                n_node += 1
-                if n_node >= len(nodes_list):
-                    n_node = 0
+                if len(nodes_list) > 0:
+                    n_node += 1
+                    if n_node >= len(nodes_list):
+                        n_node = 0
         except BaseException:
             print("Unable to run TWODEE")
             sys.exit()
@@ -1287,6 +1296,8 @@ if shutil.which('sbatch') is not None:
     ncpus_per_node = int(sinfo_output.split('=')[-1])
     n_nodes = - (-max_number_processes // ncpus_per_node)
     nodes_list = list_available_nodes[0:n_nodes]
+else:
+    nodes_list = []
 
 if diagno_on:
     try:

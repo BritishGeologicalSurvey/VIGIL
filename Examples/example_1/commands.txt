@@ -4,4 +4,4 @@ python ../../weather.py -S 10/05/2021 -E 10/05/2021 -V 211010 -NS 1 -M forecast 
 
 python ../../run_models.py -RS off -D UTM,426000,4517000,431000,4522000 -NX 51 -NY 51 -N 1 -DG on
 
-python ../../post_process.py -P true -T all -L all -D all -C False -N 1 -M disgas -MO False -U ppm -TS CO2 -S CO2 -PT True -PL 350,10000
+python ../../post_process.py -P true -T all -L all -D all -C False -N 1 -M disgas -U ppm -TS CO2 -S CO2 -PT True -PL 350,10000

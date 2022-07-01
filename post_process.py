@@ -934,12 +934,15 @@ def extract_days():
             day_temp = day_temp.split("-")
             day = day_temp[0] + day_temp[1] + day_temp[2]
             days.append(day)
-            if days_to_plot_in[0] == "all":
-                days_to_plot.append(day)
-            else:
-                for day_to_plot in days_to_plot_in:
-                    if day_to_plot == day:
-                        days_to_plot.append(day_to_plot)
+            try:
+                if days_to_plot_in[0] == "all":
+                    days_to_plot.append(day)
+                else:
+                    for day_to_plot in days_to_plot_in:
+                        if day_to_plot == day:
+                            days_to_plot.append(day_to_plot)
+            except IndexError:
+                print('No days to plot')
     return days, days_to_plot
 
 
@@ -1429,7 +1432,36 @@ def probabilistic_output(model):
             n_pool_tavg += 1
 
     def calculate_persistence():
-        print('Ciao')
+        if model == "disgas":
+            persistence_folder = disgas_persistence
+            model_processed_output_folder = disgas_processed_output_folder
+        else:
+            persistence_folder = twodee_persistence
+            model_processed_output_folder = twodee_processed_output_folder
+        for specie in species:
+            for specie_dict in species_properties:
+                if specie_dict["specie_name"] == specie:
+                    specie_folder = os.path.join(persistence_folder, specie_dict["specie_name"])
+                    try:
+                        os.mkdir(specie_folder)
+                    except FileExistsError:
+                        print("Folder " + specie_folder + " already exists")
+                    concentration_thresholds = specie_dict["concentration_thresholds"]
+                    for threshold in concentration_thresholds:
+                        threshold_folder = os.path.join(specie_folder, str(threshold))
+                        try:
+                            os.mkdir(threshold_folder)
+                        except FileExistsError:
+                            print("Folder " + threshold_folder + " already exists")
+
+        weight = 1 / len(days)
+        #for specie in species:
+        #    if levels[0] == "all":
+        #        for i in range(0, nz):
+        #            for j in range(0, len())
+        #    else:
+        #        for level in processed_files_levels:
+
 
 
     if plot_ex_prob:

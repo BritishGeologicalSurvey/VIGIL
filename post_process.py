@@ -444,6 +444,7 @@ def folder_structure():
         graphical_outputs_simulations = os.path.join(graphical_outputs, "simulations")
         graphical_outputs_ecdf = os.path.join(graphical_outputs, "ecdf")
         graphical_outputs_ecdf_tracking_points = os.path.join(graphical_outputs_ecdf, "tracking_points")
+        graphical_outputs_persistence = os.path.join(graphical_outputs, "persistence")
         try:
             os.mkdir(graphical_outputs)
         except FileExistsError:
@@ -460,6 +461,10 @@ def folder_structure():
             os.mkdir(graphical_outputs_ecdf_tracking_points)
         except FileExistsError:
             print("Folder " + graphical_outputs_ecdf_tracking_points + " already exists")
+        try:
+            os.mkdir(graphical_outputs_persistence)
+        except FileExistsError:
+            print("Folder " + graphical_outputs_persistence + " already exists")
 
     return (
         disgas_outputs,
@@ -483,7 +488,8 @@ def folder_structure():
         graphical_outputs,
         graphical_outputs_simulations,
         graphical_outputs_ecdf,
-        graphical_outputs_ecdf_tracking_points
+        graphical_outputs_ecdf_tracking_points,
+        graphical_outputs_persistence
     )
 
 
@@ -1432,6 +1438,55 @@ def probabilistic_output(model):
             n_pool_tavg += 1
 
     def calculate_persistence():
+        def persistence(index):
+            persistence_matrix = np.zeros((ny, nx))
+            specie_input = index[0]
+            concentration_threshold = index[1]
+            exposure_time = index[2]
+            file_level_s = index[3]
+            for day in days:
+                overcome_matrix = np.zeros((ny, nx))
+                output_folder = os.path.join(model_processed_output_folder, day, specie_input)
+                all_output_files = os.listdir(output_folder)
+                output_files = []
+                for file in all_output_files:
+                    if file.split('_')[1] == file_level_s:
+                        output_files.append(os.path.join(output_folder, file))
+                for file in output_files:
+                    input_file = open(file)
+                    records = []
+                    nline = 1
+                    for line in input_file:
+                        if nline > 5:
+                            records_str = line.split(" ")
+                            records.append([float(x) for x in records_str])
+                        nline += 1
+                    for j in range(0, ny):
+                        for i in range(0, nx):
+                            if records[j][i] > concentration_threshold:
+                                overcome_matrix[j][i] += 1 * (24 / (len(output_files) - 1))
+                for j in range(0, ny):
+                    for i in range(0, nx):
+                        if overcome_matrix[j][i] >= exposure_time:
+                            persistence_matrix[j][i] += weight
+            persistence_output_file = os.path.join(persistence_folder, specie_input, str(concentration_threshold),
+                                                   'persistence_' + file_level_s + '.grd')
+            # Create header of the processed file
+            with open(persistence_output_file, "a") as processed_file:
+                if output_format == "grd":
+                    processed_file.write("DSAA\n")
+                    processed_file.write(str(nx) + "  " + str(ny) + "\n")
+                    processed_file.write(str(x0) + "  " + str(xf) + "\n")
+                    processed_file.write(str(y0) + "  " + str(yf) + "\n")
+                    processed_file.write(
+                        str(np.amin(persistence_matrix))
+                        + "  "
+                        + str(np.amax(persistence_matrix))
+                        + "\n"
+                    )
+                np.savetxt(processed_file, persistence_matrix, fmt="%.2e")
+
+
         if model == "disgas":
             persistence_folder = disgas_persistence
             model_processed_output_folder = disgas_processed_output_folder
@@ -1453,16 +1508,42 @@ def probabilistic_output(model):
                             os.mkdir(threshold_folder)
                         except FileExistsError:
                             print("Folder " + threshold_folder + " already exists")
+                            [os.remove(os.path.join(threshold_folder, x)) for x in os.listdir(threshold_folder)]
 
         weight = 1 / len(days)
-        #for specie in species:
-        #    if levels[0] == "all":
-        #        for i in range(0, nz):
-        #            for j in range(0, len())
-        #    else:
-        #        for level in processed_files_levels:
-
-
+        indexes = []
+        pools_persistence = []
+        n_pool = 0
+        for specie in species:
+            for specie_dict in species_properties:
+                if specie_dict["specie_name"] == specie:
+                    concentration_thresholds = specie_dict["concentration_thresholds"]
+                    exposure_times = specie_dict["exposure_times"]
+                    for i in range(0, len(concentration_thresholds)):
+                        pools_persistence.append(n_pool)
+                        if levels[0] == "all":
+                            for j in range(0, nz):
+                                indexes.append([specie, concentration_thresholds[i], exposure_times[i],
+                                               processed_files_levels[j]])
+                        else:
+                            all_levels = np.array(processed_files_levels)
+                            levels_indexes = [int(x) - 1 for x in levels]
+                            for level in list(all_levels[levels_indexes]):
+                                indexes.append([specie, concentration_thresholds[i], exposure_times[i], level])
+                        n_pool += 1
+        n_pool = 0
+        n_completed_processes = 0
+        while n_completed_processes <= len(indexes):
+            start = n_completed_processes
+            end = n_completed_processes + max_number_processes
+            if end > len(indexes):
+                end = len(indexes)
+            pools_persistence[n_pool] = ThreadingPool(max_number_processes)
+            pools_persistence[n_pool].map(persistence, indexes[start:end])
+            n_completed_processes = end
+            if n_completed_processes == len(indexes):
+                break
+        n_pool += 1
 
     if plot_ex_prob:
         calculate_quantiles()
@@ -1553,7 +1634,12 @@ def save_plots(model, min_con, max_con):
             levels_top = np.arange(min_z + 0.0000001, max_z, dz)
             levels_top_lines = np.arange(min_z, max_z, dz_lines)
         SUB = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
-        specie_name = input.split(os.sep)[-2]
+        print(input)
+        if 'persistence' in input.split(os.sep)[-1]:
+            specie_name = input.split(os.sep)[-3]
+            c_threshold = input.split(os.sep)[-2]
+        else:
+            specie_name = input.split(os.sep)[-2]
         specie_name = specie_name.translate(SUB)
         with open(input) as input_file:
             if output_format == "grd":
@@ -1563,6 +1649,12 @@ def save_plots(model, min_con, max_con):
             n_levels = 10
             dc = (max_con - min_con) / n_levels
             levels = np.arange(min_con + 0.0000001, max_con, dc)
+            if 'persistence' in input:
+                n_levels = 100
+                dp = 1. / n_levels
+                levels = np.arange(0.00000000001, 1, dp)
+                if output_format == "grd":
+                    Z = np.loadtxt(input, skiprows=5)
         fig, ax = plt.subplots(figsize=(6, 5), dpi=plot_resolution)
         if plot_topography_layer:
             top = ax.contourf(
@@ -1575,7 +1667,10 @@ def save_plots(model, min_con, max_con):
             )
             top_cbar.ax.tick_params(labelsize=6)
             top_cbar.set_label("m a.s.l.")
-        c_field = plt.contourf(X, Y, Z, levels, cmap="Reds", alpha=0.9, extend="max")
+        if 'persistence' in input.split(os.sep)[-1]:
+            field = plt.contourf(X, Y, Z, levels, cmap="Greens", alpha=0.9, extend="max")
+        else:
+            field = plt.contourf(X, Y, Z, levels, cmap="Reds", alpha=0.9, extend="max")
         if len(plot_isolines) != 0:
             specie_isolines = ax.contour(X, Y, Z, levels=plot_isolines, colors='black', linewidths=0.2)
             ax.clabel(specie_isolines, inline=True, fontsize=4, fmt='%1.1f')
@@ -1585,13 +1680,19 @@ def save_plots(model, min_con, max_con):
         width = axes_size.AxesY(ax, aspect=1.0 / aspect)
         pad = axes_size.Fraction(pad_fraction, width)
         cax_c = divider.append_axes("right", size=width, pad=pad)
-        cbar = fig.colorbar(c_field, cax=cax_c, orientation="vertical", format="%.1e")
+        cbar = fig.colorbar(field, cax=cax_c, orientation="vertical", format="%.1e")
         cbar.ax.tick_params(labelsize=8)
         cbar.set_label("ppm")
-        if units == "ppm":
-            ax.set_title(specie_name + " concentration [ppm]")
+        if 'persistence' in input.split(os.sep)[-1]:
+            if units == 'ppm':
+                ax.set_title(specie_name + " persistence above C = " + c_threshold + ' [ppm]')
+            else:
+                ax.set_title(specie_name + " persistence above C = " + c_threshold + ' [kg m$\mathregular{^{-3}}$]')
         else:
-            ax.set_title(specie_name + " concentration [kg m$\mathregular{^{-3}}$]")
+            if units == "ppm":
+                ax.set_title(specie_name + " concentration [ppm]")
+            else:
+                ax.set_title(specie_name + " concentration [kg m$\mathregular{^{-3}}$]")
         ax.set_aspect("equal")
         ax.set_xlim(x0, xf)
         ax.set_ylim(y0, yf)
@@ -1855,6 +1956,45 @@ def save_plots(model, min_con, max_con):
                                             tavg_output_file_name,
                                         )
                                     )
+    if persistence:
+        for specie in species:
+            for specie_dict in species_properties:
+                if specie_dict["specie_name"] == specie:
+                    try:
+                        os.mkdir(
+                            os.path.join(graphical_outputs_persistence, specie)
+                        )
+                    except FileExistsError:
+                        print(
+                            "Folder "
+                            + os.path.join(graphical_outputs_persistence, specie)
+                            + " already exists"
+                        )
+                    concentration_thresholds = specie_dict["concentration_thresholds"]
+                    for threshold in concentration_thresholds:
+                        try:
+                            os.mkdir(
+                                os.path.join(graphical_outputs_persistence, specie, str(threshold))
+                            )
+                        except FileExistsError:
+                            print(
+                                "Folder "
+                                + os.path.join(graphical_outputs_persistence, specie, str(threshold))
+                                + " already exists"
+                            )
+                        files_list = os.listdir(
+                        os.path.join(persistence_outputs, specie, str(threshold))
+                        )
+                        for file in files_list:
+                            file_path = os.path.join(
+                                persistence_outputs, specie, str(threshold), file
+                            )
+                            files_to_plot.append(file_path)
+                            persistence_plot_file_name = file.split(os.sep)[-1].split(".grd")[0]
+                            persistence_plot_file_name += '.png'
+                            output_files.append(os.path.join(graphical_outputs_persistence, specie, str(threshold),
+                                                             persistence_plot_file_name))
+
     if len(files_to_plot) == 0:
         print("No files to plot")
     else:
@@ -1926,7 +2066,8 @@ root = os.getcwd()
     graphical_outputs,
     graphical_outputs_simulations,
     graphical_outputs_ecdf,
-    graphical_outputs_ecdf_tracking_points
+    graphical_outputs_ecdf_tracking_points,
+    graphical_outputs_persistence
 ) = folder_structure()
 
 days, days_to_plot = extract_days()

@@ -19,19 +19,27 @@ def read_arguments():
         "-P",
         "--plot",
         default="False",
-        help="True: Produce plots of the solutions. False: Do not produce plots",
+        help="Produce plots of the solutions and probabilistic output (if activated). True/False",)
+    parser.add_argument(
+        "-ECDF",
+        "--calculate_ecdf",
+        default="False",
+        help="Calculate the Empirical Cumulative Density Function of the solution and extrapolate solutions at "
+             "user-defined exceedance probabilities. True/False",
     )
     parser.add_argument(
-        "-PE",
-        "--plot_ex_prob",
+        "-PER",
+        "--persistence",
         default="False",
-        help="True: Produce plots of the specified exceedance probabilities. False: Do not produce plots",
-    )
+        help="Calculate the persistence of the gas specie, i.e. the probability to be exposed to a gas species"
+             " above specified concentration thresholds for times longer than the specified exposure times for those"
+             " thresholds.\n" + "Concentration thresholds and exposure times should be provided in "
+                                "gas_properties.csv.\n" + " True/False")
     parser.add_argument(
         "-EX",
         "--ex_prob",
         default='',
-        help="List of exceedence probabilities to be used for graphical output",
+        help="List of exceedance probabilities to be used for graphical output",
     )
     parser.add_argument(
         "-T",
@@ -62,14 +70,6 @@ def read_arguments():
     )
     parser.add_argument(
         "-TS", "--tracking_specie", default=None, help="The original emitted specie that is tracked in the simulation"
-    )
-    parser.add_argument(
-        "-PER",
-        "--persistence",
-        default="False",
-        help="If True, calculate the persistence of the gas specie, i.e. the probability to be exposed to a gas species"
-             " above specified concentration thresholds for times longer than the specified exposure times for those"
-             " thresholds.\n" + "Concentration thresholds and exposure times should be provided in gas_properties.csv",
     )
     parser.add_argument(
         "-N",
@@ -135,7 +135,8 @@ def read_arguments():
     )
     args = parser.parse_args()
     plot = args.plot
-    plot_ex_prob = args.plot_ex_prob
+    calculate_ecdf = args.calculate_ecdf
+    persistence = args.persistence
     ex_prob_in = args.ex_prob
     time_steps_in = args.time_steps
     levels_in = args.levels
@@ -144,7 +145,6 @@ def read_arguments():
     original_specie = args.tracking_specie
     nproc = args.nproc
     convert = args.convert
-    persistence = args.persistence
     models = args.models
     units = args.units
     plot_limits_in = args.plot_limits
@@ -193,19 +193,19 @@ def read_arguments():
     else:
         print("ERROR. Wrong value for variable -P --plot")
         sys.exit()
-    if plot_ex_prob.lower() == "true":
-        plot_ex_prob = True
+    if calculate_ecdf.lower() == "true":
+        calculate_ecdf = True
         if ex_prob_in == '':
             print(
-                "ERROR. Please specify at least one exceedance probability to plot when --plot_ex_prob==True"
+                "ERROR. Please specify at least one exceedance probability to plot when --calculate_ecdf==True"
             )
             sys.exit()
-    elif plot_ex_prob.lower() == "false":
-        plot_ex_prob = False
+    elif calculate_ecdf.lower() == "false":
+        calculate_ecdf = False
     else:
         print("ERROR. Wrong value for variable -PE --plot_ex_prob")
         sys.exit()
-    if plot or plot_ex_prob:
+    if plot:
         if time_steps_in == '':
             print("ERROR. Please specify at least one time step to plot")
             sys.exit()
@@ -317,7 +317,7 @@ def read_arguments():
         sys.exit()
     return (
         plot,
-        plot_ex_prob,
+        calculate_ecdf,
         time_steps,
         levels,
         days_to_plot_in,
@@ -345,74 +345,74 @@ def folder_structure():
     original_output_folder_name = "simulations"
     post_processing = "post_processing"
     processed_output_folder_name = original_output_folder_name + "_processed"
-    ecdf_folder_name = "output_ecdf"
+    ecdf_folder = "output_ecdf"
     persistence_folder_name = "output_persistence"
-    disgas_outputs = os.path.join(root, post_processing, "disgas")
-    twodee_outputs = os.path.join(root, post_processing, "twodee")
-    disgas_original_output_folder = os.path.join(
-        root, original_output_folder_name, "disgas"
-    )
-    twodee_original_output_folder = os.path.join(
-        root, original_output_folder_name, "twodee"
-    )
-    disgas_processed_output_folder = os.path.join(
-        disgas_outputs, processed_output_folder_name
-    )
-    twodee_processed_output_folder = os.path.join(
-        twodee_outputs, processed_output_folder_name
-    )
-    disgas_ecdf = os.path.join(disgas_outputs, ecdf_folder_name)
-    twodee_ecdf = os.path.join(twodee_outputs, ecdf_folder_name)
-    disgas_ecdf_tracking_points = os.path.join(disgas_ecdf, 'tracking_points')
-    twodee_ecdf_tracking_points = os.path.join(twodee_ecdf, 'tracking_points')
-    disgas_persistence = os.path.join(disgas_outputs, persistence_folder_name)
-    twodee_persistence = os.path.join(twodee_outputs, persistence_folder_name)
+    disgas_outputs_folder = os.path.join(root, post_processing, "disgas")
+    twodee_outputs_folder = os.path.join(root, post_processing, "twodee")
+    disgas_or_output_folder = os.path.join(root, original_output_folder_name, "disgas")
+    twodee_or_output_folder = os.path.join(root, original_output_folder_name, "twodee")
+    disgas_proc_output_folder = os.path.join(disgas_outputs_folder, processed_output_folder_name)
+    twodee_proc_output_folder = os.path.join(twodee_outputs_folder, processed_output_folder_name)
+    disgas_ecdf_folder = os.path.join(disgas_outputs_folder, ecdf_folder)
+    twodee_ecdf_folder = os.path.join(twodee_outputs_folder, ecdf_folder)
+    disgas_ecdf_tracking_points_folder = os.path.join(disgas_ecdf_folder, 'tracking_points')
+    twodee_ecdf_tracking_points_folder = os.path.join(twodee_ecdf_folder, 'tracking_points')
+    disgas_persistence_folder = os.path.join(disgas_outputs_folder, persistence_folder_name)
+    twodee_persistence_folder = os.path.join(twodee_outputs_folder, persistence_folder_name)
+    model_proc_output_folder = ''
+    ecdf_outputs_folder = ''
+    persistence_outputs_folder = ''
+    graphical_outputs_folder = ''
+    graphical_outputs_simulations_folder = ''
+    graphical_outputs_ecdf_folder = ''
+    graphical_outputs_ecdf_tracking_points_folder = ''
+    graphical_outputs_persistence_folder = ''
     try:
         os.mkdir(post_processing)
     except FileExistsError:
         print("Folder post_processing already exists")
     if models == "disgas" or models == "all":
         try:
-            os.mkdir(disgas_outputs)
+            os.mkdir(disgas_outputs_folder)
         except FileExistsError:
-            print("Folder " + disgas_outputs + " already exists")
+            print("Folder " + disgas_outputs_folder + " already exists")
         try:
-            os.mkdir(disgas_processed_output_folder)
+            os.mkdir(disgas_proc_output_folder)
         except FileExistsError:
-            print("Folder " + disgas_processed_output_folder + " already exists")
+            print("Folder " + disgas_proc_output_folder + " already exists")
         try:
-            os.mkdir(disgas_ecdf)
+            os.mkdir(disgas_ecdf_folder)
         except FileExistsError:
-            print("Folder " + disgas_ecdf + " already exists")
+            print("Folder " + disgas_ecdf_folder + " already exists")
         try:
-            os.mkdir(disgas_ecdf_tracking_points)
+            os.mkdir(disgas_ecdf_tracking_points_folder)
         except FileExistsError:
-            print("Folder " + disgas_ecdf_tracking_points + " already exists")
+            print("Folder " + disgas_ecdf_tracking_points_folder + " already exists")
         try:
-            os.mkdir(disgas_persistence)
+            os.mkdir(disgas_persistence_folder)
         except FileExistsError:
-            print("Folder " + disgas_persistence + " already exists")
+            print("Folder " + disgas_persistence_folder + " already exists")
     if models == "twodee" or models == "all":
         try:
-            os.mkdir(twodee_outputs)
+            os.mkdir(twodee_outputs_folder)
         except FileExistsError:
-            print("Folder " + twodee_outputs + " already exists")
+            print("Folder " + twodee_outputs_folder + " already exists")
         try:
-            os.mkdir(twodee_processed_output_folder)
+            os.mkdir(twodee_proc_output_folder)
         except FileExistsError:
-            print("Folder " + twodee_processed_output_folder + " already exists")
+            print("Folder " + twodee_proc_output_folder + " already exists")
         try:
-            os.mkdir(twodee_ecdf)
+            os.mkdir(twodee_ecdf_folder)
         except FileExistsError:
-            print("Folder " + twodee_ecdf + " already exists")
+            print("Folder " + twodee_ecdf_folder + " already exists")
         try:
-            os.mkdir(twodee_ecdf_tracking_points)
+            os.mkdir(twodee_ecdf_tracking_points_folder)
         except FileExistsError:
-            print("Folder " + twodee_ecdf_tracking_points + " already exists")
+            print("Folder " + twodee_ecdf_tracking_points_folder + " already exists")
         try:
-            os.mkdir(twodee_persistence)
+            os.mkdir(twodee_persistence_folder)
         except FileExistsError:
-            print("Folder " + twodee_persistence + " already exists")
+            print("Folder " + twodee_persistence_folder + " already exists")
     twodee_input_file = os.path.join(root, "twodee.inp")
     twodee_output_time_step = 0
     if models == "all":
@@ -421,75 +421,75 @@ def folder_structure():
         models_to_elaborate = ["disgas"]
     else:
         models_to_elaborate = ["twodee"]
-        # Read the output time interval from the twodee input file
-        with open(twodee_input_file, "r") as twodee_file:
-            for line in twodee_file:
-                if "OUTPUT_INTERVAL_(SEC)" in line:
-                    twodee_output_time_step = float(line.split("=")[1])
-        if twodee_output_time_step == 0:
-            print("Unable to read the Twodee output time step")
-            sys.exit()
     for model in models_to_elaborate:
         if model == "disgas":
-            model_outputs = disgas_outputs
-            model_processed_output_folder = disgas_processed_output_folder
-            ecdf_outputs = disgas_ecdf
-            persistence_outputs = disgas_persistence
+            model_outputs = disgas_outputs_folder
+            model_proc_output_folder = disgas_proc_output_folder
+            ecdf_outputs_folder = disgas_ecdf_folder
+            persistence_outputs_folder = disgas_persistence_folder
         else:
-            model_outputs = twodee_outputs
-            model_processed_output_folder = twodee_processed_output_folder
-            ecdf_outputs = twodee_ecdf
-            persistence_outputs = twodee_persistence
-        graphical_outputs = os.path.join(model_outputs, "graphical_outputs")
-        graphical_outputs_simulations = os.path.join(graphical_outputs, "simulations")
-        graphical_outputs_ecdf = os.path.join(graphical_outputs, "ecdf")
-        graphical_outputs_ecdf_tracking_points = os.path.join(graphical_outputs_ecdf, "tracking_points")
-        graphical_outputs_persistence = os.path.join(graphical_outputs, "persistence")
+            model_outputs = twodee_outputs_folder
+            model_proc_output_folder = twodee_proc_output_folder
+            ecdf_outputs_folder = twodee_ecdf_folder
+            persistence_outputs_folder = twodee_persistence_folder
+            # Read the output time interval from the twodee input file
+            with open(twodee_input_file, "r") as twodee_file:
+                for line in twodee_file:
+                    if "OUTPUT_INTERVAL_(SEC)" in line:
+                        twodee_output_time_step = float(line.split("=")[1])
+            if twodee_output_time_step == 0:
+                print("Unable to read the Twodee output time step")
+                sys.exit()
+        graphical_outputs_folder = os.path.join(model_outputs, "graphical_outputs")
+        graphical_outputs_simulations_folder = os.path.join(graphical_outputs_folder, "simulations")
+        graphical_outputs_ecdf_folder = os.path.join(graphical_outputs_folder, "ecdf")
+        graphical_outputs_ecdf_tracking_points_folder = os.path.join(graphical_outputs_ecdf_folder, "tracking_points")
+        graphical_outputs_persistence_folder = os.path.join(graphical_outputs_folder, "persistence")
         try:
-            os.mkdir(graphical_outputs)
+            os.mkdir(graphical_outputs_folder)
         except FileExistsError:
-            print("Folder " + graphical_outputs + " already exists")
+            print("Folder " + graphical_outputs_folder + " already exists")
         try:
-            os.mkdir(graphical_outputs_simulations)
+            os.mkdir(graphical_outputs_simulations_folder)
         except FileExistsError:
-            print("Folder " + graphical_outputs_simulations + " already exists")
+            print("Folder " + graphical_outputs_simulations_folder + " already exists")
         try:
-            os.mkdir(graphical_outputs_ecdf)
+            os.mkdir(graphical_outputs_ecdf_folder)
         except FileExistsError:
-            print("Folder " + graphical_outputs_ecdf + " already exists")
+            print("Folder " + graphical_outputs_ecdf_folder + " already exists")
         try:
-            os.mkdir(graphical_outputs_ecdf_tracking_points)
+            os.mkdir(graphical_outputs_ecdf_tracking_points_folder)
         except FileExistsError:
-            print("Folder " + graphical_outputs_ecdf_tracking_points + " already exists")
+            print("Folder " + graphical_outputs_ecdf_tracking_points_folder + " already exists")
         try:
-            os.mkdir(graphical_outputs_persistence)
+            os.mkdir(graphical_outputs_persistence_folder)
         except FileExistsError:
-            print("Folder " + graphical_outputs_persistence + " already exists")
+            print("Folder " + graphical_outputs_persistence_folder + " already exists")
 
     return (
-        disgas_outputs,
-        disgas_original_output_folder,
-        disgas_processed_output_folder,
-        ecdf_folder_name,
-        disgas_ecdf,
-        disgas_ecdf_tracking_points,
-        disgas_persistence,
-        twodee_outputs,
-        twodee_original_output_folder,
-        twodee_processed_output_folder,
-        twodee_ecdf,
-        twodee_ecdf_tracking_points,
-        twodee_persistence,
+        disgas_outputs_folder,
+        disgas_or_output_folder,
+        disgas_proc_output_folder,
+        ecdf_folder,
+        disgas_ecdf_folder,
+        disgas_ecdf_tracking_points_folder,
+        disgas_persistence_folder,
+        twodee_outputs_folder,
+        twodee_or_output_folder,
+        twodee_proc_output_folder,
+        twodee_ecdf_folder,
+        twodee_ecdf_tracking_points_folder,
+        twodee_persistence_folder,
         models_to_elaborate,
         twodee_output_time_step,
-        model_processed_output_folder,
-        ecdf_outputs,
-        persistence_outputs,
-        graphical_outputs,
-        graphical_outputs_simulations,
-        graphical_outputs_ecdf,
-        graphical_outputs_ecdf_tracking_points,
-        graphical_outputs_persistence
+        model_proc_output_folder,
+        ecdf_outputs_folder,
+        persistence_outputs_folder,
+        graphical_outputs_folder,
+        graphical_outputs_simulations_folder,
+        graphical_outputs_ecdf_folder,
+        graphical_outputs_ecdf_tracking_points_folder,
+        graphical_outputs_persistence_folder
     )
 
 
@@ -1545,7 +1545,7 @@ def probabilistic_output(model):
                 break
         n_pool += 1
 
-    if plot_ex_prob:
+    if calculate_ecdf:
         calculate_quantiles()
     if persistence:
         calculate_persistence()
@@ -1709,78 +1709,116 @@ def save_plots(model, min_con, max_con):
 
     files_to_plot = []
     output_files = []
-    if plot:
-        if model == "disgas":
-            model_outputs = disgas_outputs
-            model_processed_output_folder = disgas_processed_output_folder
-            ecdf_outputs = disgas_ecdf
-        else:
-            model_outputs = twodee_outputs
-            model_processed_output_folder = twodee_processed_output_folder
-            ecdf_outputs = twodee_ecdf
-        graphical_outputs = os.path.join(model_outputs, "graphical_outputs")
-        graphical_outputs_simulations = os.path.join(graphical_outputs, "simulations")
-        graphical_outputs_ecdf = os.path.join(graphical_outputs, "ecdf")
-        for day in days_to_plot:
-            graphical_outputs_daily = os.path.join(graphical_outputs_simulations, day)
-            try:
-                os.mkdir(graphical_outputs_daily)
-            except FileExistsError:
-                print("Folder " + graphical_outputs_daily + " already exists")
-            model_processed_output_folder_daily = os.path.join(
-                model_processed_output_folder, day
+
+    if model == "disgas":
+        model_outputs = disgas_outputs
+        model_processed_output_folder = disgas_processed_output_folder
+        ecdf_outputs = disgas_ecdf
+    else:
+        model_outputs = twodee_outputs
+        model_processed_output_folder = twodee_processed_output_folder
+        ecdf_outputs = twodee_ecdf
+    graphical_outputs = os.path.join(model_outputs, "graphical_outputs")
+    graphical_outputs_simulations = os.path.join(graphical_outputs, "simulations")
+    graphical_outputs_ecdf = os.path.join(graphical_outputs, "ecdf")
+    for day in days_to_plot:
+        graphical_outputs_daily = os.path.join(graphical_outputs_simulations, day)
+        try:
+            os.mkdir(graphical_outputs_daily)
+        except FileExistsError:
+            print("Folder " + graphical_outputs_daily + " already exists")
+        model_processed_output_folder_daily = os.path.join(
+            model_processed_output_folder, day
+        )
+        model_processed_output_folder_species = []
+        for specie in species:
+            model_processed_output_folder_species.append(
+                os.path.join(model_processed_output_folder_daily, specie)
             )
-            model_processed_output_folder_species = []
-            for specie in species:
-                model_processed_output_folder_species.append(
-                    os.path.join(model_processed_output_folder_daily, specie)
+        for specie in species:
+            try:
+                os.mkdir(os.path.join(graphical_outputs_daily, specie))
+            except FileExistsError:
+                print(
+                    "Folder "
+                    + os.path.join(graphical_outputs_daily, specie)
+                    + " already exists"
                 )
-            for specie in species:
-                try:
-                    os.mkdir(os.path.join(graphical_outputs_daily, specie))
-                except FileExistsError:
-                    print(
-                        "Folder "
-                        + os.path.join(graphical_outputs_daily, specie)
-                        + " already exists"
-                    )
-            files_list_path = []
-            files_list = []
-            for folder in model_processed_output_folder_species:
-                files_list_temp = os.listdir(folder)
-                for file in files_list_temp:
-                    if 'TP' in file:
-                        continue
-                    files_list.append(file)
-                    files_list_path.append(os.path.join(folder, file))
-            i = 0
-            for file in files_list_path:
-                file_specie = file.split(model_processed_output_folder_daily)
-                file_specie = file_specie[1].split(files_list[i])
-                file_specie = re.sub("\W+", "", file_specie[0])
-                file_name_splitted = files_list[i].split("_")
-                file_level = file_name_splitted[1]
-                file_time_step = file_name_splitted[2].split(".")[0]
-                try:
-                    file_time_step_datetime = datetime.datetime.strptime(file_time_step, '%Y%m%d%H%M')
-                except ValueError:
-                    file_time_step_datetime = datetime.datetime.strptime('999912310000', '%Y%m%d%H%M')
-                simulation_start = datetime.datetime.strptime(day + "{:02d}".format(hour_start), '%Y%m%d%H%M')
-                output_file_name = files_list[i].split(".grd")[0]
-                output_file_name += ".png"
-                if levels[0] == "all":
-                    if time_steps[0] == "all":
-                        files_to_plot.append(file)
-                        output_files.append(
-                            os.path.join(
-                                graphical_outputs_daily, file_specie, output_file_name
-                            )
+        files_list_path = []
+        files_list = []
+        for folder in model_processed_output_folder_species:
+            files_list_temp = os.listdir(folder)
+            for file in files_list_temp:
+                if 'TP' in file:
+                    continue
+                files_list.append(file)
+                files_list_path.append(os.path.join(folder, file))
+        i = 0
+        for file in files_list_path:
+            file_specie = file.split(model_processed_output_folder_daily)
+            file_specie = file_specie[1].split(files_list[i])
+            file_specie = re.sub("\W+", "", file_specie[0])
+            file_name_splitted = files_list[i].split("_")
+            file_level = file_name_splitted[1]
+            file_time_step = file_name_splitted[2].split(".")[0]
+            try:
+                file_time_step_datetime = datetime.datetime.strptime(file_time_step, '%Y%m%d%H%M')
+            except ValueError:
+                file_time_step_datetime = datetime.datetime.strptime('999912310000', '%Y%m%d%H%M')
+            simulation_start = datetime.datetime.strptime(day + "{:02d}".format(hour_start), '%Y%m%d%H%M')
+            output_file_name = files_list[i].split(".grd")[0]
+            output_file_name += ".png"
+            if levels[0] == "all":
+                if time_steps[0] == "all":
+                    files_to_plot.append(file)
+                    output_files.append(
+                        os.path.join(
+                            graphical_outputs_daily, file_specie, output_file_name
                         )
-                    else:
+                    )
+                else:
+                    for time_step in time_steps:
+                        time_step_hh_mm = hour_start + int(dt / 3600) * (int(time_step))
+                        time_step_datetime = simulation_start + datetime.timedelta(hours=time_step_hh_mm)
+                        if time_step_datetime == file_time_step_datetime:
+                            files_to_plot.append(file)
+                            output_files.append(
+                                os.path.join(
+                                    graphical_outputs_daily,
+                                    file_specie,
+                                    output_file_name,
+                                )
+                            )
+                if "tavg" in file_time_step:
+                    files_to_plot.append(file)
+                    tavg_output_file_name = file.split(os.sep)[-1].split(".grd")[0]
+                    tavg_output_file_name = tavg_output_file_name + ".png"
+                    output_files.append(
+                        os.path.join(
+                            graphical_outputs_daily,
+                            file_specie,
+                            tavg_output_file_name,
+                        )
+                    )
+            else:
+                if time_steps[0] == "all":
+                    for level in levels:
+                        if file_level == processed_files_levels[int(level) - 1]:
+                            files_to_plot.append(file)
+                            output_files.append(
+                                os.path.join(
+                                    graphical_outputs_daily,
+                                    file_specie,
+                                    output_file_name,
+                                )
+                            )
+                else:
+                    for level in levels:
                         for time_step in time_steps:
                             time_step_hh_mm = hour_start + int(dt / 3600) * (int(time_step))
                             time_step_datetime = simulation_start + datetime.timedelta(hours=time_step_hh_mm)
-                            if time_step_datetime == file_time_step_datetime:
+                            if time_step_datetime == file_time_step_datetime \
+                                and file_level == processed_files_levels[int(level) - 1]:
                                 files_to_plot.append(file)
                                 output_files.append(
                                     os.path.join(
@@ -1789,7 +1827,8 @@ def save_plots(model, min_con, max_con):
                                         output_file_name,
                                     )
                                 )
-                    if "tavg" in file_time_step:
+                for level in levels:
+                    if "tavg" in file_time_step and file_level == processed_files_levels[int(level) - 1]:
                         files_to_plot.append(file)
                         tavg_output_file_name = file.split(os.sep)[-1].split(".grd")[0]
                         tavg_output_file_name = tavg_output_file_name + ".png"
@@ -1800,47 +1839,9 @@ def save_plots(model, min_con, max_con):
                                 tavg_output_file_name,
                             )
                         )
-                else:
-                    if time_steps[0] == "all":
-                        for level in levels:
-                            if file_level == processed_files_levels[int(level) - 1]:
-                                files_to_plot.append(file)
-                                output_files.append(
-                                    os.path.join(
-                                        graphical_outputs_daily,
-                                        file_specie,
-                                        output_file_name,
-                                    )
-                                )
-                    else:
-                        for level in levels:
-                            for time_step in time_steps:
-                                time_step_hh_mm = hour_start + int(dt / 3600) * (int(time_step))
-                                time_step_datetime = simulation_start + datetime.timedelta(hours=time_step_hh_mm)
-                                if time_step_datetime == file_time_step_datetime \
-                                    and file_level == processed_files_levels[int(level) - 1]:
-                                    files_to_plot.append(file)
-                                    output_files.append(
-                                        os.path.join(
-                                            graphical_outputs_daily,
-                                            file_specie,
-                                            output_file_name,
-                                        )
-                                    )
-                    for level in levels:
-                        if "tavg" in file_time_step and file_level == processed_files_levels[int(level) - 1]:
-                            files_to_plot.append(file)
-                            tavg_output_file_name = file.split(os.sep)[-1].split(".grd")[0]
-                            tavg_output_file_name = tavg_output_file_name + ".png"
-                            output_files.append(
-                                os.path.join(
-                                    graphical_outputs_daily,
-                                    file_specie,
-                                    tavg_output_file_name,
-                                )
-                            )
-                i += 1
-    if plot_ex_prob:
+            i += 1
+
+    if calculate_ecdf:
         for probability in exceedance_probabilities:
             try:
                 os.mkdir(os.path.join(graphical_outputs_ecdf, str(probability)))
@@ -2020,7 +2021,7 @@ root = os.getcwd()
 
 (
     plot,
-    plot_ex_prob,
+    calculate_ecdf,
     time_steps,
     levels,
     days_to_plot_in,
@@ -2078,7 +2079,7 @@ tavg_intervals = []
 processed_files_levels = []
 processed_files_steps = []
 tracking_points_files = []
-if tracking_points or plot_ex_prob:
+if tracking_points or calculate_ecdf:
     days_to_elaborate = days
 else:
     days_to_elaborate = days_to_plot
@@ -2099,6 +2100,7 @@ for model in models_to_elaborate:
         probabilistic_tracking_points()
     processed_files_levels = sort_levels(processed_files_levels)
     processed_files_steps = sorted(processed_files_steps)
-    if plot_ex_prob or persistence:
+    if calculate_ecdf or persistence:
         probabilistic_output(model)
-    save_plots(model, min_con, max_con)
+    if plot:
+        save_plots(model, min_con, max_con)

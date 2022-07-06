@@ -128,60 +128,59 @@ Python script that:
 	+ calculates the converted outputs at user's specified exceedance probabilities, time steps and vertical levels; these are stored in the folder output_ecdf
 	+ plot the converted outputs and those at selected exceedance probabilities at user's selectd time steps and vertical levels; the plots are stored in the folder graphical_outputs.
 The following flags control the execution of post_process.py:
-usage: post_process.py [-h] [-P PLOT] [-PE PLOT_EX_PROB] [-EX EX_PROB [EX_PROB ...]] [-T TIME_STEPS [TIME_STEPS ...]]
-                       [-L LEVELS [LEVELS ...]] [-D DAYS_PLOT [DAYS_PLOT ...]] [-C CONVERT] [-S SPECIES [SPECIES ...]] [-PER PERSISTENCE]
-                       [-N NPROC] [-M MODELS] [-MO MERGE_OUTPUTS] [-U UNITS] [-PL PLOT_LIMITS [PLOT_LIMITS ...]] [-TA TIME_AV] 
-		       [-OF OUTPUT_FORMAT] [-PT PLOT_TOPOGRAPHY] [-PR PLOT_RESOLUTION] [-TP TRACKING_POINTS]
+usage: post_process.py [-h] [-P PLOT] [-ECDF CALCULATE_ECDF] [-PER PERSISTENCE] [-EX EX_PROB] [-T TIME_STEPS] [-L LEVELS] [-D DAYS_PLOT]
+                       [-C CONVERT] [-S SPECIES] [-TS TRACKING_SPECIE] [-N NPROC] [-M MODELS] [-U UNITS] [-PL PLOT_LIMITS] [-PI PLOT_ISOLINES]
+                       [-TA TIME_AV] [-OF OUTPUT_FORMAT] [-PT PLOT_TOPOGRAPHY] [-TI TOPOGRAPHY_ISOLINES] [-PR PLOT_RESOLUTION]
+                       [-TP TRACKING_POINTS]
 
   -h, --help            show this help message and exit
-  -P PLOT, --plot PLOT  True: Produce plots of the solutions. False: Do not
-                        produce plots
-  -PE PLOT_EX_PROB, --plot_ex_prob PLOT_EX_PROB
-                        True: Produce plots of the specified exceedance
-                        probabilities. False: Do not produce plots
-  -EX EX_PROB [EX_PROB ...], --ex_prob EX_PROB [EX_PROB ...]
-                        List of exceedance probabilities to be used for
-                        graphical output (comma separated values)
-  -T TIME_STEPS [TIME_STEPS ...], --time_steps TIME_STEPS [TIME_STEPS ...]
-                        List of time steps to plot (integer >= 0). Type all to
-                        plot all the time steps (comma separated values)
-  -L LEVELS [LEVELS ...], --levels LEVELS [LEVELS ...]
-                        List of vertical levels (integer >= 1) to plot. Type
-                        all to plot all the levels (comma separated values)
-  -D DAYS_PLOT [DAYS_PLOT ...], --days_plot DAYS_PLOT [DAYS_PLOT ...]
-                        List of days to plot (YYYYMMDD). Type all to plot all
-                        the days (comma separated values)
-  -C CONVERT, --convert CONVERT
-                        If True, convert output concentration into other species listed with the command -S (--species)
-  -S SPECIES [SPECIES ...], --species SPECIES [SPECIES ...]
-                        List of gas species (e.g. CO2) (comma separated values)
-  -TS TRACKING_SPECIE, --tracking_specie TRACKING_SPECIE
-                        The original emitted specie that is tracked in the simulation
+  -P PLOT, --plot PLOT  Produce plots of the solutions and probabilistic output (if activated). True/False (default: False)
+  -ECDF CALCULATE_ECDF, --calculate_ecdf CALCULATE_ECDF
+                        Calculate the Empirical Cumulative Density Function of the solution and extrapolate solutions at user-defined
+                        exceedance probabilities. True/False (default: False)
   -PER PERSISTENCE, --persistence PERSISTENCE
-                        If True, calculate the persistence of the gas specie, i.e. the probability to be exposed to a gas specie above specified concentration thresholds for times longer than the specified exposure times for those thresholds. 
-                        Concentration thresholds and exposure times should be provided in gas_properties.csv
+                        Calculate the persistence of the gas specie, i.e. the probability to be exposed to a gas species above specified
+                        concentration thresholds for times longer than the specified exposure times for those thresholds. Concentration
+                        thresholds and exposure times should be provided in gas_properties.csv. True/False (default: False)
+  -EX EX_PROB, --ex_prob EX_PROB
+                        List of exceedance probabilities to be used for graphical output (default: )
+  -T TIME_STEPS, --time_steps TIME_STEPS
+                        List of time steps to plot (integer >= 0). Type all to plot all the time steps (default: )
+  -L LEVELS, --levels LEVELS
+                        List of vertical levels (integer >= 1) to plot. Type all to plot all the levels (default: )
+  -D DAYS_PLOT, --days_plot DAYS_PLOT
+                        List of days to plot (YYYYMMDD). Type all to plot all the days (default: )
+  -C CONVERT, --convert CONVERT
+                        If True, convert output concentration into other species listed with the command -S (--species) (default: False)
+  -S SPECIES, --species SPECIES
+                        List of gas species (e.g. CO2) (default: )
+  -TS TRACKING_SPECIE, --tracking_specie TRACKING_SPECIE
+                        The original emitted specie that is tracked in the simulation (default: None)
   -N NPROC, --nproc NPROC
-                        Maximum number of allowed simultaneous processes
+                        Maximum number of allowed simultaneous processes (default: 1)
   -M MODELS, --models MODELS
-                        Model outputs to post-process. Options: disgas, twodee, all
+                        Model outputs to post-process. Options: disgas, twodee, all (default: all)
   -U UNITS, --units UNITS
-                        Gas concentration units. Possible options are: ppm, kg/m3
-  -PL PLOT_LIMITS [PLOT_LIMITS ...], --plot_limits PLOT_LIMITS [PLOT_LIMITS ...]
-                        Minimum and maximum value of concentration to display. If unspecified, they are obtained from all the outputs (comma separated values)
+                        Gas concentration units. Possible options are: ppm, kg/m3 (default: None)
+  -PL PLOT_LIMITS, --plot_limits PLOT_LIMITS
+                        Minimum and maximum value of concentration to display. If unspecified, they are obtained from all the outputs (default:
+                        )
   -PI PLOT_ISOLINES, --plot_isolines PLOT_ISOLINES
-                        List of gas concentrations values to be used to draw isolines. Optional
+                        List of gas concentrations values to be used to draw isolines. Optional (default: )
   -TA TIME_AV, --time_av TIME_AV
-                        Generate time-averaged outputs. Specify the time-averaging interval (in hours), or 0 for averaging over the whole duration
+                        Generate time-averaged outputs. Specify the time-averaging interval (in hours), or 0 for averaging over the whole
+                        duration (default: None)
   -OF OUTPUT_FORMAT, --output_format OUTPUT_FORMAT
-                        Select format of the processed output files. Valid options are: GRD
+                        Select format of the processed output files. Valid options are: GRD (default: GRD)
   -PT PLOT_TOPOGRAPHY, --plot_topography PLOT_TOPOGRAPHY
-                        Plot topography layer (True or False). Warning, it can be time-consuming!
+                        Plot topography layer (True or False). Warning, it can be time-consuming! (default: False)
   -TI TOPOGRAPHY_ISOLINES, --topography_isolines TOPOGRAPHY_ISOLINES
-                        Topography height a.s.l. contour lines spatial resolution (in m). Used only if -PT True
+                        Topography height contour lines spatial resolution (in m a.s.l.). Used only if -PT True (default: 100)
   -PR PLOT_RESOLUTION, --plot_resolution PLOT_RESOLUTION
-                        Specify plot resolution in dpi
+                        Specify plot resolution in dpi (default: 600)
   -TP TRACKING_POINTS, --tracking_points TRACKING_POINTS
-                        Extrapolate gas concentration at locations specified in the file tracking_points.txt
+                        Extrapolate gas concentration at locations specified in the file tracking_points.txt (default: False)
+
 ```
 
 ### Dependencies and installation instructions

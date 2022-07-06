@@ -445,19 +445,17 @@ def prepare_days():
         days = []  # store days in format YYYYMMDD as per folder name
         # read days_list file
         with open(
-            os.path.join(root,"days_list.txt"), "r", encoding="utf-8", errors="surrogateescape"
+            os.path.join(root, "days_list.txt"), "r", encoding="utf-8", errors="surrogateescape"
         ) as days_list_file:
             for line in days_list_file:
                 raw_days.append(line)
     except FileNotFoundError:
         print('ERROR. Unable to find days_list.txt file. Please restart activating DIAGNO')
         sys.exit()
-    i = 0
-    for day in raw_days:
-        temp = raw_days[i].split(" ")
+    for k in range(0, len(raw_days)):
+        temp = raw_days[k].split(" ")
         temp = temp[0].split("-")
         days.append(temp[0] + temp[1] + temp[2])
-        i += 1
     return sorted(days)
 
 
@@ -570,10 +568,10 @@ def pre_process(run_type):
     source_size_max = 100
     if random_sources == "on":
         if nsources == "random":
-            Nsources = [*range(int(sources_interval[0]), int(sources_interval[1]) + 1)]
+            n_sources = [*range(int(sources_interval[0]), int(sources_interval[1]) + 1)]
         else:
-            Nsources = [nsources]
-        n_random_sources = sample(Nsources, 1)[0]
+            n_sources = [nsources]
+        n_random_sources = sample(n_sources, 1)[0]
         (
             random_eastings,
             random_northings,
@@ -670,7 +668,7 @@ def pre_process(run_type):
             path_f = os.path.join(path, f)
             try:
                 shutil.move(path_f, diagno_daily)
-            except BaseException:
+            except FileExistsError:
                 print("File " + f + " already present in " + diagno)
         shutil.copy(topography, os.path.join(diagno_daily, "topography.grd"))
         # Set DISGAS folder
@@ -694,20 +692,20 @@ def pre_process(run_type):
                 encoding="utf-8",
                 errors="surrogateescape",
             ) as source_file:
-                for i in range(0, n_sources):
+                for j in range(0, n_sources):
                     if source_emission != 999:
                         gas_flux = source_emission
                     else:
-                        if fluxes_input[i] == 99999999 and random_emission == "on":
+                        if fluxes_input[j] == 99999999 and random_emission == "on":
                             gas_flux = fluxes()[0]
                         else:
-                            gas_flux = fluxes_input[i]
+                            gas_flux = fluxes_input[j]
                     source_file.write(
-                        "{0:7.3f}".format(easting[i])
+                        "{0:7.3f}".format(easting[j])
                         + " "
-                        + "{0:7.3f}".format(northing[i])
+                        + "{0:7.3f}".format(northing[j])
                         + " "
-                        + "{0:7.2f}".format(elevations[i])
+                        + "{0:7.2f}".format(elevations[j])
                         + " "
                         + str(gas_flux)
                         + "\n"
@@ -775,7 +773,7 @@ def pre_process(run_type):
                         if simulation_interval + hour_start * 3600 > 86400:
                             simulation_interval = 86400
                         disgas_input_file.write("  SIMULATION_INTERVAL_(SEC) = " +
-                                                    "{0:7.0f}".format(simulation_interval) +  "\n")
+                                                "{0:7.0f}".format(simulation_interval) + "\n")
                     elif 'NX' in record:
                         disgas_input_file.write("  NX     = " + str(nx) + "\n")
                     elif 'NY' in record:
@@ -869,26 +867,26 @@ def pre_process(run_type):
                 encoding="utf-8",
                 errors="surrogateescape",
             ) as source_file:
-                for i in range(0, n_sources):
+                for j in range(0, n_sources):
                     if source_emission != 999:
                         gas_flux = source_emission
                     else:
-                        if fluxes_input[i] == 99999999 and random_emission == "on":
+                        if fluxes_input[j] == 99999999 and random_emission == "on":
                             gas_flux = fluxes()[0]
                         else:
-                            gas_flux = fluxes_input[i]
+                            gas_flux = fluxes_input[j]
                     source_file.write(
-                        "{0:7.3f}".format(easting[i])
+                        "{0:7.3f}".format(easting[j])
                         + " "
-                        + "{0:7.3f}".format(northing[i])
+                        + "{0:7.3f}".format(northing[j])
                         + " "
                         + "{0:7.3f}".format(gas_flux)
                         + " "
-                        + "{0:7.2f}".format(dx_sources[i])
+                        + "{0:7.2f}".format(dx_sources[j])
                         + " "
-                        + "{0:7.2f}".format(dy_sources[i])
+                        + "{0:7.2f}".format(dy_sources[j])
                         + " KG_SEC 0 "
-                        + "{0:7.3f}".format(dur[i])
+                        + "{0:7.3f}".format(dur[j])
                         + "\n"
                     )
             source_file.close()
@@ -909,7 +907,7 @@ def pre_process(run_type):
                         twodee_input_file.write("  MONTH  = " + day[4:6] + "\n")
                     elif "DAY" in record:
                         twodee_input_file.write("  DAY    = " + day[6:8] + "\n")
-                    elif "HOUR" in record  and "NC_VAR_HOUR_NAME" not in record:
+                    elif "HOUR" in record and "NC_VAR_HOUR_NAME" not in record:
                         try:
                             hour_start = float(record.split('=')[1])
                         except ValueError:
@@ -920,7 +918,8 @@ def pre_process(run_type):
                                 hour_start = 0
                         twodee_input_file.write("  HOUR   = " + "{0:2.0f}".format(hour_start) + "\n")
                     elif 'SIMULATION_INTERVAL_(SEC)' in record:
-                        #for the moment this is managed exactly like DISGAS, but would require the RESET_TIME option to be implemented in TWODEE as well
+                        # for the moment this is managed exactly like DISGAS, but would require the RESET_TIME option to
+                        # be implemented in TWODEE as well
                         try:
                             simulation_interval = float(record.split('=')[1])
                         except ValueError:
@@ -929,7 +928,7 @@ def pre_process(run_type):
                         if simulation_interval + hour_start * 3600 > 86400:
                             simulation_interval -= hour_start * 3600
                         twodee_input_file.write("  SIMULATION_INTERVAL_(SEC) = " +
-                                                    "{0:7.0f}".format(simulation_interval) + "\n")
+                                                "{0:7.0f}".format(simulation_interval) + "\n")
                     elif 'NX' in record:
                         twodee_input_file.write("  NX     = " + str(nx) + "\n")
                     elif 'NY' in record:
@@ -1004,8 +1003,8 @@ def run_diagno(max_number_processes):
     n_elaborated_days = 0
     n_node = 0
     node = ''
+    ps = []
     while n_elaborated_days <= len(days):
-        ps = []
         start = n_elaborated_days
         end = n_elaborated_days + max_number_processes
         if end > len(days):
@@ -1099,10 +1098,10 @@ def run_disgas(max_number_processes):
     n_elaborated_days = 0
     n_node = 0
     node = ''
+    ps = []
     if continuous_simulation:
         max_number_processes = 1
     while n_elaborated_days <= len(days):
-        ps = []
         start = n_elaborated_days
         end = n_elaborated_days + max_number_processes
         if end > len(days):
@@ -1159,7 +1158,7 @@ def run_disgas(max_number_processes):
         if n_elaborated_days == len(days):
             break
     for p in ps:
-       p.wait()
+        p.wait()
     print("DISGAS successfully processed days " + str(days))
 
 
@@ -1169,10 +1168,10 @@ def run_twodee(max_number_processes):
     n_elaborated_days = 0
     n_node = 0
     node = ''
+    ps = []
     if continuous_simulation:
         max_number_processes = 1
     while n_elaborated_days <= len(days):
-        ps = []
         start = n_elaborated_days
         end = n_elaborated_days + max_number_processes
         if end > len(days):
@@ -1215,7 +1214,7 @@ def run_twodee(max_number_processes):
                         os.mkdir(twodee_output_folder)
                 try:
                     p = subprocess.Popen(["srun", "-n", "1", '--nodelist=' + node, "twodee", twodee_input_file,
-                                          twodee_log_file,])
+                                          twodee_log_file, ])
                 except FileNotFoundError:
                     try:
                         p = subprocess.Popen(["twodee", twodee_input_file, twodee_log_file])
@@ -1300,11 +1299,12 @@ else:
     nodes_list = []
 
 if diagno_on:
-    try:
-        days = pre_process(run_type)
-    except BaseException:
-        print('ERROR. DIAGNO activated but it seems it has been already run. Please restart switching DIAGNO off')
-        sys.exit()
+    days = pre_process(run_type)
+    #try:
+    #    days = pre_process(run_type)
+    #except BaseException:
+    #    print('ERROR. DIAGNO activated but it seems it has been already run. Please restart switching DIAGNO off')
+    #    sys.exit()
 
     run_diagno(max_number_processes)
 else:

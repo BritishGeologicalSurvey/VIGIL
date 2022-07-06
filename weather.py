@@ -67,7 +67,7 @@ def read_arguments():
     parser.add_argument("-NS", "--samples", default=1, help="Number of days to sample")
     parser.add_argument(
         "-ERA5",
-        "--ERA5",
+        "--era5",
         default="False",
         help="True: Use ERA5 reanalysis. False: Do not use ERA5 reanalysis",
     )
@@ -105,7 +105,7 @@ def read_arguments():
     volc_lat = float(args.lat)
     volc_lon = float(args.lon)
     elevation = float(args.elev)
-    ERA5_on = args.ERA5
+    era5_on = args.era5
     weather_station_on = args.station
     args = parser.parse_args()
     nproc = args.nproc
@@ -125,10 +125,10 @@ def read_arguments():
     else:
         print("ERROR. Wrong value for variable -CS --continuous_simulation")
         sys.exit()
-    if ERA5_on.lower() == "true":
-        ERA5_on = True
-    elif ERA5_on.lower() == "false":
-        ERA5_on = False
+    if era5_on.lower() == "true":
+        era5_on = True
+    elif era5_on.lower() == "false":
+        era5_on = False
     else:
         print("ERROR. Wrong value for variable -ERA5 --ERA5")
         sys.exit()
@@ -140,39 +140,32 @@ def read_arguments():
         print("ERROR. Wrong value for variable --station")
         sys.exit()
     if mode == "reanalysis":
-        if not ERA5_on and not weather_station_on:
+        if not era5_on and not weather_station_on:
             print(
                 "ERROR. Either ERA5 or weather station data should be activated in reanalysis mode"
             )
             sys.exit()
     elif mode == "forecast":
-        if ERA5_on:
+        if era5_on:
             print(
                 "WARNING. ERA5 data cannot be used in forecast mode. Turning ERA5 off"
             )
-            ERA5_on = False
+            era5_on = False
         if weather_station_on:
             print(
                 "WARNING. Weather station data cannot be used in forecast mode. Turning weather stations off"
             )
             weather_station_on = False
-    if weather_station_on and ERA5_on:
+    if weather_station_on and era5_on:
         print(
             "ERROR. It is currently not possible to use both reanalysis and weather station data"
         )
         sys.exit()
     if volc_lat == 999 and volc_lon == 999 and elevation == 999:
         try:
-            try:
-                database = pd.read_excel(
-                    "https://webapps.bgs.ac.uk/research/volcanoes/esp/volcanoExport.xlsx",
-                    sheetname="volcanoes",
-                )
-            except TypeError:
-                database = pd.read_excel(
-                    "https://webapps.bgs.ac.uk/research/volcanoes/esp/volcanoExport.xlsx",
-                    sheet_name="volcanoes",
-                )
+            database = pd.read_excel(
+                "https://webapps.bgs.ac.uk/research/volcanoes/esp/volcanoExport.xlsx",
+                sheet_name="volcanoes",)
             nrows = database.shape[0]
             row = 0
             while True:
@@ -197,7 +190,7 @@ def read_arguments():
             sampled_days = sampled_days_in.split(',')
             for day in sampled_days:
                 try:
-                    datetime.datetime.strptime(day,'%d')
+                    datetime.datetime.strptime(day, '%d')
                 except ValueError:
                     print('ERROR. Please provide a valid entry for -SD --sampled_days')
                     sys.exit()
@@ -228,16 +221,16 @@ def read_arguments():
     try:
         start = start_date.split("/")
         stop = end_date.split("/")
-        D_start_s = start[0]
-        MO_start_s = start[1]
-        Y_start_s = start[2]
-        D_stop_s = stop[0]
-        MO_stop_s = stop[1]
-        Y_stop_s = stop[2]
-        analysis_start = Y_start_s + MO_start_s + D_start_s
-        analysis_stop = Y_stop_s + MO_stop_s + D_stop_s
-        time_start = datetime.datetime(int(Y_start_s), int(MO_start_s), int(D_start_s))
-        time_stop = datetime.datetime(int(Y_stop_s), int(MO_stop_s), int(D_stop_s))
+        d_start_s = start[0]
+        mo_start_s = start[1]
+        y_start_s = start[2]
+        d_stop_s = stop[0]
+        mo_stop_s = stop[1]
+        y_stop_s = stop[2]
+        analysis_start = y_start_s + mo_start_s + d_start_s
+        analysis_stop = y_stop_s + mo_stop_s + d_stop_s
+        time_start = datetime.datetime(int(y_start_s), int(mo_start_s), int(d_start_s))
+        time_stop = datetime.datetime(int(y_stop_s), int(mo_stop_s), int(d_stop_s))
     except IndexError:
         print("Unable to process start and end date")
         print(
@@ -276,7 +269,7 @@ def read_arguments():
         time_stop,
         analysis_start,
         analysis_stop,
-        ERA5_on,
+        era5_on,
         weather_station_on,
         elevation,
         volc_lat,
@@ -365,6 +358,11 @@ def extract_grib_data_sl(folder, validity, wtfile_sl_location_step):
     )
     records1 = []
     records2 = []
+    u = None
+    v = None
+    t2m = None
+    pz0 = None
+    tz0 = None
     nrecords = 0
     for line in file:
         nrecords += 1
@@ -397,6 +395,9 @@ def extract_grib_data_sl(folder, validity, wtfile_sl_location_step):
             elif records1[i][3] == "TMP" and records1[i][4] == "surface":
                 tz0 = float(records2[i][1])
             i += 1
+    if u is None or v is None or t2m is None or pz0 is None or tz0 is None:
+        print('Unable to read all necessary meteorological parameters from ' + wtfile_sl_location_step)
+        sys.exit()
     wind = (u ** 2 + v ** 2) ** 0.5
     wind_dir_degrees = atan2(u, v) * 180 / pi
     direction = wind_dir_degrees + 180
@@ -437,6 +438,9 @@ def prepare_diagno_files(data_folder, year, month, day):
     gamma_string_1 = ""
     gamma_string_2 = ""
     gamma_string_3 = ""
+    tref_vector = []
+    tsoil_vector = []
+    press_vector = []
     try:
         diagno_preupr = open(
             os.path.join(data_folder, "preupr.dat"),
@@ -540,9 +544,6 @@ def prepare_diagno_files(data_folder, year, month, day):
             wind_direction_string = ""
             wind_speed_string = ""
             heights_string = ""
-        tref_vector = []
-        tsoil_vector = []
-        press_vector = []
         wind_direction_sl_string = ""
         wind_speed_sl_string = ""
         um_string_1 = ""
@@ -564,7 +565,7 @@ def prepare_diagno_files(data_folder, year, month, day):
             year = validity[0:4]
             month = validity[4:6]
             day = validity[6:8]
-            hour = validity[8:10]
+            #hour = validity[8:10]
             wtfile_sl_location_step = os.path.join(data_folder, file)
             u, v, t2m, wind_sl, direction_sl, tz0, gamma_sl, pz0 = extract_grib_data_sl(
                 data_folder, validity, wtfile_sl_location_step
@@ -911,8 +912,8 @@ def era5_retrieve(lon_source, lat_source, retrieved_day):
             check_sl = 0
         return check_sl
 
+    retrieved_day_s = str(retrieved_day)
     try:
-        retrieved_day_s = str(retrieved_day)
         year = retrieved_day_s[0:4]
         month = retrieved_day_s[5:7]
         day = retrieved_day_s[8:10]
@@ -923,11 +924,11 @@ def era5_retrieve(lon_source, lat_source, retrieved_day):
         wtfile = os.path.join(data_folder, "weather_data_" + date_bis)
         wtfile_sl = os.path.join(data_folder, "weather_data_sl_" + date_bis)
 
-        lat_N = int(lat_source) + 2
-        lat_S = int(lat_source) - 2
-        lon_W = int(lon_source) - 2
-        lon_E = int(lon_source) + 2
-        area = [lat_N, lon_W, lat_S, lon_E]
+        lat_n = int(lat_source) + 2
+        lat_s = int(lat_source) - 2
+        lon_w = int(lon_source) - 2
+        lon_e = int(lon_source) + 2
+        area = [lat_n, lon_w, lat_s, lon_e]
 
         # Retrieve files
         check_pl = era5_request_pressure(data_folder, year, month, day)
@@ -969,35 +970,36 @@ def era5_retrieve(lon_source, lat_source, retrieved_day):
         )
         print("Saving weather data along the vertical at the vent location")
         try:
-            os_cmd = os.system("srun -n 1 wgrib2 " + wtfile + " -s -lon " + slon_source + " " + slat_source + "  >" + wtfile_prof)
+            os_cmd = os.system("srun -n 1 wgrib2 " + wtfile + " -s -lon " + slon_source + " " + slat_source + "  >" +
+                               wtfile_prof)
             if os_cmd != 0:
                 raise Exception('Command srun not found in the system')
         except:
             os.system("wgrib2 " + wtfile + " -s -lon " + slon_source + " " + slat_source + "  >" + wtfile_prof)
         try:
             os_cmd = os.system("srun -n 1 wgrib2 " + wtfile_sl + " -s -lon " + slon_source + " " + slat_source + "  >" +
-                      wtfile_sl_location)
+                               wtfile_sl_location)
             if os_cmd != 0:
                 raise Exception('Command srun not found in the system')
         except:
             os.system("wgrib2 " + wtfile_sl + " -s -lon " + slon_source + " " + slat_source + "  >" +
-                          wtfile_sl_location)
+                      wtfile_sl_location)
 
         # Split wtfile_prof into multiple file, each one for a specific time step
-        splitLen = 148
-        outputBase = os.path.join(data_folder, "profile_")
+        splitlen = 148
+        outputbase = os.path.join(data_folder, "profile_")
         input = open(wtfile_prof, "r", encoding="utf-8", errors="surrogateescape")
         count = 0
         dest = None
         steps = []
         for line in input:
-            if count % splitLen == 0:
+            if count % splitlen == 0:
                 if dest:
                     dest.close()
                 first_line = line.split(":")
                 val = first_line[2].split("d=")
                 dest = open(
-                    outputBase + val[1] + ".txt",
+                    outputbase + val[1] + ".txt",
                     "w",
                     encoding="utf-8",
                     errors="surrogateescape",
@@ -1009,8 +1011,8 @@ def era5_retrieve(lon_source, lat_source, retrieved_day):
         dest.close()
 
         # Split data_location into multiple file, each one for a specific time step
-        splitLen = 5
-        outputBase = os.path.join(data_folder, "data_location_")
+        splitlen = 5
+        outputbase = os.path.join(data_folder, "data_location_")
         input = open(
             wtfile_sl_location, "r", encoding="utf-8", errors="surrogateescape"
         )
@@ -1018,13 +1020,13 @@ def era5_retrieve(lon_source, lat_source, retrieved_day):
         dest = None
         steps = []
         for line in input:
-            if count % splitLen == 0:
+            if count % splitlen == 0:
                 if dest:
                     dest.close()
                 first_line = line.split(":")
                 val = first_line[2].split("d=")
                 dest = open(
-                    outputBase + val[1] + ".txt",
+                    outputbase + val[1] + ".txt",
                     "w",
                     encoding="utf-8",
                     errors="surrogateescape",
@@ -1077,8 +1079,9 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
 
         if zoom:
             try:
-                os_cmd = os.system("srun -n 1 wgrib2 " + wtfile + " -set_grib_type same -new_grid_winds earth -new_grid latlon " +
-                          lon_corner + ":400:0.01 " + lat_corner + ":400:0.01 " + wtfile_int)
+                os_cmd = os.system("srun -n 1 wgrib2 " + wtfile + " -set_grib_type same -new_grid_winds earth "
+                                                                  "-new_grid latlon " +
+                                   lon_corner + ":400:0.01 " + lat_corner + ":400:0.01 " + wtfile_int)
                 if os_cmd != 0:
                     raise Exception('Command srun not found in the system')
             except:
@@ -1088,7 +1091,8 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
             copyfile(wtfile, wtfile_int)
         print("Saving weather data along the vertical at the vent location")
         try:
-            os_cmd = os.system("srun -n 1 wgrib2 " + wtfile + " -s -lon " + slon + " " + slat + " >" + wtfile_interpolated)
+            os_cmd = os.system("srun -n 1 wgrib2 " + wtfile + " -s -lon " + slon + " " + slat + " >" +
+                               wtfile_interpolated)
             if os_cmd != 0:
                 raise Exception('Command srun not found in the system')
         except:
@@ -1107,7 +1111,7 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
     if time_in != 999:
         now = str(time_in)
     else:
-        now = str(datetime.datetime.utcnow()())
+        now = str(datetime.utcnow())
     day_before = str(time_in - timedelta(1))
     year = now[0:4]
     month = now[5:7]
@@ -1318,8 +1322,7 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
                     + "/"
                     + anl
                     + "/atmos/"
-                    + wtfile_dwnl
-            )
+                    + wtfile_dwnl)
                 urllib.request.urlopen(url)
                 zoom = True
         urls.append(url)
@@ -1461,6 +1464,7 @@ def extract_station_data(station_data_files, eastings, northings, zst, data_fold
                     wind_station = int(round(float(records[i][3]) * 0.28 * 10))
                     wind_speed_station_string += "{:>3}".format(str(wind_station))
                 except TypeError:
+                    wind_speed = 0
                     wind_speed_station_string += " -1"
                 try:
                     wind_direction = math.radians(float(records[i][2]))
@@ -1469,6 +1473,7 @@ def extract_station_data(station_data_files, eastings, northings, zst, data_fold
                         str(wind_direction_station)
                     )
                 except TypeError:
+                    wind_direction = 0
                     wind_direction_station_string += " -1"
                 try:
                     pressure = float(records[i][4]) * 100
@@ -1663,6 +1668,9 @@ def save_surface_data(tref, tsoil, press, data_folder):
 
 
 def automatic_weather(analysis_start):
+    tref = None
+    tsoil = None
+    press = None
     analysis_start_s = str(analysis_start)
     year = analysis_start_s[0:4]
     month = analysis_start_s[5:7]
@@ -1682,10 +1690,10 @@ def automatic_weather(analysis_start):
             gfs_retrieve(
                 volc_lon, volc_lat, ((time_stop - time_start).days + 1) * 24, analysis_start
             )
-    if ERA5_on:
+    if era5_on:
         print("Retrieving ERA5 data for day " + str(analysis_start)[0:10])
         era5_retrieve(volc_lon, volc_lat, analysis_start)
-    if mode == "forecast" or ERA5_on:
+    if mode == "forecast" or era5_on:
         tref, tsoil, press = prepare_diagno_files(data_folder, year, month, day)
     if weather_station_on:
         stations_input = open(
@@ -1727,6 +1735,9 @@ def automatic_weather(analysis_start):
         tref, tsoil, press = extract_station_data(
             station_data_files, eastings, northings, zst, data_folder, analysis_start
         )
+    if tref is None or tsoil is None or press is None:
+        print('Unable to save surface data because some data is missing')
+        sys.exit()
     save_surface_data(tref, tsoil, press, data_folder)
     if not os.path.exists(os.path.join(data_folder, "upper.dat")):
         with open(
@@ -1734,6 +1745,7 @@ def automatic_weather(analysis_start):
         ) as fake_upper:  # To not let DIAGNO crash when using just presfc
             fake_upper.write("Fake upper.dat file")
         fake_upper.close()
+
 
 root = os.getcwd()
 simulations = os.path.join(root, "simulations")
@@ -1749,7 +1761,7 @@ n_stations = 1
     time_stop,
     analysis_start,
     analysis_stop,
-    ERA5_on,
+    era5_on,
     weather_station_on,
     elevation,
     volc_lat,

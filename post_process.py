@@ -539,7 +539,7 @@ def gas_properties():
                       'persistence calculation not possible for gas specie ' + specie)
         except KeyError:
             print('WARNING. Exposure times of ' + specie + ' not found in gas_properties.csv. Gas '
-                  'persistence calculation not possible for gas specie' + specie)
+                  'persistence calculation not possible for gas specie ' + specie)
         return molar_ratio, molar_weight, conc_thresholds, exp_times
 
     gas_properties_file = os.path.join(root, "gas_properties.csv")
@@ -861,7 +861,6 @@ def probabilistic_tracking_points():
             image_buffer.close()
             plt.close()
 
-
     delta_quantile = 0.01
     quantiles = []
     ex_probabilities = []
@@ -1054,7 +1053,7 @@ def time_average(files_to_average, outfile):
     for file in files_to_average:
         if output_format == "grd":
             Z = np.loadtxt(file, skiprows=5)
-        Z_sum += Z
+            Z_sum += Z
     Z_avg = np.divide(Z_sum, len(files_to_average))
     # Create header of the processed file
     with open(outfile, "a") as processed_file:
@@ -1680,15 +1679,18 @@ def save_plots(model, min_con, max_con):
         width = axes_size.AxesY(ax, aspect=1.0 / aspect)
         pad = axes_size.Fraction(pad_fraction, width)
         cax_c = divider.append_axes("right", size=width, pad=pad)
-        cbar = fig.colorbar(field, cax=cax_c, orientation="vertical", format="%.1e")
-        cbar.ax.tick_params(labelsize=8)
-        cbar.set_label("ppm")
         if 'persistence' in input.split(os.sep)[-1]:
+            cbar = fig.colorbar(field, cax=cax_c, orientation="vertical", format="%.1f")
+            cbar.ax.tick_params(labelsize=8)
+            cbar.set_label("Probability")
             if units == 'ppm':
                 ax.set_title(specie_name + " persistence above C = " + c_threshold + ' [ppm]')
             else:
                 ax.set_title(specie_name + " persistence above C = " + c_threshold + ' [kg m$\mathregular{^{-3}}$]')
         else:
+            cbar = fig.colorbar(field, cax=cax_c, orientation="vertical", format="%.1e")
+            cbar.ax.tick_params(labelsize=8)
+            cbar.set_label("ppm")
             if units == "ppm":
                 ax.set_title(specie_name + " concentration [ppm]")
             else:

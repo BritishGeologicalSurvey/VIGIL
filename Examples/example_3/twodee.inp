@@ -79,7 +79,8 @@
    OUTPUT_H               = yes                      
    OUTPUT_RHO             = yes                      
    OUTPUT_DOSE            = yes                      
-   OUTPUT_CONCENTRATION   = yes                     
+   OUTPUT_CONCENTRATION   = yes
+   OUTPUT_MAX_CONCENTRATION = yes                     
      HEIGHTS_(M)          = 0.05 0.5 1.0 1.5 2.0 2.5 3.0              
      CONCENTRATION_BG     = 350.                     
    OUTPUT_Z_CRITICAL      = yes                     

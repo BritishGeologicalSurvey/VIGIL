@@ -1200,10 +1200,13 @@ def elaborate_day(day_input, model):
             if time_max > max(time_steps):
                 time_max = max(time_steps)
         while time_max <= max(time_steps):
-            time_max_s = "{:02d}".format(int(datetime.datetime.strftime(time_min, '%H')) +
-                                         int((time_max - time_min).seconds / 3600))
+            # FABIO: new approach, using the actual min and max averaging time steps. The former approach worked well if
+            # the first output is written at t=0, which is no longer true for twodee.
+            #time_max_s = "{:02d}".format(int(datetime.datetime.strftime(time_min, '%H')) +
+            #                             int((time_max - time_min).seconds / 3600))
+            time_max_s = datetime.datetime.strftime(time_max, '%H%M')
             if datetime.datetime.strftime(time_min, '%H') + "-" + time_max_s + "-tavg" not in tavg_intervals:
-                tavg_intervals.append(datetime.datetime.strftime(time_min, '%H') + "-" + time_max_s + "-tavg")
+                tavg_intervals.append(datetime.datetime.strftime(time_min, '%H%M') + "-" + time_max_s + "-tavg")
             for i in range(0, len(species)):
                 files_to_average = []
                 for level in processed_files_levels:
@@ -1391,7 +1394,9 @@ def probabilistic_output(model):
                                     [probability, specie, processed_files_levels[i], tavg_intervals[k]]
                                 )
                 else:
-                    for level in processed_files_levels:
+                    all_levels = np.array(processed_files_levels)
+                    levels_indexes = [int(x) - 1 for x in levels]
+                    for level in list(all_levels[levels_indexes]):
                         if time_steps[0] == "all":
                             for j in range(0, n_time_steps + 1):
                                 indexes.append([probability, specie, level, j])
@@ -1633,7 +1638,6 @@ def save_plots(model, min_con, max_con):
             levels_top = np.arange(min_z + 0.0000001, max_z, dz)
             levels_top_lines = np.arange(min_z, max_z, dz_lines)
         SUB = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
-        print(input)
         if 'persistence' in input.split(os.sep)[-1]:
             specie_name = input.split(os.sep)[-3]
             c_threshold = input.split(os.sep)[-2]

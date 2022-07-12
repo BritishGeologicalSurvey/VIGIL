@@ -750,7 +750,8 @@ def prepare_diagno_files(data_folder, year, month, day):
                          ' Unable to prepare DIAGNO input file for day ' + retrieved_day_s + '\n')
     new_file_list = os.listdir(data_folder)
     for file in new_file_list:
-        if file.startswith('data_') or file.startswith('profile_') or file.startswith('weather_'):
+        if file.startswith('data_') or file.startswith('profile_') or file.startswith('weather_') or \
+                file.endswith('.grb'):
             os.remove(os.path.join(data_folder, file))
     return tref_vector, tsoil_vector, press_vector
 
@@ -1860,7 +1861,7 @@ else:
         days_to_reelaborate = []
         simulation_folders = os.listdir(simulations)
         for folder in simulation_folders:
-            if len(os.listdir(os.path.join(simulations, folder))) < 7:
+            if len(os.listdir(os.path.join(simulations, folder))) < 5:
                 days_to_reelaborate.append(datetime.datetime.strptime(folder, "%Y%m%d"))
         if len(days_to_reelaborate) == 0:
             with open("log_weather.txt", "a", encoding="utf-8", errors="surrogateescape") as log_file:

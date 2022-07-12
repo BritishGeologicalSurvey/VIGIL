@@ -574,13 +574,14 @@ def gas_properties():
         gas_specie["concentration_thresholds"] = concentration_thresholds[i]
         gas_specie["exposure_times"] = exposure_times[i]
         species_properties.append(gas_specie)
-    gas_specie = {}
-    gas_specie["specie_name"] = original_specie
-    gas_specie["molar_ratio"] = molar_ratios_tracking_specie
-    gas_specie["molar_weight"] = molar_weights_tracking_specie
-    gas_specie["concentration_thresholds"] = concentration_thresholds_tracking_specie
-    gas_specie["exposure_times"] = exposure_times_tracking_specie
-    species_properties.append(gas_specie)
+    if original_specie not in species:
+        gas_specie = {}
+        gas_specie["specie_name"] = original_specie
+        gas_specie["molar_ratio"] = molar_ratios_tracking_specie
+        gas_specie["molar_weight"] = molar_weights_tracking_specie
+        gas_specie["concentration_thresholds"] = concentration_thresholds_tracking_specie
+        gas_specie["exposure_times"] = exposure_times_tracking_specie
+        species_properties.append(gas_specie)
     return species_properties
 
 
@@ -1169,6 +1170,9 @@ def elaborate_day(day_input, model):
                 )
             )
         processed_files_species.append(processed_files_specie)
+        for file_to_check in processed_files:
+            if os.path.exists(file_to_check):
+                os.remove(file_to_check)
     n_elaborated_files = 0
     while n_elaborated_files < len(files_list_path):
         start = n_elaborated_files
@@ -1226,6 +1230,8 @@ def elaborate_day(day_input, model):
                         + datetime.datetime.strftime(time_max, '%Y%m%d%H%M')
                         + "-tavg.grd",
                     )
+                    if os.path.exists(time_averaged_file):
+                        os.remove(time_averaged_file)
                     for file in processed_files_species[i]:
                         file_name = os.path.split(file)[1]
                         file_level = file_name.split("_")[1]
@@ -1283,14 +1289,15 @@ def probabilistic_output(model):
                     file_validity = datetime.datetime.strftime(time_validity, '%Y%m%d%H%M')
                     time_step_s = "{:06d}".format(int(time_step))
                 except ValueError:
-                    tavg_interval_start_s = day + time_step.split('-')[0] + '00'
-                    tavg_interval_end_s = day + time_step.split('-')[1] + '00'
+                    tavg_interval_start_s = day + time_step.split('-')[0]
+                    tavg_interval_end_s = day + time_step.split('-')[1]
                     tavg_interval_start = datetime.datetime.strptime(tavg_interval_start_s, '%Y%m%d%H%M')
                     try:
                         datetime.datetime.strptime(tavg_interval_end_s, '%Y%m%d%H%M')
                     except ValueError:
-                        tavg_interval_end = tavg_interval_start + datetime.timedelta(hours=(int(time_step.split('-')[1]) -
-                                                                                            int(time_step.split('-')[0])))
+                        tavg_interval_end = tavg_interval_start + \
+                                            datetime.timedelta(hours=(int(time_step.split('-')[1]) -
+                                                               int(time_step.split('-')[0])))
                         tavg_interval_end_s = datetime.datetime.strftime(tavg_interval_end, '%Y%m%d%H%M')
                     day_interval = datetime.datetime.strftime(tavg_interval_start, '%Y%m%d')
                     if day != day_interval:
@@ -1335,6 +1342,8 @@ def probabilistic_output(model):
                     for k in range(0, len(output_files)):
                         c_list.append(float(c_arrays[k][j][i]))
                     output_quantile[j, i] = np.quantile(c_list, q=quantile)
+            if os.path.exists(ecdf_output_file):
+                os.remove(ecdf_output_file)
             # Create header of the processed file
             with open(ecdf_output_file, "a") as processed_file:
                 if output_format == "grd":
@@ -1475,6 +1484,8 @@ def probabilistic_output(model):
                             persistence_matrix[j][i] += weight
             persistence_output_file = os.path.join(persistence_folder, specie_input, str(concentration_threshold),
                                                    'persistence_' + file_level_s + '.grd')
+            if os.path.exists(persistence_output_file):
+                os.remove(persistence_output_file)
             # Create header of the processed file
             with open(persistence_output_file, "a") as processed_file:
                 if output_format == "grd":
@@ -1512,7 +1523,7 @@ def probabilistic_output(model):
                             os.mkdir(threshold_folder)
                         except FileExistsError:
                             print("Folder " + threshold_folder + " already exists")
-                            [os.remove(os.path.join(threshold_folder, x)) for x in os.listdir(threshold_folder)]
+                            #FABIO [os.remove(os.path.join(threshold_folder, x)) for x in os.listdir(threshold_folder)]
 
         weight = 1 / len(days)
         indexes = []
@@ -1784,8 +1795,8 @@ def save_plots(model, min_con, max_con):
                     )
                 else:
                     for time_step in time_steps:
-                        time_step_hh_mm = hour_start + int(dt / 3600) * (int(time_step))
-                        time_step_datetime = simulation_start + datetime.timedelta(hours=time_step_hh_mm)
+                        time_step_seconds = hour_start + dt * int(time_step)
+                        time_step_datetime = simulation_start + datetime.timedelta(seconds=time_step_seconds)
                         if time_step_datetime == file_time_step_datetime:
                             files_to_plot.append(file)
                             output_files.append(
@@ -1821,8 +1832,8 @@ def save_plots(model, min_con, max_con):
                 else:
                     for level in levels:
                         for time_step in time_steps:
-                            time_step_hh_mm = hour_start + int(dt / 3600) * (int(time_step))
-                            time_step_datetime = simulation_start + datetime.timedelta(hours=time_step_hh_mm)
+                            time_step_seconds = hour_start + dt * int(time_step)
+                            time_step_datetime = simulation_start + datetime.timedelta(seconds=time_step_seconds)
                             if time_step_datetime == file_time_step_datetime \
                                 and file_level == processed_files_levels[int(level) - 1]:
                                 files_to_plot.append(file)

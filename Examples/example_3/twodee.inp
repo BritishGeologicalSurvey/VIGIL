@@ -42,8 +42,6 @@
    Y_STATION_(UTM_M) = 500.                       
    !
  FILES  
-   KML_RESOURCES_DIRECTORY = /home/vulcanomod/twodee2/twodee-2.2/Resources                    
-   INPUT_DIRECTORY         = /home/vulcanomod/twodee2/twodee-2.2_dev/test2/infiles
    OUTPUT_DIRECTORY        = /home/vulcanomod/twodee2/twodee-2.2_dev/test2/outfiles
    ! 
    TOPOGRAPHY_FILE         = topography.grd 

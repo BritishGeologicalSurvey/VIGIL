@@ -1627,6 +1627,7 @@ def extract_station_data(station_data_files, eastings, northings, zst, data_fold
         )
         for line in diagno:
             diagno_records.append(line)
+        diagno_records[12] = '    2         NWIND\n'
         diagno_records[42] = gamma_string_1
         diagno_records[43] = gamma_string_2
         diagno_records[44] = gamma_string_3

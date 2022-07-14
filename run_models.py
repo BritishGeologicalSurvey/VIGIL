@@ -629,14 +629,15 @@ def pre_process(run_type):
             dur.append(source_dur)
         n_sources = len(easting)
 
-    # Set DIAGNO folder
-    diagno = os.path.join(root, "simulations", "diagno")
     disgas = os.path.join(root, "simulations", "disgas")
     twodee = os.path.join(root, "simulations", "twodee")
-    try:
-        os.mkdir(diagno)
-    except FileExistsError:
-        print("Folder " + diagno + " already exists")
+    diagno = os.path.join(root, "simulations", "diagno")
+    if diagno_on:
+        # Set DIAGNO folder
+        try:
+            os.mkdir(diagno)
+        except FileExistsError:
+            print("Folder " + diagno + " already exists")
     if disgas_on:
         # Set DISGAS folder
         try:
@@ -657,20 +658,22 @@ def pre_process(run_type):
                 run_type = 'new'
             else:
                 run_type = 'restart'
-        path = os.path.join(root, "simulations", str(day))
-        files = os.listdir(path)
         diagno_daily = os.path.join(diagno, str(day))
-        try:
-            os.mkdir(diagno_daily)
-        except FileExistsError:
-            print("Folder " + diagno_daily + " already exists")
-        for f in files:
-            path_f = os.path.join(path, f)
+        path = os.path.join(root, "simulations", str(day))
+        if diagno_on:
+            files = os.listdir(path)
             try:
-                shutil.move(path_f, diagno_daily)
+                os.mkdir(diagno_daily)
             except FileExistsError:
-                print("File " + f + " already present in " + diagno)
-        shutil.copy(topography, os.path.join(diagno_daily, "topography.grd"))
+                print("Folder " + diagno_daily + " already exists")
+            for f in files:
+                path_f = os.path.join(path, f)
+                try:
+                    shutil.move(path_f, diagno_daily)
+                except FileExistsError:
+                    print("File " + f + " already present in " + diagno)
+            shutil.copy(topography, os.path.join(diagno_daily, "topography.grd"))
+
         # Set DISGAS folder
         if disgas_on:
             disgas_daily = os.path.join(disgas, str(day))
@@ -995,7 +998,8 @@ def pre_process(run_type):
                     else:
                         twodee_input_file.write(record)
             shutil.copy(twodee_input, twodee_original)
-        shutil.rmtree(path)
+        if diagno_on:
+            shutil.rmtree(path)
     return days
 
 
@@ -1082,7 +1086,6 @@ def run_diagno(max_number_processes):
         except BaseException:
             print("Unable to process weather data with Diagno")
             sys.exit()
-        print("DIAGNO successfully processed days " + str(days[start:end]))
         n_elaborated_days = end
         if n_elaborated_days == len(days):
             break
@@ -1159,7 +1162,6 @@ def run_disgas(max_number_processes):
             break
     for p in ps:
         p.wait()
-    print("DISGAS successfully processed days " + str(days))
 
 
 def run_twodee(max_number_processes):
@@ -1234,7 +1236,6 @@ def run_twodee(max_number_processes):
             break
     for p in ps:
         p.wait()
-    print("TWODEE successfully processed days " + str(days))
 
 
 root = os.getcwd()
@@ -1298,17 +1299,10 @@ if shutil.which('sbatch') is not None:
 else:
     nodes_list = []
 
-if diagno_on:
-    days = pre_process(run_type)
-    #try:
-    #    days = pre_process(run_type)
-    #except BaseException:
-    #    print('ERROR. DIAGNO activated but it seems it has been already run. Please restart switching DIAGNO off')
-    #    sys.exit()
+days = pre_process(run_type)
 
+if diagno_on:
     run_diagno(max_number_processes)
-else:
-    days = prepare_days()
 
 if disgas_on:
     run_disgas(max_number_processes)

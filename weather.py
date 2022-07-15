@@ -216,8 +216,21 @@ def read_arguments():
         print("Please provide a valid number for the maximum number of process")
         sys.exit()
     out_utm = utm.from_latlon(volc_lat, volc_lon)
-    easting = int(round(out_utm[0] / 1000))
-    northing = int(round(out_utm[1] / 1000))
+    easting = out_utm[0] / 1000
+    northing = out_utm[1] / 1000
+    # Check location is inside the topography
+    topography_file = os.path.join(root, 'topography.grd')
+    with open(topography_file, 'r') as topography:
+        topography_content = topography.readlines()
+    x0 = float(topography_content[2].split(' ')[0])
+    xf = float(topography_content[2].split(' ')[1])
+    y0 = float(topography_content[3].split(' ')[0])
+    yf = float(topography_content[3].split(' ')[1])
+    if easting <= x0 or easting >= xf or northing <= y0 or northing >= yf:
+        print('Warning. Weather data location outside the domain of the topography file. '
+              'Moving the location to the centre of the domain')
+        easting = (x0 + xf) / 2000
+        northing = (y0 + yf) / 2000
     try:
         start = start_date.split("/")
         stop = end_date.split("/")
@@ -1751,7 +1764,7 @@ def automatic_weather(analysis_start):
 
 root = os.getcwd()
 simulations = os.path.join(root, "simulations")
-n_stations = 1
+n_stations = 2
 
 
 (

@@ -461,7 +461,7 @@ def prepare_diagno_files(data_folder, year, month, day):
             encoding="utf-8",
             errors="surrogateescape",
         )
-        diagno_preupr.write("1           NSTA\n")
+        diagno_preupr.write(str(n_stations) + "        NSTA\n")
         diagno_preupr.write("20         LEVELS\n")
         diagno_preupr.write("0          NSTRHR\n")
         diagno_preupr.write("23         NENDHR\n")
@@ -738,10 +738,12 @@ def prepare_diagno_files(data_folder, year, month, day):
             )
             for line in diagno:
                 diagno_records.append(line)
+            diagno_records[12] = '    2         NWIND\n'
             diagno_records[42] = gamma_string_1
             diagno_records[43] = gamma_string_2
             diagno_records[44] = gamma_string_3
             diagno_records[47] = str_tinf
+
             diagno_records[51] = um_string_1
             diagno_records[52] = um_string_2
             diagno_records[53] = um_string_3
@@ -1640,7 +1642,7 @@ def extract_station_data(station_data_files, eastings, northings, zst, data_fold
         )
         for line in diagno:
             diagno_records.append(line)
-        diagno_records[12] = '    2         NWIND\n'
+        diagno_records[12] = '    ' + str(n_stations) + '         NWIND\n'
         diagno_records[42] = gamma_string_1
         diagno_records[43] = gamma_string_2
         diagno_records[44] = gamma_string_3
@@ -1764,7 +1766,6 @@ def automatic_weather(analysis_start):
 
 root = os.getcwd()
 simulations = os.path.join(root, "simulations")
-n_stations = 2
 
 
 (
@@ -1790,6 +1791,9 @@ n_stations = 2
     sampled_months,
     sampled_days,
 ) = read_arguments()
+
+
+n_stations = 1 #FABIO: to generalize to allow more weather data point when using NWP data
 
 if not disgas_on and not twodee_on:
     print("Both DISGAS and TWODEE are turned off")

@@ -743,7 +743,6 @@ def prepare_diagno_files(data_folder, year, month, day):
             diagno_records[43] = gamma_string_2
             diagno_records[44] = gamma_string_3
             diagno_records[47] = str_tinf
-
             diagno_records[51] = um_string_1
             diagno_records[52] = um_string_2
             diagno_records[53] = um_string_3

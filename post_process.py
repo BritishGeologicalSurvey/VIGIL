@@ -1171,8 +1171,10 @@ def elaborate_day(day_input, model):
             )
         processed_files_species.append(processed_files_specie)
         for file_to_check in processed_files:
-            if os.path.exists(file_to_check):
+            try:
                 os.remove(file_to_check)
+            except FileNotFoundError:
+                pass
     n_elaborated_files = 0
     while n_elaborated_files < len(files_list_path):
         start = n_elaborated_files
@@ -1230,8 +1232,10 @@ def elaborate_day(day_input, model):
                         + datetime.datetime.strftime(time_max, '%Y%m%d%H%M')
                         + "-tavg.grd",
                     )
-                    if os.path.exists(time_averaged_file):
+                    try:
                         os.remove(time_averaged_file)
+                    except FileNotFoundError:
+                        pass
                     for file in processed_files_species[i]:
                         file_name = os.path.split(file)[1]
                         file_level = file_name.split("_")[1]
@@ -1342,8 +1346,10 @@ def probabilistic_output(model):
                     for k in range(0, len(output_files)):
                         c_list.append(float(c_arrays[k][j][i]))
                     output_quantile[j, i] = np.quantile(c_list, q=quantile)
-            if os.path.exists(ecdf_output_file):
+            try:
                 os.remove(ecdf_output_file)
+            except FileNotFoundError:
+                pass
             # Create header of the processed file
             with open(ecdf_output_file, "a") as processed_file:
                 if output_format == "grd":
@@ -1484,8 +1490,10 @@ def probabilistic_output(model):
                             persistence_matrix[j][i] += weight
             persistence_output_file = os.path.join(persistence_folder, specie_input, str(concentration_threshold),
                                                    'persistence_' + file_level_s + '.grd')
-            if os.path.exists(persistence_output_file):
+            try:
                 os.remove(persistence_output_file)
+            except FileExistsError:
+                pass
             # Create header of the processed file
             with open(persistence_output_file, "a") as processed_file:
                 if output_format == "grd":

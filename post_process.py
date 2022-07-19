@@ -1492,7 +1492,7 @@ def probabilistic_output(model):
                                                    'persistence_' + file_level_s + '.grd')
             try:
                 os.remove(persistence_output_file)
-            except FileExistsError:
+            except FileNotFoundError:
                 pass
             # Create header of the processed file
             with open(persistence_output_file, "a") as processed_file:

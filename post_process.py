@@ -544,7 +544,8 @@ def gas_properties():
 
     gas_properties_file = os.path.join(root, "gas_properties.csv")
     try:
-        open(gas_properties_file, "r")
+        with open(gas_properties_file, "r") as test_file:
+            print('File ' + gas_properties_file + ' found!')
     except FileNotFoundError:
         print("File " + gas_properties_file + " not present")
         sys.exit()
@@ -1326,18 +1327,32 @@ def probabilistic_output(model):
             files_not_available = []
             for file in output_files:
                 try:
-                    input_file = open(file)
+                    with open(file, 'r') as input_file:
+                        records = []
+                        nline = 1
+                        for line in input_file:
+                            if nline > 5:
+                                records.append(line.split(" "))
+                            nline += 1
+                        c_arrays.append(records)
                 except FileNotFoundError:
                     print("File " + file + " not found")
                     files_not_available.append(file)
                     continue
-                records = []
-                nline = 1
-                for line in input_file:
-                    if nline > 5:
-                        records.append(line.split(" "))
-                    nline += 1
-                c_arrays.append(records)
+                # Fabio: commented the part below to possibly save memory by making sure all files are closed
+                #try:
+                #    input_file = open(file)
+                #except FileNotFoundError:
+                #    print("File " + file + " not found")
+                #    files_not_available.append(file)
+                #    continue
+                #records = []
+                #nline = 1
+                #for line in input_file:
+                #    if nline > 5:
+                #       records.append(line.split(" "))
+                #    nline += 1
+                #c_arrays.append(records)
             for file in files_not_available:
                 output_files.remove(file)
             for j in range(0, ny):
@@ -1472,14 +1487,26 @@ def probabilistic_output(model):
                     if file.split('_')[1] == file_level_s:
                         output_files.append(os.path.join(output_folder, file))
                 for file in output_files:
-                    input_file = open(file)
-                    records = []
-                    nline = 1
-                    for line in input_file:
-                        if nline > 5:
-                            records_str = line.split(" ")
-                            records.append([float(x) for x in records_str])
-                        nline += 1
+                    try:
+                        with open(file, 'r') as input_file:
+                            records = []
+                            nline = 1
+                            for line in input_file:
+                                if nline > 5:
+                                    records_str = line.split(" ")
+                                    records.append([float(x) for x in records_str])
+                                nline += 1
+                    except FileNotFoundError:
+                        print('File ' + file + ' not found!')
+                    # Fabio: commented the part below to possibly save memory by making sure all files are closed
+                    #input_file = open(file)
+                    #records = []
+                    #nline = 1
+                    #for line in input_file:
+                    #    if nline > 5:
+                    #        records_str = line.split(" ")
+                    #        records.append([float(x) for x in records_str])
+                    #    nline += 1
                     for j in range(0, ny):
                         for i in range(0, nx):
                             if records[j][i] > concentration_threshold:

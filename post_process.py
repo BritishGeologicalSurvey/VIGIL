@@ -1207,10 +1207,6 @@ def elaborate_day(day_input, model):
             if time_max > max(time_steps):
                 time_max = max(time_steps)
         while time_max <= max(time_steps):
-            # FABIO: new approach, using the actual min and max averaging time steps. The former approach worked well if
-            # the first output is written at t=0, which is no longer true for twodee.
-            #time_max_s = "{:02d}".format(int(datetime.datetime.strftime(time_min, '%H')) +
-            #                             int((time_max - time_min).seconds / 3600))
             time_max_s = datetime.datetime.strftime(time_max, '%H%M')
             if datetime.datetime.strftime(time_min, '%H') + "-" + time_max_s + "-tavg" not in tavg_intervals:
                 tavg_intervals.append(datetime.datetime.strftime(time_min, '%H%M') + "-" + time_max_s + "-tavg")
@@ -1339,20 +1335,6 @@ def probabilistic_output(model):
                     print("File " + file + " not found")
                     files_not_available.append(file)
                     continue
-                # Fabio: commented the part below to possibly save memory by making sure all files are closed
-                #try:
-                #    input_file = open(file)
-                #except FileNotFoundError:
-                #    print("File " + file + " not found")
-                #    files_not_available.append(file)
-                #    continue
-                #records = []
-                #nline = 1
-                #for line in input_file:
-                #    if nline > 5:
-                #       records.append(line.split(" "))
-                #    nline += 1
-                #c_arrays.append(records)
             for file in files_not_available:
                 output_files.remove(file)
             for j in range(0, ny):
@@ -1498,15 +1480,6 @@ def probabilistic_output(model):
                                 nline += 1
                     except FileNotFoundError:
                         print('File ' + file + ' not found!')
-                    # Fabio: commented the part below to possibly save memory by making sure all files are closed
-                    #input_file = open(file)
-                    #records = []
-                    #nline = 1
-                    #for line in input_file:
-                    #    if nline > 5:
-                    #        records_str = line.split(" ")
-                    #        records.append([float(x) for x in records_str])
-                    #    nline += 1
                     for j in range(0, ny):
                         for i in range(0, nx):
                             if records[j][i] > concentration_threshold:
@@ -1558,7 +1531,6 @@ def probabilistic_output(model):
                             os.mkdir(threshold_folder)
                         except FileExistsError:
                             print("Folder " + threshold_folder + " already exists")
-                            #FABIO [os.remove(os.path.join(threshold_folder, x)) for x in os.listdir(threshold_folder)]
 
         weight = 1 / len(days)
         indexes = []

@@ -4,4 +4,4 @@ python ../../../weather.py -S 16/04/2016 -E 16/04/2016 -V 360060 -NS 1 -WST True
 
 python ../../../run_models.py -N 1 -RS on -NS 5 -SINT 2,5 -D UTM,1774000,642900,1775995,645390 -NX 166 -NY 133 -RER on -DG on
 
-python ../../../post_process.py -P true -T all -L 3 -D all -C True -TS H2O -S H2S -N 1 -M disgas -U ppm -PT True -PL 0.1,1000
+python ../../../post_process.py -P true -T all -L 3 -D all -C True -TS H2O -S H2S -N 1 -M disgas -U ppm -PT True -PL 0.1,100

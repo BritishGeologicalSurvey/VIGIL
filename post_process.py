@@ -1488,7 +1488,8 @@ def probabilistic_output(model):
                     for i in range(0, nx):
                         if overcome_matrix[j][i] >= exposure_time:
                             persistence_matrix[j][i] += weight
-            persistence_output_file = os.path.join(persistence_folder, specie_input, str(concentration_threshold),
+            persistence_output_file = os.path.join(persistence_folder, specie_input, 'C_' + str(concentration_threshold)
+                                                   + '_t_' + str(exposure_time) + 'H',
                                                    'persistence_' + file_level_s + '.grd')
             try:
                 os.remove(persistence_output_file)
@@ -1525,8 +1526,10 @@ def probabilistic_output(model):
                     except FileExistsError:
                         print("Folder " + specie_folder + " already exists")
                     concentration_thresholds = specie_dict["concentration_thresholds"]
-                    for threshold in concentration_thresholds:
-                        threshold_folder = os.path.join(specie_folder, str(threshold))
+                    exposure_times = specie_dict["exposure_times"]
+                    for j in range(0, len(concentration_thresholds)):
+                        threshold_folder = os.path.join(specie_folder, 'C_' + str(concentration_thresholds[j]) + '_t_'
+                                                        + str(exposure_times[j]) + 'H')
                         try:
                             os.mkdir(threshold_folder)
                         except FileExistsError:
@@ -1643,6 +1646,10 @@ def save_plots(model, min_con, max_con):
             z_max = np.amax(Z_resized)
             return nx_resized, ny_resized, z_min, z_max, Z_resized
 
+        try:
+            os.remove(output)
+        except FileNotFoundError:
+            pass
         if plot_topography_layer:
             nx_top, ny_top, min_z, max_z, Z_top = resize_topography(x0, xf, y0, yf, "topography.grd")
             X_top = np.linspace(x0, xf, num=nx_top)
@@ -1652,13 +1659,17 @@ def save_plots(model, min_con, max_con):
             if dz_lines_res >= max_z:
                 dz_lines_res = max_z
             n_levels_lines = int((max_z - min_z) / dz_lines_res)
-            dz_lines = myround((max_z - min_z) / (n_levels_lines))
+            dz_lines = myround((max_z - min_z) / (n_levels_lines), base=dz_lines_res)
             levels_top = np.arange(min_z + 0.0000001, max_z, dz)
-            levels_top_lines = np.arange(min_z, max_z, dz_lines)
+            levels_top_lines = np.arange(myround(min_z, base=dz_lines_res), myround(max_z, base=dz_lines_res), dz_lines)
         SUB = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
         if 'persistence' in input.split(os.sep)[-1]:
             specie_name = input.split(os.sep)[-3]
-            c_threshold = input.split(os.sep)[-2]
+            thresholds = input.split(os.sep)[-2]
+            c_threshold = thresholds.split('_t_')[0]
+            c_threshold = c_threshold.split('C_')[1]
+            exposure_time = thresholds.split('_t_')[1]
+            exposure_time = exposure_time.split('H')[0]
         else:
             specie_name = input.split(os.sep)[-2]
         specie_name = specie_name.translate(SUB)
@@ -1678,18 +1689,15 @@ def save_plots(model, min_con, max_con):
                     Z = np.loadtxt(input, skiprows=5)
         fig, ax = plt.subplots(figsize=(6, 5), dpi=plot_resolution)
         if plot_topography_layer:
-            top = ax.contourf(
-                X_top, Y_top, Z_top, levels_top, cmap="Greys", extend="max"
-            )
+            top = ax.contourf(X_top, Y_top, Z_top, levels_top, cmap="Greys", extend="max")
             top_lines = ax.contour(top, levels=levels_top_lines, colors='black', linewidths=0.05)
+            top_cbar = fig.colorbar(top, orientation="horizontal", format="%.1f", shrink=0.75)
             ax.clabel(top_lines, inline=True, fontsize=2, fmt='%1.0f')
-            top_cbar = fig.colorbar(
-                top, orientation="horizontal", format="%.1f", shrink=0.75
-            )
             top_cbar.ax.tick_params(labelsize=6)
             top_cbar.set_label("m a.s.l.")
         if 'persistence' in input.split(os.sep)[-1]:
-            field = plt.contourf(X, Y, Z, levels, cmap="Greens", alpha=0.9, extend="max")
+            cmap = plt.get_cmap('viridis', 10)
+            field = plt.contourf(X, Y, Z, levels, cmap=cmap, alpha=0.9, extend="max")
         else:
             field = plt.contourf(X, Y, Z, levels, cmap="Reds", alpha=0.9, extend="max")
         if len(plot_isolines) != 0:
@@ -1706,16 +1714,19 @@ def save_plots(model, min_con, max_con):
             cbar.ax.tick_params(labelsize=8)
             cbar.set_label("Probability")
             if units == 'ppm':
-                ax.set_title(specie_name + " persistence above C = " + c_threshold + ' [ppm]')
+                ax.set_title(specie_name + " persistence C > " + c_threshold + ' ppm for t = ' + exposure_time
+                             + ' hours')
             else:
-                ax.set_title(specie_name + " persistence above C = " + c_threshold + ' [kg m$\mathregular{^{-3}}$]')
+                ax.set_title(specie_name + " persistence C > " + c_threshold + ' kg m$\mathregular{^{-3}}$ for t = '
+                             + exposure_time + ' hours')
         else:
             cbar = fig.colorbar(field, cax=cax_c, orientation="vertical", format="%.1e")
             cbar.ax.tick_params(labelsize=8)
-            cbar.set_label("ppm")
             if units == "ppm":
+                cbar.set_label("C [ppm]")
                 ax.set_title(specie_name + " concentration [ppm]")
             else:
+                cbar.set_label("C [kg m$\mathregular{^{-3}}$]")
                 ax.set_title(specie_name + " concentration [kg m$\mathregular{^{-3}}$]")
         ax.set_aspect("equal")
         ax.set_xlim(x0, xf)
@@ -1996,28 +2007,31 @@ def save_plots(model, min_con, max_con):
                             + " already exists"
                         )
                     concentration_thresholds = specie_dict["concentration_thresholds"]
-                    for threshold in concentration_thresholds:
+                    exposure_times = specie_dict["exposure_times"]
+                    for j in range(0, len(concentration_thresholds)):
                         try:
                             os.mkdir(
-                                os.path.join(graphical_outputs_persistence, specie, str(threshold))
-                            )
+                                os.path.join(graphical_outputs_persistence, specie, 'C_' +
+                                             str(concentration_thresholds[j]) + '_t_' + str(exposure_times[j]) + 'H'))
                         except FileExistsError:
                             print(
                                 "Folder "
-                                + os.path.join(graphical_outputs_persistence, specie, str(threshold))
-                                + " already exists"
-                            )
-                        files_list = os.listdir(
-                        os.path.join(persistence_outputs, specie, str(threshold))
-                        )
+                                + os.path.join(graphical_outputs_persistence, specie, 'C_' +
+                                               str(concentration_thresholds[j]) + '_t_' + str(exposure_times[j]) + 'H')
+                                               + " already exists")
+                        files_list = os.listdir(os.path.join(persistence_outputs, specie, 'C_' +
+                                                             str(concentration_thresholds[j]) + '_t_'
+                                                        + str(exposure_times[j]) + 'H'))
                         for file in files_list:
                             file_path = os.path.join(
-                                persistence_outputs, specie, str(threshold), file
-                            )
+                                persistence_outputs, specie, 'C_' + str(concentration_thresholds[j]) + '_t_'
+                                                        + str(exposure_times[j]) + 'H', file)
                             files_to_plot.append(file_path)
                             persistence_plot_file_name = file.split(os.sep)[-1].split(".grd")[0]
                             persistence_plot_file_name += '.png'
-                            output_files.append(os.path.join(graphical_outputs_persistence, specie, str(threshold),
+                            output_files.append(os.path.join(graphical_outputs_persistence, specie, 'C_' +
+                                                             str(concentration_thresholds[j]) + '_t_' +
+                                                             str(exposure_times[j]) + 'H',
                                                              persistence_plot_file_name))
 
     if len(files_to_plot) == 0:

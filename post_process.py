@@ -1273,6 +1273,13 @@ def sort_levels(input_array):
 def probabilistic_output(model):
     def calculate_quantiles():
         def ecdf(index):
+            def read_file(file_input):
+                try:
+                    records = np.loadtxt(file_input, skiprows=5)
+                    c_list.append(float(records[j][i]))
+                except FileNotFoundError:
+                    print('File ' + file_input + ' not found')
+
             specie = index[1]
             file_level_s = index[2]
             time_step = index[3]
@@ -1319,30 +1326,38 @@ def probabilistic_output(model):
                 + ".grd",
             )
             output_quantile = np.zeros((ny, nx))
-            c_arrays = []
-            files_not_available = []
-            for file in output_files:
-                try:
-                    with open(file, 'r') as input_file:
-                        records = []
-                        nline = 1
-                        for line in input_file:
-                            if nline > 5:
-                                records.append(line.split(" "))
-                            nline += 1
-                        c_arrays.append(records)
-                except FileNotFoundError:
-                    print("File " + file + " not found")
-                    files_not_available.append(file)
-                    continue
-            for file in files_not_available:
-                output_files.remove(file)
+            # FABIO: new version to save memory
             for j in range(0, ny):
                 for i in range(0, nx):
                     c_list = []
-                    for k in range(0, len(output_files)):
-                        c_list.append(float(c_arrays[k][j][i]))
+                    pool = ThreadingPool(len(output_files))
+                    pool.map(read_file, output_files[0:len(output_files)])
                     output_quantile[j, i] = np.quantile(c_list, q=quantile)
+
+            # c_arrays = []
+            # files_not_available = []
+            # for file in output_files:
+            #     try:
+            #         with open(file, 'r') as input_file:
+            #             records = []
+            #             nline = 1
+            #             for line in input_file:
+            #                 if nline > 5:
+            #                     records.append(line.split(" "))
+            #                 nline += 1
+            #             c_arrays.append(records)
+            #     except FileNotFoundError:
+            #         print("File " + file + " not found")
+            #         files_not_available.append(file)
+            #         continue
+            # for file in files_not_available:
+            #     output_files.remove(file)
+            # for j in range(0, ny):
+            #     for i in range(0, nx):
+            #         c_list = []
+            #         for k in range(0, len(output_files)):
+            #             c_list.append(float(c_arrays[k][j][i]))
+            #         output_quantile[j, i] = np.quantile(c_list, q=quantile)
             try:
                 os.remove(ecdf_output_file)
             except FileNotFoundError:
@@ -1470,14 +1485,15 @@ def probabilistic_output(model):
                         output_files.append(os.path.join(output_folder, file))
                 for file in output_files:
                     try:
-                        with open(file, 'r') as input_file:
-                            records = []
-                            nline = 1
-                            for line in input_file:
-                                if nline > 5:
-                                    records_str = line.split(" ")
-                                    records.append([float(x) for x in records_str])
-                                nline += 1
+                        records = np.loadtxt(file, skiprows=5)
+                        # with open(file, 'r') as input_file:
+                        #     records = []
+                        #     nline = 1
+                        #     for line in input_file:
+                        #         if nline > 5:
+                        #             records_str = line.split(" ")
+                        #             records.append([float(x) for x in records_str])
+                        #         nline += 1
                     except FileNotFoundError:
                         print('File ' + file + ' not found!')
                     for j in range(0, ny):

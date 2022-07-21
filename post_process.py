@@ -1208,7 +1208,7 @@ def elaborate_day(day_input, model):
                 time_max = max(time_steps)
         while time_max <= max(time_steps):
             time_max_s = datetime.datetime.strftime(time_max, '%H%M')
-            if datetime.datetime.strftime(time_min, '%H') + "-" + time_max_s + "-tavg" not in tavg_intervals:
+            if datetime.datetime.strftime(time_min, '%H%M') + "-" + time_max_s + "-tavg" not in tavg_intervals:
                 tavg_intervals.append(datetime.datetime.strftime(time_min, '%H%M') + "-" + time_max_s + "-tavg")
             for i in range(0, len(species)):
                 files_to_average = []
@@ -1271,13 +1271,15 @@ def sort_levels(input_array):
 
 
 def probabilistic_output(model):
+    import linecache
+
     def calculate_quantiles():
         def ecdf(index):
             def read_file(file_input):
                 try:
-                    records = np.loadtxt(file_input, skiprows=5)
-                    c_list.append(float(records[j][i]))
-                except FileNotFoundError:
+                    row = linecache.getline(file_input, j + 6)
+                    c_list.append(float(row.split(' ')[i]))
+                except IndexError:
                     print('File ' + file_input + ' not found')
 
             specie = index[1]
@@ -1333,31 +1335,6 @@ def probabilistic_output(model):
                     pool = ThreadingPool(len(output_files))
                     pool.map(read_file, output_files[0:len(output_files)])
                     output_quantile[j, i] = np.quantile(c_list, q=quantile)
-
-            # c_arrays = []
-            # files_not_available = []
-            # for file in output_files:
-            #     try:
-            #         with open(file, 'r') as input_file:
-            #             records = []
-            #             nline = 1
-            #             for line in input_file:
-            #                 if nline > 5:
-            #                     records.append(line.split(" "))
-            #                 nline += 1
-            #             c_arrays.append(records)
-            #     except FileNotFoundError:
-            #         print("File " + file + " not found")
-            #         files_not_available.append(file)
-            #         continue
-            # for file in files_not_available:
-            #     output_files.remove(file)
-            # for j in range(0, ny):
-            #     for i in range(0, nx):
-            #         c_list = []
-            #         for k in range(0, len(output_files)):
-            #             c_list.append(float(c_arrays[k][j][i]))
-            #         output_quantile[j, i] = np.quantile(c_list, q=quantile)
             try:
                 os.remove(ecdf_output_file)
             except FileNotFoundError:
@@ -1484,22 +1461,16 @@ def probabilistic_output(model):
                     if file.split('_')[1] == file_level_s:
                         output_files.append(os.path.join(output_folder, file))
                 for file in output_files:
-                    try:
-                        records = np.loadtxt(file, skiprows=5)
-                        # with open(file, 'r') as input_file:
-                        #     records = []
-                        #     nline = 1
-                        #     for line in input_file:
-                        #         if nline > 5:
-                        #             records_str = line.split(" ")
-                        #             records.append([float(x) for x in records_str])
-                        #         nline += 1
-                    except FileNotFoundError:
-                        print('File ' + file + ' not found!')
                     for j in range(0, ny):
                         for i in range(0, nx):
-                            if records[j][i] > concentration_threshold:
-                                overcome_matrix[j][i] += 1 * (24 / (len(output_files) - 1))
+                            try:
+                                row = linecache.getline(file, j + 6)
+                                if float(row.split(' ')[i]) > concentration_threshold:
+                                    # if records[j][i] > concentration_threshold:
+                                    overcome_matrix[j][i] += 1 * (24 / (len(output_files) - 1))
+                            except IndexError:
+                                print('File ' + file + ' not found')
+                                sys.exit()
                 for j in range(0, ny):
                     for i in range(0, nx):
                         if overcome_matrix[j][i] >= exposure_time:

@@ -1332,8 +1332,10 @@ def probabilistic_output(model):
             for j in range(0, ny):
                 for i in range(0, nx):
                     c_list = []
-                    pool = ThreadingPool(len(output_files))
-                    pool.map(read_file, output_files[0:len(output_files)])
+                    for file in output_files:
+                        read_file(file)
+                    #pool = ThreadingPool(len(output_files))
+                    #pool.map(read_file, output_files[0:len(output_files)])
                     output_quantile[j, i] = np.quantile(c_list, q=quantile)
             try:
                 os.remove(ecdf_output_file)

@@ -1427,7 +1427,7 @@ def probabilistic_output(model):
             n_completed_processes = end
             if n_completed_processes == len(indexes):
                 break
-        n_pool += 1
+            n_pool += 1
         if len(tavg_intervals) > 0:
             n_pool_tavg = 0
             n_completed_processes = 0
@@ -1557,7 +1557,7 @@ def probabilistic_output(model):
             n_completed_processes = end
             if n_completed_processes == len(indexes):
                 break
-        n_pool += 1
+            n_pool += 1
 
     if calculate_ecdf:
         calculate_quantiles()

@@ -1445,7 +1445,7 @@ def probabilistic_output(model):
                 n_completed_processes = end
                 if n_completed_processes == len(indexes_tavg):
                     break
-            n_pool_tavg += 1
+                n_pool_tavg += 1
 
     def calculate_persistence():
         def persistence(index):

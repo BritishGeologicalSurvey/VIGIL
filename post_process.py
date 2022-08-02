@@ -9,11 +9,14 @@ import os
 from pathos.multiprocessing import ThreadingPool
 from io import StringIO
 import argparse
+from multiprocessing import Pool, cpu_count
 import datetime
+import linecache
+from time import sleep
 
 
 def read_arguments():
-    parser = argparse.ArgumentParser(description="Input data", 
+    parser = argparse.ArgumentParser(description="Input data",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "-P",
@@ -674,7 +677,7 @@ def domain(model):
     xf = x0 + (nx - 1) * dx
     n_time_steps = int(tot_time / dt)
     nz = len(output_levels)
-    return x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, output_levels, hour_start, minute_start
+    return x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, tot_time, output_levels, hour_start, minute_start
 
 
 def elaborate_tracking_points():
@@ -713,112 +716,6 @@ def elaborate_tracking_points():
             else:
                 continue
     return stations
-
-
-def extract_tracking_points(files_to_interpolate, j):
-    def interpolate(x, y, z, levels_interpolation, files):
-        from scipy import interpolate
-        x_array = np.linspace(x0, xf, nx, endpoint=True)
-        y_array = np.linspace(y0, yf, ny, endpoint=True)
-        Z1 = np.loadtxt(files[0], skiprows=5)
-        if len(levels_interpolation) == 2:
-            z_array = np.linspace(levels_interpolation[0], levels_interpolation[1], 2)
-            Z2 = np.loadtxt(files[1], skiprows=5)
-            Z = np.array([Z1, Z2])
-            my_interpolating_function = interpolate.RegularGridInterpolator((x_array, y_array, z_array), Z.T)
-            pt = np.array([x, y, z])
-        else:
-            Z = Z1
-            my_interpolating_function = interpolate.RegularGridInterpolator((x_array, y_array), Z.T)
-            pt = np.array([x, y])
-        return my_interpolating_function(pt)
-
-    files_time_steps = []
-    files_time_averaging_steps = []
-    for file in files_to_interpolate:
-        file_name = file.split(os.sep)[-1]
-        file_time_step = file_name.split('_')[2]
-        try:
-            file_time_step = int(file_time_step.split('.grd')[0])
-            if file_time_step not in files_time_steps:
-                files_time_steps.append(file_time_step)
-        except ValueError:
-            file_time_step_avg = file_time_step.split('.grd')[0]
-            if file_time_step_avg not in files_time_averaging_steps:
-                files_time_averaging_steps.append(file_time_step_avg)
-    files_time_steps = sorted(files_time_steps)
-    files_time_averaging_steps = sorted(files_time_averaging_steps)
-    levels_for_interpolation = []
-    for l in range(0, len(species)):
-        k = 0
-        for station in stations:
-            if min(output_levels) <= station['elevation'] <= max(output_levels):
-                for i in range(1, len(output_levels) + 1):
-                    levels_for_interpolation = []
-                    if output_levels[i - 1] == station['elevation']:
-                        levels_for_interpolation.append(output_levels[i - 1])
-                        break
-                    elif output_levels[i - 1] < station['elevation'] < output_levels[i]:
-                        levels_for_interpolation.append(output_levels[i - 1])
-                        levels_for_interpolation.append(output_levels[i])
-                        break
-                    else:
-                        continue
-            i = 0
-            for time_step in files_time_steps:
-                files_to_use = []
-                files_levels = []
-                file_directory = ''
-                for file in files_to_interpolate:
-                    file_name = file.split(os.sep)[-1]
-                    file_directory = file.split(file_name)[0]
-                    file_level = file_name.split('_')[1]
-                    file_level = float(file_level.split('mabg')[0])
-                    file_time_step = file_name.split('_')[2]
-                    try:
-                        file_time_step = int(file_time_step.split('.grd')[0])
-                    except ValueError:
-                        continue
-                    if file_level in levels_for_interpolation and file_time_step == time_step:
-                        files_to_use.append(file)
-                        files_levels.append(file_level)
-                files_levels = sorted(files_levels)
-                c_interpolated = interpolate(station['easting'], station['northing'], station['elevation'], files_levels,
-                                             files_to_use)
-                c[l][k][j][i] = c_interpolated[0]
-                tracking_point_file = os.path.join(file_directory, 'TP_' + str(station['station_id']) + '.txt')
-                tracking_points_files.append(tracking_point_file)
-                with open(tracking_point_file, 'a') as tracking_point_file:
-                    tracking_point_file.write(str(time_step) + '\t' + "{0:.2e}".format(c_interpolated[0]) + '\n')
-                i += 1
-            for time_step in files_time_averaging_steps:
-                files_to_use = []
-                files_levels = []
-                file_directory = ''
-                for file in files_to_interpolate:
-                    file_name = file.split(os.sep)[-1]
-                    file_directory = file.split(file_name)[0]
-                    file_level = file_name.split('_')[1]
-                    file_level = float(file_level.split('mabg')[0])
-                    file_time_step = file_name.split('_')[2]
-                    try:
-                        file_time_step = int(file_time_step.split('.grd')[0])
-                    except ValueError:
-                        file_time_step = file_time_step.split('.grd')[0]
-                        if file_level in levels_for_interpolation and file_time_step == time_step:
-                            files_to_use.append(file)
-                            files_levels.append(file_level)
-                files_levels = sorted(files_levels)
-                c_interpolated = interpolate(station['easting'], station['northing'], station['elevation'], files_levels,
-                                             files_to_use)
-                c[l][k][j][i] = c_interpolated[0]
-                tracking_point_file = os.path.join(file_directory, 'TP_' + str(station['station_id']) + '.txt')
-                tracking_points_files.append(tracking_point_file)
-                with open(tracking_point_file, 'a') as tracking_point_file:
-                    tracking_point_file.write(str(time_step) + '\t' + "{0:.2e}".format(c_interpolated[0]) + '\n')
-                i += 1
-            k += 1
-    return files_time_steps + files_time_averaging_steps
 
 
 def probabilistic_tracking_points():
@@ -1070,7 +967,224 @@ def time_average(files_to_average, outfile):
         np.savetxt(processed_file, Z_avg, fmt="%.2e")
 
 
-def elaborate_day(day_input, model):
+def calculate_persistence():
+    for persistence_output_file in persistence_matrices:
+        exp_time = persistence_output_file.split('_t_')[1]
+        exp_time = float(exp_time.split('H')[0])
+        c_thresh = persistence_output_file.split('_t_')[0]
+        c_thresh = float(c_thresh.split('C_')[1])
+        pers_level = persistence_output_file.split('persistence_')[1]
+        pers_level = pers_level.split('.grd')[0]
+        specie = persistence_output_file.split('/')[-3]
+        for day_ov in overcome_matrices_all_days:
+            persistence_parameters_all = overcome_matrices_all_days[day][0]
+            for i_par in range(len(persistence_parameters_all)):
+                persistence_parameters = persistence_parameters_all[i_par]
+                if specie == persistence_parameters[0] and c_thresh == persistence_parameters[1] and \
+                        exp_time == persistence_parameters[2] and pers_level == persistence_parameters[3]:
+                    overcome_time_data_all = overcome_matrices_all_days[day_ov][1]
+                    overcome_time_data = overcome_time_data_all[i_par]
+                    for j_p in range(ny):
+                        for i_p in range(nx):
+                            if overcome_time_data[j_p][i_p] >= exp_time:
+                                persistence_matrices[persistence_output_file][j_p][i_p] += weight_simulation
+
+
+def elaborate_day(day_input):
+    def prepare_persistence_calculation():
+        def prepare_files(index):
+            def calculate_overcome_time(output_files_to_elaborate):
+                for j_overcome in range(ny):
+                    for i_overcome in range(nx):
+                        for file_input in output_files_to_elaborate:
+                            try:
+                                row = linecache.getline(file_input, j_overcome + 6)
+                                if float(row.split(' ')[i_overcome]) > concentration_threshold:
+                                    overcome_matrix[j_overcome][i_overcome] += simulation_time / n_time_steps / 3600
+                                else:
+                                    overcome_matrix[j_overcome][i_overcome] += 0
+                            except IndexError:
+                                print('File ' + file_input + ' not found')
+                                overcome_matrix[j_overcome][i_overcome] += 0
+
+            specie_input = index[0]
+            concentration_threshold = index[1]
+            exposure_time = index[2]
+            file_level_s = index[3]
+            output_folder = os.path.join(model_processed_output_folder, day_input, specie_input)
+            day_output_files = os.listdir(output_folder)
+            output_files_day = []
+            overcome_matrix = np.zeros((ny, nx))
+            for output_file in day_output_files:
+                if output_file.split('_')[1] == file_level_s:
+                    output_files_day.append(os.path.join(output_folder, output_file))
+            calculate_overcome_time(output_files_day)
+            pers_output = os.path.join(persistence_folder, specie_input, 'C_' + str(concentration_threshold)
+                                                   + '_t_' + str(exposure_time) + 'H',
+                                                   'persistence_' + file_level_s + '.grd')
+            return pers_output, overcome_matrix
+
+        if model == "disgas":
+            persistence_folder = disgas_persistence
+            model_processed_output_folder = disgas_processed_output_folder
+        else:
+            persistence_folder = twodee_persistence
+            model_processed_output_folder = twodee_processed_output_folder
+        for specie in species:
+            for specie_dict in species_properties:
+                if specie_dict["specie_name"] == specie:
+                    specie_folder = os.path.join(persistence_folder, specie_dict["specie_name"])
+                    try:
+                        os.mkdir(specie_folder)
+                    except FileExistsError:
+                        pass
+                    concentration_thresholds = specie_dict["concentration_thresholds"]
+                    exposure_times = specie_dict["exposure_times"]
+                    for j in range(0, len(concentration_thresholds)):
+                        threshold_folder = os.path.join(specie_folder, 'C_' + str(concentration_thresholds[j]) + '_t_'
+                                                        + str(exposure_times[j]) + 'H')
+                        try:
+                            os.mkdir(threshold_folder)
+                        except FileExistsError:
+                            pass
+
+        indexes = []
+        for specie in species:
+            for specie_dict in species_properties:
+                if specie_dict["specie_name"] == specie:
+                    concentration_thresholds = specie_dict["concentration_thresholds"]
+                    exposure_times = specie_dict["exposure_times"]
+                    for i_threshold in range(0, len(concentration_thresholds)):
+                        if exposure_times[i_threshold] * 3600 > simulation_time:
+                            continue  # Skip exposure times longer than the simulation itself
+                        if levels[0] == "all":
+                            for j in range(0, nz):
+                                indexes.append([specie, concentration_thresholds[i_threshold],
+                                                exposure_times[i_threshold], processed_files_levels_elaborated[j]])
+                        else:
+                            all_levels = np.array(processed_files_levels_elaborated)
+                            levels_indexes = [int(x) - 1 for x in levels]
+                            for level in list(all_levels[levels_indexes]):
+                                indexes.append([specie, concentration_thresholds[i_threshold],
+                                                exposure_times[i_threshold], level])
+        for i_indexes in range(0, len(indexes)):
+            persistence_matrix_temp = np.zeros((ny, nx))
+            persistence_output, overcome_matrix = prepare_files(indexes[i_indexes])
+            persistence_matrices[persistence_output] = persistence_matrix_temp
+            overcome_matrices.append(overcome_matrix)
+        return indexes
+
+
+    def extract_tracking_points(files_to_interpolate, j):
+        def interpolate(x, y, z, levels_interpolation, files):
+            from scipy import interpolate
+            x_array = np.linspace(x0, xf, nx, endpoint=True)
+            y_array = np.linspace(y0, yf, ny, endpoint=True)
+            Z1 = np.loadtxt(files[0], skiprows=5)
+            if len(levels_interpolation) == 2:
+                z_array = np.linspace(levels_interpolation[0], levels_interpolation[1], 2)
+                Z2 = np.loadtxt(files[1], skiprows=5)
+                Z = np.array([Z1, Z2])
+                my_interpolating_function = interpolate.RegularGridInterpolator((x_array, y_array, z_array), Z.T)
+                pt = np.array([x, y, z])
+            else:
+                Z = Z1
+                my_interpolating_function = interpolate.RegularGridInterpolator((x_array, y_array), Z.T)
+                pt = np.array([x, y])
+            return my_interpolating_function(pt)
+
+        global tracking_points_files
+        files_time_steps = []
+        files_time_averaging_steps = []
+        for file in files_to_interpolate:
+            file_name = file.split(os.sep)[-1]
+            file_time_step = file_name.split('_')[2]
+            try:
+                file_time_step = int(file_time_step.split('.grd')[0])
+                if file_time_step not in files_time_steps:
+                    files_time_steps.append(file_time_step)
+            except ValueError:
+                file_time_step_avg = file_time_step.split('.grd')[0]
+                if file_time_step_avg not in files_time_averaging_steps:
+                    files_time_averaging_steps.append(file_time_step_avg)
+        files_time_steps = sorted(files_time_steps)
+        files_time_averaging_steps = sorted(files_time_averaging_steps)
+        levels_for_interpolation = []
+        for l_specie in range(0, len(species)):
+            k = 0
+            for station in stations:
+                if min(output_levels) <= station['elevation'] <= max(output_levels):
+                    for i in range(1, len(output_levels) + 1):
+                        levels_for_interpolation = []
+                        if output_levels[i - 1] == station['elevation']:
+                            levels_for_interpolation.append(output_levels[i - 1])
+                            break
+                        elif output_levels[i - 1] < station['elevation'] < output_levels[i]:
+                            levels_for_interpolation.append(output_levels[i - 1])
+                            levels_for_interpolation.append(output_levels[i])
+                            break
+                        else:
+                            continue
+                i = 0
+                c_interpolated_time_steps = []
+                for time_step in files_time_steps:
+                    files_to_use = []
+                    files_levels = []
+                    file_directory = ''
+                    for file in files_to_interpolate:
+                        file_name = file.split(os.sep)[-1]
+                        file_directory = file.split(file_name)[0]
+                        file_level = file_name.split('_')[1]
+                        file_level = float(file_level.split('mabg')[0])
+                        file_time_step = file_name.split('_')[2]
+                        try:
+                            file_time_step = int(file_time_step.split('.grd')[0])
+                        except ValueError:
+                            continue
+                        if file_level in levels_for_interpolation and file_time_step == time_step:
+                            files_to_use.append(file)
+                            files_levels.append(file_level)
+                    files_levels = sorted(files_levels)
+                    c_interpolated = interpolate(station['easting'], station['northing'], station['elevation'],
+                                                 files_levels,
+                                                 files_to_use)
+                    c_interpolated_time_steps.append(c_interpolated[0])
+                    tracking_point_file = os.path.join(file_directory, 'TP_' + str(station['station_id']) + '.txt')
+                    tracking_points_files.append(tracking_point_file)
+                    with open(tracking_point_file, 'a') as tracking_point_file:
+                        tracking_point_file.write(str(time_step) + '\t' + "{0:.2e}".format(c_interpolated[0]) + '\n')
+                    i += 1
+                for time_step in files_time_averaging_steps:
+                    files_to_use = []
+                    files_levels = []
+                    file_directory = ''
+                    for file in files_to_interpolate:
+                        file_name = file.split(os.sep)[-1]
+                        file_directory = file.split(file_name)[0]
+                        file_level = file_name.split('_')[1]
+                        file_level = float(file_level.split('mabg')[0])
+                        file_time_step = file_name.split('_')[2]
+                        try:
+                            file_time_step = int(file_time_step.split('.grd')[0])
+                        except ValueError:
+                            file_time_step = file_time_step.split('.grd')[0]
+                            if file_level in levels_for_interpolation and file_time_step == time_step:
+                                files_to_use.append(file)
+                                files_levels.append(file_level)
+                    files_levels = sorted(files_levels)
+                    c_interpolated = interpolate(station['easting'], station['northing'], station['elevation'],
+                                                 files_levels,
+                                                 files_to_use)
+                    c_interpolated_time_steps.append(c_interpolated[0])
+                    tracking_point_file = os.path.join(file_directory, 'TP_' + str(station['station_id']) + '.txt')
+                    tracking_points_files.append(tracking_point_file)
+                    with open(tracking_point_file, 'a') as tracking_point_file:
+                        tracking_point_file.write(str(time_step) + '\t' + "{0:.2e}".format(c_interpolated[0]) + '\n')
+                    i += 1
+                c_tp[species[l_specie]][k] = {'station_id': k, 'c_tp_time_steps': c_interpolated_time_steps}
+                k += 1
+        return files_time_steps + files_time_averaging_steps, c_tp
+
     if model == "disgas":
         model_output_folder = os.path.join(
             disgas_original_output_folder, day_input, "outfiles"
@@ -1127,7 +1241,11 @@ def elaborate_day(day_input, model):
     processed_files = []
     species_list = []
     processed_files_species = []
-    time_steps = []
+    time_steps_elaborated = []
+    overcome_matrices = []
+    all_time_steps_tp = []
+    indexes_persistence = []
+    processed_files_levels_elaborated = []
     time_start = datetime.datetime.strptime(day_input + str(hour_start).zfill(2) + str(minute_start).zfill(2),
                                             '%Y%m%d%H%M')
     for specie in species:
@@ -1147,14 +1265,12 @@ def elaborate_day(day_input, model):
                 file_time_step = file_name_splitted[2]
                 file_time_step = int(file_time_step.split(".")[0])
                 file_time_step = time_steps_disgas.index(file_time_step) * dt
-            if file_level_s not in processed_files_levels:
-                processed_files_levels.append(file_level_s)
+            if file_level_s not in processed_files_levels_elaborated:
+                processed_files_levels_elaborated.append(file_level_s)
             time_validity = time_start + datetime.timedelta(seconds=file_time_step)
             file_validity = datetime.datetime.strftime(time_validity, '%Y%m%d%H%M')
-            if time_validity not in time_steps:
-                time_steps.append(time_validity)
-            if file_validity not in processed_files_steps:
-                processed_files_steps.append(file_validity)
+            if time_validity not in time_steps_elaborated:
+                time_steps_elaborated.append(time_validity)
             file = "c_" + file_level_s + "_" + file_validity + ".grd"
             converted_file = file
             converted_files.append(converted_file)
@@ -1176,6 +1292,10 @@ def elaborate_day(day_input, model):
                 os.remove(file_to_check)
             except FileNotFoundError:
                 pass
+    processed_files_levels_elaborated = sorted([float(processed_files_levels_elaborated[i_lev].split('mabg')[0]) for
+                                                i_lev in range(len(processed_files_levels_elaborated))])
+    processed_files_levels_elaborated = ["{0:.3f}".format(processed_files_levels_elaborated[i_lev]) + 'mabg' for
+                                         i_lev in range(len(processed_files_levels_elaborated))]
     n_elaborated_files = 0
     while n_elaborated_files < len(files_list_path):
         start = n_elaborated_files
@@ -1199,20 +1319,20 @@ def elaborate_day(day_input, model):
             break
     if time_av is not None:
         averaged_files = []
-        time_min = min(time_steps)
+        time_min = min(time_steps_elaborated)
         if time_av == 0:
-            time_max = max(time_steps)
+            time_max = max(time_steps_elaborated)
         else:
             time_max = time_min + datetime.timedelta(seconds=time_av * 3600)
-            if time_max > max(time_steps):
-                time_max = max(time_steps)
-        while time_max <= max(time_steps):
+            if time_max > max(time_steps_elaborated):
+                time_max = max(time_steps_elaborated)
+        while time_max <= max(time_steps_elaborated):
             time_max_s = datetime.datetime.strftime(time_max, '%H%M')
             if datetime.datetime.strftime(time_min, '%H%M') + "-" + time_max_s + "-tavg" not in tavg_intervals:
                 tavg_intervals.append(datetime.datetime.strftime(time_min, '%H%M') + "-" + time_max_s + "-tavg")
             for i in range(0, len(species)):
                 files_to_average = []
-                for level in processed_files_levels:
+                for level in processed_files_levels_elaborated:
                     files_in_level = []
                     for file in processed_files_species[i]:
                         file_level = os.path.split(file)[1]
@@ -1250,13 +1370,18 @@ def elaborate_day(day_input, model):
                 break
             else:
                 time_min = time_max
-                if time_min == max(time_steps):
+                if time_min == max(time_steps_elaborated):
                     break
                 time_max = time_min + datetime.timedelta(seconds=time_av * 3600)
-                if time_max > max(time_steps):
-                    time_max = max(time_steps)
+                if time_max > max(time_steps_elaborated):
+                    time_max = max(time_steps_elaborated)
                 continue
-    return processed_files
+    if persistence:
+        indexes_persistence = prepare_persistence_calculation()
+    if tracking_points:
+        all_time_steps_tp, c_tp_time_steps = extract_tracking_points(processed_files, days.index(day_input))
+    return day_input, all_time_steps_tp, processed_files_levels_elaborated, tavg_intervals, persistence_matrices, \
+           indexes_persistence, overcome_matrices, c_tp
 
 
 def sort_levels(input_array):
@@ -1270,299 +1395,149 @@ def sort_levels(input_array):
     return output_array
 
 
-def probabilistic_output(model):
-    import linecache
+def read_output_files_for_ecdf(ji):
+    def read_file(file_input):
+        try:
+            row = linecache.getline(file_input, j_ecdf + 6)
+            c_read = (float(row.split(' ')[i_ecdf]))
+            return c_read
+        except IndexError:
+            print('File ' + file_input + ' not found')
+            return 0.0, ''
 
-    def calculate_quantiles():
-        def ecdf(index):
-            def read_file(file_input):
-                try:
-                    row = linecache.getline(file_input, j + 6)
-                    c_list.append(float(row.split(' ')[i]))
-                except IndexError:
-                    print('File ' + file_input + ' not found')
+    j_ecdf = ji[0]
+    i_ecdf = ji[1]
+    pool_file_read = ThreadingPool(len(files_to_process))
+    c_list_ecdf = pool_file_read.map(read_file, files_to_process)
+    output_quantile_ecdf = np.quantile(c_list_ecdf, q=1 - probability)
+    return j_ecdf, i_ecdf, output_quantile_ecdf
 
-            specie = index[1]
-            file_level_s = index[2]
-            time_step = index[3]
-            ex_prob = index[0]
-            quantile = 1 - ex_prob
-            output_files = []
-            for day in days:
-                try:
-                    file_time_step = int(time_step)
-                    file_time_step = file_time_step * dt
-                    time_start = datetime.datetime.strptime(
-                        day + str(hour_start).zfill(2) + str(minute_start).zfill(2),
-                        '%Y%m%d%H%M')
-                    time_validity = time_start + datetime.timedelta(seconds=file_time_step)
-                    file_validity = datetime.datetime.strftime(time_validity, '%Y%m%d%H%M')
-                    time_step_s = "{:06d}".format(int(time_step))
-                except ValueError:
-                    tavg_interval_start_s = day + time_step.split('-')[0]
-                    tavg_interval_end_s = day + time_step.split('-')[1]
-                    tavg_interval_start = datetime.datetime.strptime(tavg_interval_start_s, '%Y%m%d%H%M')
-                    try:
-                        datetime.datetime.strptime(tavg_interval_end_s, '%Y%m%d%H%M')
-                    except ValueError:
-                        tavg_interval_end = tavg_interval_start + \
-                                            datetime.timedelta(hours=(int(time_step.split('-')[1]) -
-                                                               int(time_step.split('-')[0])))
-                        tavg_interval_end_s = datetime.datetime.strftime(tavg_interval_end, '%Y%m%d%H%M')
-                    day_interval = datetime.datetime.strftime(tavg_interval_start, '%Y%m%d')
-                    if day != day_interval:
-                        continue
-                    file_validity = tavg_interval_start_s + '-' + tavg_interval_end_s + '-tavg'
-                    time_step_s = time_step
-                file_name = "c_" + file_level_s + "_" + file_validity + ".grd"
-                output_folder = os.path.join(model_processed_output_folder, day, specie)
-                output_files.append(os.path.join(output_folder, file_name))
-            ecdf_output_file = os.path.join(
-                ecdf_folder,
-                str(ex_prob),
-                specie,
-                "c_"
-                + file_level_s
-                + "_"
-                + time_step_s
-                + ".grd",
+
+def write_probabilistic_file(file_input, output_to_write):
+    # Create header of the processed file
+    with open(file_input, "a") as processed_file:
+        if output_format == "grd":
+            processed_file.write("DSAA\n")
+            processed_file.write(str(nx) + "  " + str(ny) + "\n")
+            processed_file.write(str(x0) + "  " + str(xf) + "\n")
+            processed_file.write(str(y0) + "  " + str(yf) + "\n")
+            processed_file.write(
+                str(np.amin(output_to_write))
+                + "  "
+                + str(np.amax(output_to_write))
+                + "\n"
             )
-            output_quantile = np.zeros((ny, nx))
-            # FABIO: new version to save memory
-            for j in range(0, ny):
-                for i in range(0, nx):
-                    c_list = []
-                    for file in output_files:
-                        read_file(file)
-                    #pool = ThreadingPool(len(output_files))
-                    #pool.map(read_file, output_files[0:len(output_files)])
-                    output_quantile[j, i] = np.quantile(c_list, q=quantile)
-            try:
-                os.remove(ecdf_output_file)
-            except FileNotFoundError:
-                pass
-            # Create header of the processed file
-            with open(ecdf_output_file, "a") as processed_file:
-                if output_format == "grd":
-                    processed_file.write("DSAA\n")
-                    processed_file.write(str(nx) + "  " + str(ny) + "\n")
-                    processed_file.write(str(x0) + "  " + str(xf) + "\n")
-                    processed_file.write(str(y0) + "  " + str(yf) + "\n")
-                    processed_file.write(
-                        str(np.amin(output_quantile))
-                        + "  "
-                        + str(np.amax(output_quantile))
-                        + "\n"
-                    )
-                np.savetxt(processed_file, output_quantile, fmt="%.2e")
+        np.savetxt(processed_file, output_to_write, fmt="%.2e")
 
-        if model == "disgas":
-            ecdf_folder = disgas_ecdf
-            model_processed_output_folder = disgas_processed_output_folder
-        else:
-            ecdf_folder = twodee_ecdf
-            model_processed_output_folder = twodee_processed_output_folder
-        for probability in exceedance_probabilities:
-            prob_folder = os.path.join(ecdf_folder, str(probability))
+
+def prepare_quantile_calculation(exc_prob):
+    def prepare_files(index):
+        specie = index[1]
+        file_level_s = index[2]
+        time_step = index[3]
+        ex_prob = index[0]
+        output_files = []
+        for day in days:
             try:
-                os.mkdir(prob_folder)
+                file_time_step = int(time_step)
+                file_time_step = file_time_step * dt
+                time_start = datetime.datetime.strptime(
+                    day + str(hour_start).zfill(2) + str(minute_start).zfill(2),
+                    '%Y%m%d%H%M')
+                time_validity = time_start + datetime.timedelta(seconds=file_time_step)
+                file_validity = datetime.datetime.strftime(time_validity, '%Y%m%d%H%M')
+                time_step_s = "{:06d}".format(int(time_step))
+            except ValueError:
+                tavg_interval_start_s = day + time_step.split('-')[0]
+                tavg_interval_end_s = day + time_step.split('-')[1]
+                tavg_interval_start = datetime.datetime.strptime(tavg_interval_start_s, '%Y%m%d%H%M')
+                try:
+                    datetime.datetime.strptime(tavg_interval_end_s, '%Y%m%d%H%M')
+                except ValueError:
+                    tavg_interval_end = tavg_interval_start + \
+                                        datetime.timedelta(hours=(int(time_step.split('-')[1]) -
+                                                                  int(time_step.split('-')[0])))
+                    tavg_interval_end_s = datetime.datetime.strftime(tavg_interval_end, '%Y%m%d%H%M')
+                day_interval = datetime.datetime.strftime(tavg_interval_start, '%Y%m%d')
+                if day != day_interval:
+                    continue
+                file_validity = tavg_interval_start_s + '-' + tavg_interval_end_s + '-tavg'
+                time_step_s = time_step
+            file_name = "c_" + file_level_s + "_" + file_validity + ".grd"
+            output_folder = os.path.join(model_processed_output_folder, day, specie)
+            output_files.append(os.path.join(output_folder, file_name))
+        ecdf_output_file = os.path.join(
+            ecdf_folder,
+            str(ex_prob),
+            specie,
+            "c_"
+            + file_level_s
+            + "_"
+            + time_step_s
+            + ".grd",
+        )
+        return output_files, ecdf_output_file
+
+    all_output_files = []
+    all_ecdf_output_files = []
+    if model == "disgas":
+        ecdf_folder = disgas_ecdf
+        model_processed_output_folder = disgas_processed_output_folder
+    else:
+        ecdf_folder = twodee_ecdf
+        model_processed_output_folder = twodee_processed_output_folder
+    for probability in exceedance_probabilities:
+        prob_folder = os.path.join(ecdf_folder, str(probability))
+        try:
+            os.mkdir(prob_folder)
+        except FileExistsError:
+            print("Folder " + prob_folder + " already exists")
+        for specie in species:
+            specie_folder = os.path.join(ecdf_folder, prob_folder, specie)
+            try:
+                os.mkdir(specie_folder)
             except FileExistsError:
-                print("Folder " + prob_folder + " already exists")
-            for specie in species:
-                specie_folder = os.path.join(ecdf_folder, prob_folder, specie)
-                try:
-                    os.mkdir(specie_folder)
-                except FileExistsError:
-                    print("Folder " + specie_folder + " already exists")
-        indexes = []
-        pools_ecdfs = []
-        indexes_tavg = []
-        pools_ecdfs_tavg = []
-        n_pool = 0
-        n_pool_tavg = 0
-        for probability in exceedance_probabilities:
-            for specie in species:
-                pools_ecdfs.append(n_pool)
-                if len(tavg_intervals) > 0:
-                    pools_ecdfs_tavg.append(n_pool_tavg)
-                    n_pool_tavg += 1
-                if levels[0] == "all":
-                    for i in range(0, nz):
-                        if time_steps[0] == "all":
-                            for j in range(0, n_time_steps + 1):
-                                indexes.append([probability, specie, processed_files_levels[i], j])
-                        else:
-                            for time_step in time_steps:
-                                indexes.append([probability, specie, processed_files_levels[i], time_step])
-                        if len(tavg_intervals) > 0:
-                            for k in range(0, len(tavg_intervals)):
-                                indexes_tavg.append(
-                                    [probability, specie, processed_files_levels[i], tavg_intervals[k]]
-                                )
+                print("Folder " + specie_folder + " already exists")
+    indexes = []
+    indexes_tavg = []
+    for specie in species:
+        if levels[0] == "all":
+            for i in range(0, nz):
+                if time_steps[0] == "all":
+                    for j in range(0, n_time_steps + 1):
+                        indexes.append([exc_prob, specie, processed_files_levels[i], j])
                 else:
-                    all_levels = np.array(processed_files_levels)
-                    levels_indexes = [int(x) - 1 for x in levels]
-                    for level in list(all_levels[levels_indexes]):
-                        if time_steps[0] == "all":
-                            for j in range(0, n_time_steps + 1):
-                                indexes.append([probability, specie, level, j])
-                        else:
-                            for time_step in time_steps:
-                                indexes.append([probability, specie, level, time_step])
-                        if len(tavg_intervals) > 0:
-                            for k in range(0, len(tavg_intervals)):
-                                indexes_tavg.append(
-                                    [probability, specie, level, tavg_intervals[k]]
-                                )
-                n_pool += 1
-        n_pool = 0
-        n_completed_processes = 0
-        while n_completed_processes <= len(indexes):
-            start = n_completed_processes
-            end = n_completed_processes + max_number_processes
-            if end > len(indexes):
-                end = len(indexes)
-            pools_ecdfs[n_pool] = ThreadingPool(max_number_processes)
-            pools_ecdfs[n_pool].map(ecdf, indexes[start:end])
-            n_completed_processes = end
-            if n_completed_processes == len(indexes):
-                break
-            n_pool += 1
-        if len(tavg_intervals) > 0:
-            n_pool_tavg = 0
-            n_completed_processes = 0
-            while n_completed_processes <= len(indexes_tavg):
-                start = n_completed_processes
-                end = n_completed_processes + max_number_processes
-                if end > len(indexes_tavg):
-                    end = len(indexes_tavg)
-                try:
-                    pools_ecdfs_tavg[n_pool_tavg] = ThreadingPool(max_number_processes)
-                    pools_ecdfs_tavg[n_pool_tavg].map(ecdf, indexes_tavg[start:end])
-                except BaseException:
-                    print("Unable to elaborate days")
-                    sys.exit()
-                n_completed_processes = end
-                if n_completed_processes == len(indexes_tavg):
-                    break
-                n_pool_tavg += 1
-
-    def calculate_persistence():
-        def persistence(index):
-            persistence_matrix = np.zeros((ny, nx))
-            specie_input = index[0]
-            concentration_threshold = index[1]
-            exposure_time = index[2]
-            file_level_s = index[3]
-            for day in days:
-                overcome_matrix = np.zeros((ny, nx))
-                output_folder = os.path.join(model_processed_output_folder, day, specie_input)
-                all_output_files = os.listdir(output_folder)
-                output_files = []
-                for file in all_output_files:
-                    if file.split('_')[1] == file_level_s:
-                        output_files.append(os.path.join(output_folder, file))
-                for file in output_files:
-                    for j in range(0, ny):
-                        for i in range(0, nx):
-                            try:
-                                row = linecache.getline(file, j + 6)
-                                if float(row.split(' ')[i]) > concentration_threshold:
-                                    # if records[j][i] > concentration_threshold:
-                                    overcome_matrix[j][i] += 1 * (24 / (len(output_files) - 1))
-                            except IndexError:
-                                print('File ' + file + ' not found')
-                                sys.exit()
-                for j in range(0, ny):
-                    for i in range(0, nx):
-                        if overcome_matrix[j][i] >= exposure_time:
-                            persistence_matrix[j][i] += weight
-            persistence_output_file = os.path.join(persistence_folder, specie_input, 'C_' + str(concentration_threshold)
-                                                   + '_t_' + str(exposure_time) + 'H',
-                                                   'persistence_' + file_level_s + '.grd')
-            try:
-                os.remove(persistence_output_file)
-            except FileNotFoundError:
-                pass
-            # Create header of the processed file
-            with open(persistence_output_file, "a") as processed_file:
-                if output_format == "grd":
-                    processed_file.write("DSAA\n")
-                    processed_file.write(str(nx) + "  " + str(ny) + "\n")
-                    processed_file.write(str(x0) + "  " + str(xf) + "\n")
-                    processed_file.write(str(y0) + "  " + str(yf) + "\n")
-                    processed_file.write(
-                        str(np.amin(persistence_matrix))
-                        + "  "
-                        + str(np.amax(persistence_matrix))
-                        + "\n"
-                    )
-                np.savetxt(processed_file, persistence_matrix, fmt="%.2e")
-
-
-        if model == "disgas":
-            persistence_folder = disgas_persistence
-            model_processed_output_folder = disgas_processed_output_folder
+                    for time_step in time_steps:
+                        indexes.append([exc_prob, specie, processed_files_levels[i], time_step])
+                if len(tavg_intervals) > 0:
+                    for k in range(0, len(tavg_intervals)):
+                        indexes_tavg.append(
+                            [exc_prob, specie, processed_files_levels[i], tavg_intervals[k]]
+                        )
         else:
-            persistence_folder = twodee_persistence
-            model_processed_output_folder = twodee_processed_output_folder
-        for specie in species:
-            for specie_dict in species_properties:
-                if specie_dict["specie_name"] == specie:
-                    specie_folder = os.path.join(persistence_folder, specie_dict["specie_name"])
-                    try:
-                        os.mkdir(specie_folder)
-                    except FileExistsError:
-                        print("Folder " + specie_folder + " already exists")
-                    concentration_thresholds = specie_dict["concentration_thresholds"]
-                    exposure_times = specie_dict["exposure_times"]
-                    for j in range(0, len(concentration_thresholds)):
-                        threshold_folder = os.path.join(specie_folder, 'C_' + str(concentration_thresholds[j]) + '_t_'
-                                                        + str(exposure_times[j]) + 'H')
-                        try:
-                            os.mkdir(threshold_folder)
-                        except FileExistsError:
-                            print("Folder " + threshold_folder + " already exists")
+            all_levels = np.array(processed_files_levels)
+            levels_indexes = [int(x) - 1 for x in levels]
+            for level in list(all_levels[levels_indexes]):
+                if time_steps[0] == "all":
+                    for j in range(0, n_time_steps + 1):
+                        indexes.append([exc_prob, specie, level, j])
+                else:
+                    for time_step in time_steps:
+                        indexes.append([exc_prob, specie, level, time_step])
+                if len(tavg_intervals) > 0:
+                    for k in range(0, len(tavg_intervals)):
+                        indexes_tavg.append([exc_prob, specie, level, tavg_intervals[k]])
+    for i_indexes in range(0, len(indexes)):
+        a, b = prepare_files(indexes[i_indexes])
+        all_output_files.append(a)
+        all_ecdf_output_files.append(b)
+    if len(tavg_intervals) > 0:
+        for i_indexes in range(0, len(indexes_tavg)):
+            a, b = prepare_files(indexes_tavg[i_indexes])
+            all_output_files.append(a)
+            all_ecdf_output_files.append(b)
 
-        weight = 1 / len(days)
-        indexes = []
-        pools_persistence = []
-        n_pool = 0
-        for specie in species:
-            for specie_dict in species_properties:
-                if specie_dict["specie_name"] == specie:
-                    concentration_thresholds = specie_dict["concentration_thresholds"]
-                    exposure_times = specie_dict["exposure_times"]
-                    for i in range(0, len(concentration_thresholds)):
-                        pools_persistence.append(n_pool)
-                        if levels[0] == "all":
-                            for j in range(0, nz):
-                                indexes.append([specie, concentration_thresholds[i], exposure_times[i],
-                                               processed_files_levels[j]])
-                        else:
-                            all_levels = np.array(processed_files_levels)
-                            levels_indexes = [int(x) - 1 for x in levels]
-                            for level in list(all_levels[levels_indexes]):
-                                indexes.append([specie, concentration_thresholds[i], exposure_times[i], level])
-                        n_pool += 1
-        n_pool = 0
-        n_completed_processes = 0
-        while n_completed_processes <= len(indexes):
-            start = n_completed_processes
-            end = n_completed_processes + max_number_processes
-            if end > len(indexes):
-                end = len(indexes)
-            pools_persistence[n_pool] = ThreadingPool(max_number_processes)
-            pools_persistence[n_pool].map(persistence, indexes[start:end])
-            n_completed_processes = end
-            if n_completed_processes == len(indexes):
-                break
-            n_pool += 1
-
-    if calculate_ecdf:
-        calculate_quantiles()
-    if persistence:
-        calculate_persistence()
+    return all_output_files, all_ecdf_output_files
 
 
 def save_plots(model, min_con, max_con):
@@ -2098,36 +2073,100 @@ root = os.getcwd()
     graphical_outputs_persistence
 ) = folder_structure()
 
-days, days_to_plot = extract_days()
-
-species_properties = gas_properties()
-
-tavg_intervals = []
-processed_files_levels = []
-processed_files_steps = []
-tracking_points_files = []
-if tracking_points or calculate_ecdf:
-    days_to_elaborate = days
-else:
-    days_to_elaborate = days_to_plot
-for model in models_to_elaborate:
-    x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, output_levels, hour_start, minute_start = domain(model)
-    if tracking_points:
-        stations = elaborate_tracking_points()
-        # Initialize array of concentration to be used for ECDFs in the tracking points
-        c = [[[[0 for i in range(0, n_time_steps + 10)] for j in range(0, len(days))]
-             for k in range(0, len(stations))] for l in range(0, len(species))]
-    j = 0
-    for day in days_to_elaborate:
-        processed_files = elaborate_day(day, model)
+if __name__ == '__main__':
+    days, days_to_plot = extract_days()
+    species_properties = gas_properties()
+    if max_number_processes > cpu_count():
+        print('WARNING. Number of requested simulataneous processes larger than the available ' + str(cpu_count())
+              + ' cores')
+    tavg_intervals = []
+    tracking_points_files = []
+    persistence_matrices = {}
+    overcome_processed_output = []
+    overcome_matrices_all_days = {}
+    c_tp = {}
+    for specie in species:
+        c_tp[specie] = {}
+    for day in days:
+        overcome_matrices_all_days[day] = ''
+    if tracking_points or calculate_ecdf or persistence:
+        days_to_elaborate = days
+    else:
+        days_to_elaborate = days_to_plot
+    for model in models_to_elaborate:
+        x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, simulation_time, output_levels, hour_start, minute_start = \
+            domain(model)
         if tracking_points:
-            all_time_steps = extract_tracking_points(processed_files, j)
-            j += 1
-    if tracking_points:
-        probabilistic_tracking_points()
-    processed_files_levels = sort_levels(processed_files_levels)
-    processed_files_steps = sorted(processed_files_steps)
-    if calculate_ecdf or persistence:
-        probabilistic_output(model)
-    if plot:
-        save_plots(model, min_con, max_con)
+            stations = elaborate_tracking_points()
+            # Initialize array of concentration to be used for ECDFs in the tracking points
+            c = [[[[0 for i in range(0, n_time_steps + 10)] for j in range(0, len(days))]
+                 for k in range(0, len(stations))] for l in range(0, len(species))]
+        n_completed_processes = 0
+        while n_completed_processes <= len(days):
+            start = n_completed_processes
+            end = n_completed_processes + max_number_processes
+            if end > len(days):
+                end = len(days)
+            pool = Pool(max_number_processes)
+            returned_values = pool.map(elaborate_day, days[start:end])
+            pool.close()
+            pool.join()
+            n_completed_processes = end
+            if n_completed_processes == len(days):
+                break
+        for returned_value in returned_values:
+            all_time_steps = returned_value[1]
+            processed_files_levels = returned_value[2]
+            tavg_intervals = returned_value[3]
+            persistence_matrices = returned_value[4]
+            day_overcome_calculation = returned_value[0]
+            persistence_calculation_parameters = returned_value[5]
+            overcome_outputs = returned_value[6]
+            c_tp = returned_value[7]
+            if tracking_points:
+                j_tp = days.index(day_overcome_calculation)
+                for l_tp in range(len(c_tp)):
+                    for k_tp in range(len(c_tp[species[l_tp]])):
+                        for i_tp in range(len(c_tp[species[l_tp]][k_tp]['c_tp_time_steps'])):
+                            c[l_tp][k_tp][j_tp][i_tp] = c_tp[species[l_tp]][k_tp]['c_tp_time_steps'][i_tp]
+            if persistence:
+                weight_simulation = 1 / len(days)
+                overcome_matrices_all_days[day_overcome_calculation] = [persistence_calculation_parameters,
+                                                                        overcome_outputs]
+        if persistence:
+            calculate_persistence()
+            for persistence_output_file in persistence_matrices:
+                write_probabilistic_file(persistence_output_file, persistence_matrices[persistence_output_file])
+        if tracking_points:
+            probabilistic_tracking_points()
+        if calculate_ecdf:
+            jis = [(j, i) for j in range(ny) for i in range(nx)]
+            for probability in exceedance_probabilities:
+                all_output_files, all_ecdf_output_files = prepare_quantile_calculation(probability)
+                for ii in range(0, len(all_ecdf_output_files)):
+                    output_quantile = np.zeros((ny, nx))
+                    files_to_process = all_output_files[ii]
+                    n_completed_processes = 0
+                    while n_completed_processes <= len(jis):
+                        start = n_completed_processes
+                        end = n_completed_processes + max_number_processes
+                        if end > len(jis):
+                            end = len(jis)
+                        pool_ecdf = Pool(end - start)
+                        output_quantile_return = pool_ecdf.map(read_output_files_for_ecdf, jis[start:end])
+                        pool_ecdf.close()
+                        pool_ecdf.join()
+                        for i_output in range(len(output_quantile_return)):
+                            jj_ecdf = output_quantile_return[i_output][0]
+                            ii_ecdf = output_quantile_return[i_output][1]
+                            output_quantile[jj_ecdf, ii_ecdf] = output_quantile_return[i_output][2]
+                        n_completed_processes = end
+                        if n_completed_processes == len(jis):
+                            break
+                    try:
+                        os.remove(all_ecdf_output_files[ii])
+                    except FileNotFoundError:
+                        pass
+                    write_probabilistic_file(all_ecdf_output_files[ii], output_quantile)
+        if plot:
+            save_plots(model, min_con, max_con)

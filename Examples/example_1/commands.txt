@@ -1,6 +1,6 @@
 HOW TO RUN EXAMPLE_1:  Campi Flegrei Solfatara (Italy)
 
-python ../../weather.py -S 12/07/2022 -E 12/07/2022 -V 211010 -NS 1 -M forecast -N 1 -DG on
+python ../../weather.py -S 12/08/2022 -E 12/08/2022 -V 211010 -NS 1 -M forecast -N 1 -DG on
 
 python ../../run_models.py -RS off -D UTM,4517000,426000,4522000,431000 -NX 100 -NY 100 -N 1 -DG on
 

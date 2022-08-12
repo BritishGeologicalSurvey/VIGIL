@@ -1,3 +1,9 @@
+22/07/2022 Fabio Dioguardi <fabio.dioguardi@uniba.it>
+Improved the parallelization and the usage of memory of post_process.py
+
+20/07/2022 Fabio Dioguardi <fabio.dioguardi@uniba.it>
+Implemented the production of persistence outputs
+
 28/04/2022 Fabio Dioguardi <fabiod@bgs.ac.uk>
 Improved the way VIGIL uses HPC cluster resources via Slurm
 

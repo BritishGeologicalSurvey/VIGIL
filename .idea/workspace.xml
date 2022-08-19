@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Started updating the examples and manual">
-      <change beforePath="$PROJECT_DIR$/.idea/.name" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.name" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Updated figures of example 2a and 2b" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -419,7 +416,14 @@
       <option name="project" value="LOCAL" />
       <updated>1660320062917</updated>
     </task>
-    <option name="localTasksCounter" value="37" />
+    <task id="LOCAL-00037" summary="Updated figures of example 2a and 2b">
+      <created>1660843445618</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1660843445618</updated>
+    </task>
+    <option name="localTasksCounter" value="38" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -434,7 +438,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Updated post-processing folders to include persistence calculation outputs" />
     <MESSAGE value="Updated commands.txt in the examples and the manual to make it consistent with the new domain discretization option in input" />
     <MESSAGE value="Fixed a bug in the way the slurm nodes were handled when slurm is not used" />
     <MESSAGE value="Removed obsolete arguments from the examples" />
@@ -459,6 +462,7 @@
     <MESSAGE value="Fixed two bugs in the parallel pools of the probabilistic output" />
     <MESSAGE value="Revised and improved the parallelization of post_process.py" />
     <MESSAGE value="Started updating the examples and manual" />
-    <option name="LAST_COMMIT_MESSAGE" value="Started updating the examples and manual" />
+    <MESSAGE value="Updated figures of example 2a and 2b" />
+    <option name="LAST_COMMIT_MESSAGE" value="Updated figures of example 2a and 2b" />
   </component>
 </project>

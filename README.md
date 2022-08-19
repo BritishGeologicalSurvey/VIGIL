@@ -257,6 +257,7 @@ VIGIL is distributed under the GPL v3.0 licence. Copyright: © BGS / UKRI 2021
 
 Costa, A., Macedonio, G., Chiodini, G., 2005. Numerical model of gas dispersion emitted from volcanic sources. Annals of Geophysics, vol. 48, n.4/5.
 Costa, A. and Macedonio, G., 2016. DISGAS-2.0: a model for passive DISpersion of GAS. Rapporti tecnici INGV. Istituto Nazionale Di Geofisica e Vulcanologia, Italy, 332, 2039e7941.
+Dioguardi, F., Massaro, S., Chiodini, G., Costa, A., Folch, A., Macedonio, G., Sandri, L., Selva, J., Tamburello, G., 2022. VIGIL: A Python tool for automatized probabilistic VolcanIc Gas dIspersion modeLling. Annals of Geophysics, 65(1), DM107, https://doi.org/10.4401/ag-8796. 
 Douglas, S.G., Kessler, R.C., and Carr, E.L., 1990. User's guide for the Urban Airshed Model. Volume 3. User's manual for the Diagnostic Wind Model (No. PB-91-131243/XAB). Systems Applications, Inc., San Rafael, CA (USA).
 Folch, A., Costa, A., and Hankin, R.K., 2009. TWODEE-2: a shallow layer model for dense gas dispersion on complex topography. Computers & Geosciences, 35(3), 667-674.
 Hankin, R.K.S., and Britter, R.E., 1999. Twodee: the Health and Safety Laboratory's shallow layer model for heavy gas dispersion Part 3: Experimental validation (Thorney Island). Journal of hazardous materials, 66(3), 239-261.

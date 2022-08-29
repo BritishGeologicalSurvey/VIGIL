@@ -230,6 +230,24 @@ def read_arguments():
             temp = bottom_left_easting
             bottom_left_easting = top_right_easting
             top_right_easting = temp
+        with open(topography, 'r') as topography_file:
+            for pos, line in enumerate(topography_file):
+                if pos == 2:
+                    x_left_top = float(line.split(' ')[0])
+                    x_right_top = float(line.split(' ')[1])
+                elif pos == 3:
+                    y_bottom_top = float(line.split(' ')[0])
+                    y_top_top = float(line.split(' ')[1])
+            if bottom_left_northing < y_bottom_top or bottom_left_easting < x_left_top or \
+                    top_right_northing > y_top_top or top_right_easting > x_right_top:
+                print('ERROR. Defined computational domain not consistent with topography.grd')
+                print('Topography domain extent')
+                print('X_west (m) = ' + str(x_left_top) + ' X_east (m) = ' + str(x_right_top))
+                print('Y_south (m) = ' + str(y_bottom_top) + ' Y_north (m) = ' + str(y_top_top))
+                print('Computational domain extent')
+                print('X_west (m) = ' + str(bottom_left_easting) + ' X_east (m) = ' + str(top_right_easting))
+                print('Y_south (m) = ' + str(bottom_left_northing) + ' Y_north (m) = ' + str(top_right_northing))
+                sys.exit()
     try:
         nx = int(nx)
     except ValueError:
@@ -1034,18 +1052,18 @@ def run_diagno(max_number_processes):
                 ) as diagno_input_file:
                     for record in diagno_input_records:
                         if 'NX' in record:
-                            diagno_input_file.write(str(nx) + '          NX\n')
+                            diagno_input_file.write(str(nx + 2) + '          NX\n')
                         elif 'NY' in record:
-                            diagno_input_file.write(str(ny) + '          NY\n')
+                            diagno_input_file.write(str(ny + 2) + '          NY\n')
                         elif 'DXK' in record:
                             diagno_input_file.write("{0:7.3f}".format(dx / 1000) + '          DXK (km)\n')
                         elif 'DYK' in record:
                             diagno_input_file.write("{0:7.3f}".format(dy / 1000) + '          DYK (km)\n')
                         elif 'UTMXOR' in record:
-                            diagno_input_file.write("{0:7.3f}".format(bottom_left_easting / 1000) + '      '
+                            diagno_input_file.write("{0:7.3f}".format((bottom_left_easting - dx) / 1000) + '      '
                                                                                                     'UTMXOR (km)\n')
                         elif 'UTMYOR' in record:
-                            diagno_input_file.write("{0:7.3f}".format(bottom_left_northing / 1000) + '      '
+                            diagno_input_file.write("{0:7.3f}".format((bottom_left_northing - dy) / 1000) + '      '
                                                                                                      'UTMYOR  (km)\n')
                         else:
                             diagno_input_file.write(record)
@@ -1060,16 +1078,17 @@ def run_diagno(max_number_processes):
                         sys.exit()
                 p.wait()
                 ps.append(p)
-                try:
-                    p = subprocess.Popen(["srun", "-n", "1", "preupr", "&"])
-                except FileNotFoundError:
+                if os.path.exists('preupr') and os.path.exists(os.path.join(root, 'weather_stations_list.txt')):
                     try:
-                        p = subprocess.Popen(["preupr"])
+                        p = subprocess.Popen(["srun", "-n", "1", "preupr", "&"])
                     except FileNotFoundError:
-                        print('Unable to run preupr for DIAGNO')
-                        sys.exit()
-                p.wait()
-                ps.append(p)
+                        try:
+                            p = subprocess.Popen(["preupr"])
+                        except FileNotFoundError:
+                            print('Unable to run preupr for DIAGNO')
+                            sys.exit()
+                    p.wait()
+                    ps.append(p)
                 try:
                     p = subprocess.Popen(["srun", "-n", "1", '--nodelist=' + node, "diagno", "&"])
                 except FileNotFoundError:

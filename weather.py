@@ -216,8 +216,8 @@ def read_arguments():
         print("Please provide a valid number for the maximum number of process")
         sys.exit()
     out_utm = utm.from_latlon(volc_lat, volc_lon)
-    easting = out_utm[0] / 1000
-    northing = out_utm[1] / 1000
+    easting = out_utm[0]
+    northing = out_utm[1]
     # Check location is inside the topography
     topography_file = os.path.join(root, 'topography.grd')
     with open(topography_file, 'r') as topography:
@@ -229,8 +229,8 @@ def read_arguments():
     if easting <= x0 or easting >= xf or northing <= y0 or northing >= yf:
         print('Warning. Weather data location outside the domain of the topography file. '
               'Moving the location to the centre of the domain')
-        easting = (x0 + xf) / 2000
-        northing = (y0 + yf) / 2000
+        easting = (x0 + xf) / 2
+        northing = (y0 + yf) / 2
     try:
         start = start_date.split("/")
         stop = end_date.split("/")
@@ -1877,8 +1877,12 @@ else:
     while attempt < 10:
         days_to_reelaborate = []
         simulation_folders = os.listdir(simulations)
+        if mode == "reanalysis" and weather_station_on and not era5_on:
+            n_expected_weather_files = 4
+        else:
+            n_expected_weather_files = 5
         for folder in simulation_folders:
-            if len(os.listdir(os.path.join(simulations, folder))) < 5:
+            if len(os.listdir(os.path.join(simulations, folder))) < n_expected_weather_files:
                 days_to_reelaborate.append(datetime.datetime.strptime(folder, "%Y%m%d"))
         if len(days_to_reelaborate) == 0:
             with open("log_weather.txt", "a", encoding="utf-8", errors="surrogateescape") as log_file:

@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Updated figures of example 2a and 2b" />
+    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Added an extra layer of cells around the domain defined by the user for DIAGNO to avoid issues&#10;Implemented a check if the domain is within the topography&#10;Implemented control to avoid running preupr if preupr.dat does not exist (e.g. when running with the weather station)&#10;Fixed bug in checking the location of the volcano/weather station in the domain&#10;Fixed bug when checking the number of weather files requested by DIAGNO">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/run_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/run_models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/weather.py" beforeDir="false" afterPath="$PROJECT_DIR$/weather.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -39,28 +43,7 @@
     ]
   }
 }</component>
-  <component name="RunManager" selected="Python.scratch_4">
-    <configuration name="scratch" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="VIGIL" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$APPLICATION_CONFIG_DIR$/scratches" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$APPLICATION_CONFIG_DIR$/scratches/scratch.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
+  <component name="RunManager" selected="Python.scratch_9">
     <configuration name="scratch_1" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="VIGIL" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -145,13 +128,34 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="scratch_9" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="VIGIL" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$APPLICATION_CONFIG_DIR$/scratches" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$APPLICATION_CONFIG_DIR$/scratches/scratch_9.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.scratch_9" />
         <item itemvalue="Python.scratch_4" />
         <item itemvalue="Python.scratch_3" />
         <item itemvalue="Python.scratch_2" />
         <item itemvalue="Python.scratch_1" />
-        <item itemvalue="Python.scratch" />
       </list>
     </recent_temporary>
   </component>
@@ -438,7 +442,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Updated commands.txt in the examples and the manual to make it consistent with the new domain discretization option in input" />
     <MESSAGE value="Fixed a bug in the way the slurm nodes were handled when slurm is not used" />
     <MESSAGE value="Removed obsolete arguments from the examples" />
     <MESSAGE value="- Fixed a bug that prevented running post_process.py without necessarily plotting &#10;- Introduced folders structure for the persistence calculation outputs" />
@@ -463,6 +466,7 @@
     <MESSAGE value="Revised and improved the parallelization of post_process.py" />
     <MESSAGE value="Started updating the examples and manual" />
     <MESSAGE value="Updated figures of example 2a and 2b" />
-    <option name="LAST_COMMIT_MESSAGE" value="Updated figures of example 2a and 2b" />
+    <MESSAGE value="Added an extra layer of cells around the domain defined by the user for DIAGNO to avoid issues&#10;Implemented a check if the domain is within the topography&#10;Implemented control to avoid running preupr if preupr.dat does not exist (e.g. when running with the weather station)&#10;Fixed bug in checking the location of the volcano/weather station in the domain&#10;Fixed bug when checking the number of weather files requested by DIAGNO" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added an extra layer of cells around the domain defined by the user for DIAGNO to avoid issues&#10;Implemented a check if the domain is within the topography&#10;Implemented control to avoid running preupr if preupr.dat does not exist (e.g. when running with the weather station)&#10;Fixed bug in checking the location of the volcano/weather station in the domain&#10;Fixed bug when checking the number of weather files requested by DIAGNO" />
   </component>
 </project>

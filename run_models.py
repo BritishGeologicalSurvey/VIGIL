@@ -126,6 +126,12 @@ def read_arguments():
     parser.add_argument(
         "-DG", "--disgas", default="off", help="on or off, to run Disgas"
     )
+    parser.add_argument(
+        "-US", "--use_slurm", default="False", help="True or False, to use SLURM Workload Manager"
+    )
+    parser.add_argument(
+        "-SP", "--slurm_partition", default="", help="Name of the cluster partition to run the Slurm jobs"
+    )
     args = parser.parse_args()
     nproc = args.nproc
     run_type = args.run_type
@@ -149,6 +155,8 @@ def read_arguments():
     twodee = args.twodee
     disgas = args.disgas
     diagno = args.diagno
+    use_slurm = args.use_slurm
+    slurm_partition = args.partition
     source_dx = args.source_dx
     source_dy = args.source_dy
     source_dur = args.source_dur
@@ -321,7 +329,7 @@ def read_arguments():
             sys.exit()
     else:
         if random_sources != "off":
-            print("Valid options for -RS --random_sources are on and off")
+            print("ERROR. Valid options for -RS --random_sources are on and off")
             sys.exit()
         else:
             try:
@@ -351,7 +359,7 @@ def read_arguments():
                                 source_northing = float(out_utm[1])
                             except ValueError:
                                 print(
-                                    "Please provide valid coordinates of the source location"
+                                    "ERROR. Please provide valid coordinates of the source location"
                                 )
                                 sys.exit()
                     elif coordinates_type == "UTM":
@@ -365,7 +373,7 @@ def read_arguments():
                             <= source_northing
                             <= top_right_northing
                         ):
-                            print("Location not within the domain")
+                            print("ERROR. Location not within the domain")
                             sys.exit()
                     else:
                         print(
@@ -374,7 +382,7 @@ def read_arguments():
                         sys.exit()
                     if float(source_location[2]) < 0:
                         print(
-                            "Please provide a valid value for the source elevation in m above ground (>= 0 m)"
+                            "ERROR. Please provide a valid value for the source elevation in m above ground (>= 0 m)"
                         )
                         sys.exit()
                     else:
@@ -387,47 +395,57 @@ def read_arguments():
             print("ERROR. File flux.txt not found")
             sys.exit()
     elif random_emission != "off":
-        print("Valid options for -RER --random_sources are on and off")
+        print("ERROR. Valid options for -RER --random_sources are on and off")
         sys.exit()
     if twodee.lower() == "on":
         twodee_on = True
     elif twodee.lower() == "off":
         twodee_on = False
     else:
-        print("Please provide a valid entry for the variable -TD --twodee")
+        print("ERROR. Please provide a valid entry for the variable -TD --twodee")
         sys.exit()
     if disgas.lower() == "on":
         disgas_on = True
     elif disgas.lower() == "off":
         disgas_on = False
     else:
-        print("Please provide a valid entry for the variable -DG --disgas")
+        print("ERROR. Please provide a valid entry for the variable -DG --disgas")
         sys.exit()
     if diagno.lower() == "on":
         diagno_on = True
     elif diagno.lower() == "off":
         diagno_on = False
     else:
-        print("Please provide a valid entry for the variable -DI --diagno")
+        print("ERROR. Please provide a valid entry for the variable -DI --diagno")
         sys.exit()
     if source_dx != 999999:
         try:
             source_dx = float(source_dx)
         except ValueError:
-            print("Please provide a valid number for the variable -SDX --source_dx")
+            print("ERROR. Please provide a valid number for the variable -SDX --source_dx")
             sys.exit()
     if source_dy != 999999:
         try:
             source_dy = float(source_dy)
         except ValueError:
-            print("Please provide a valid number for the variable -SDY --source_dy")
+            print("ERROR. Please provide a valid number for the variable -SDY --source_dy")
             sys.exit()
     if source_dur != 0:
         try:
             source_dur = float(source_dur)
         except ValueError:
-            print("Please provide a valid number for the variable -SDUR --source_dur")
+            print("ERROR. Please provide a valid number for the variable -SDUR --source_dur")
             sys.exit()
+    if use_slurm.lower() == "on":
+        use_slurm = True
+        if slurm_partition == '':
+            print('ERROR. Cluster partition must be declared if use_slurm is on')
+    elif use_slurm.lower() == "off":
+        use_slurm = False
+    else:
+        print("ERROR. Please provide a valid entry for the variable -US --use_slurm")
+        sys.exit()
+    slurm_partition = slurm_partition.lower()
     return (
         run_type,
         continuous_simulation,
@@ -454,6 +472,8 @@ def read_arguments():
         diagno_on,
         twodee_on,
         disgas_on,
+        use_slurm,
+        slurm_partition,
     )
 
 
@@ -1068,9 +1088,13 @@ def run_diagno(max_number_processes):
                         else:
                             diagno_input_file.write(record)
                 os.chdir(diagno_folder)
-                try:
-                    p = subprocess.Popen(["srun", "-n", "1", "presfc", "&"])
-                except FileNotFoundError:
+                if slurm:
+                    try:
+                        p = subprocess.Popen(["srun", "-n", "1", '--partition=' + partition, "presfc", "&"])
+                    except FileNotFoundError:
+                        print('Unable to run srun -n 1 --partition=' + partition + ' presfc')
+                        sys.exit()
+                else:
                     try:
                         p = subprocess.Popen(["presfc"])
                     except FileNotFoundError:
@@ -1079,9 +1103,13 @@ def run_diagno(max_number_processes):
                 p.wait()
                 ps.append(p)
                 if os.path.exists('preupr') and os.path.exists(os.path.join(root, 'weather_stations_list.txt')):
-                    try:
-                        p = subprocess.Popen(["srun", "-n", "1", "preupr", "&"])
-                    except FileNotFoundError:
+                    if slurm:
+                        try:
+                            p = subprocess.Popen(["srun", "-n", "1", '--partition=' + partition, "preupr", "&"])
+                        except FileNotFoundError:
+                            print('Unable to run srun -n 1 --partition=' + partition + ' preupr')
+                            sys.exit()
+                    else:
                         try:
                             p = subprocess.Popen(["preupr"])
                         except FileNotFoundError:
@@ -1089,9 +1117,14 @@ def run_diagno(max_number_processes):
                             sys.exit()
                     p.wait()
                     ps.append(p)
-                try:
-                    p = subprocess.Popen(["srun", "-n", "1", '--nodelist=' + node, "diagno", "&"])
-                except FileNotFoundError:
+                if slurm:
+                    try:
+                        p = subprocess.Popen(["srun", "-n", "1", '--partition=' + partition, '--nodelist=' + node,
+                                              "diagno", "&"])
+                    except FileNotFoundError:
+                        print('Unable to run srun -n 1 --partition=' + partition + ' --nodelist=' + node + ' diagno')
+                        sys.exit()
+                else:
                     try:
                         p = subprocess.Popen(["diagno"])
                     except FileNotFoundError:
@@ -1159,10 +1192,15 @@ def run_disgas(max_number_processes):
                     except FileExistsError:
                         shutil.rmtree(disgas_output_folder)
                         os.mkdir(disgas_output_folder)
-                try:
-                    p = subprocess.Popen(["srun", "-n", "1", '--nodelist=' + node, "disgas", disgas_input_file,
-                                          disgas_log_file])
-                except FileNotFoundError:
+                if slurm:
+                    try:
+                        p = subprocess.Popen(["srun", "-n", "1", '--partition=' + partition, '--nodelist=' + node,
+                                              "disgas", disgas_input_file, disgas_log_file])
+                    except FileNotFoundError:
+                        print('Unable to run srun -n 1 --partition=' + partition + ' --nodelist=' + node + ' disgas ' +
+                              disgas_input_file + ' ' + disgas_log_file)
+                        sys.exit()
+                else:
                     try:
                         p = subprocess.Popen(["disgas", disgas_input_file, disgas_log_file])
                     except FileNotFoundError:
@@ -1233,10 +1271,15 @@ def run_twodee(max_number_processes):
                     except FileExistsError:
                         shutil.rmtree(twodee_output_folder)
                         os.mkdir(twodee_output_folder)
-                try:
-                    p = subprocess.Popen(["srun", "-n", "1", '--nodelist=' + node, "twodee", twodee_input_file,
-                                          twodee_log_file, ])
-                except FileNotFoundError:
+                if slurm:
+                    try:
+                        p = subprocess.Popen(["srun", "-n", "1", '--partition=' + partition,  '--nodelist=' + node,
+                                              "twodee", twodee_input_file, twodee_log_file, ])
+                    except FileNotFoundError:
+                        print('Unable to run srun -n 1 --partition=' + partition + ' --nodelist=' + node + ' ' +
+                              twodee_input_file + ' ' + twodee_log_file)
+                        sys.exit()
+                else:
                     try:
                         p = subprocess.Popen(["twodee", twodee_input_file, twodee_log_file])
                     except FileNotFoundError:
@@ -1288,19 +1331,39 @@ topography = os.path.join(root, "topography.grd")
     diagno_on,
     twodee_on,
     disgas_on,
+    slurm,
+    partition,
 ) = read_arguments()
 
 if disgas_on == "off" and twodee_on == "off":
     print("Both DISGAS and TWODEE are turned off")
     sys.exit()
 
-if shutil.which('sbatch') is not None:
+if slurm:
     list_available_nodes = []
+    result = subprocess.run(['sinfo', '-o=%N'], stdout=subprocess.PIPE)
+    sinfo_node_output = result.stdout.decode("utf-8")
+    node_key = sinfo_node_output.split('=')[2]
+    node_key = node_key.split('[')[0]
     result = subprocess.run(['sinfo'], stdout=subprocess.PIPE)
-    sinfo_output = result.stdout.decode("utf-8")
-    nodes_list = sinfo_output.split('idle node[')[1]
-    nodes_list = nodes_list.split(']')[0]
-    nodes_ranges = nodes_list.split(',')
+    sinfo_output = result.stdout.decode("utf-8").split('\n')
+    nodes_ranges_temp = []
+    nodes_ranges = []
+    for output in sinfo_output:
+        if partition in output and 'idle' in output:
+            try:
+                nodes_list_formatted = output.split('idle ')[1]
+            except IndexError:
+                nodes_list_formatted = output.split('idle~ ')[1]
+            nodes_list = nodes_list_formatted.split(node_key)[1]
+            if '[' in nodes_list:
+                nodes_list = nodes_list.split('[')[1]
+                nodes_list = nodes_list.split(']')[0]
+                nodes_list = nodes_list.split(',')
+                for nodes_range in nodes_list:
+                    nodes_ranges.append(nodes_range)
+            else:
+                nodes_ranges.append(nodes_list)
     for node_range in nodes_ranges:
         node_range = node_range.split('-')
         start = int(node_range[0])
@@ -1309,10 +1372,10 @@ if shutil.which('sbatch') is not None:
         except IndexError:
             end = start
         for i in range(start, end + 1):
-            list_available_nodes.append('node' + '{:0>2}'.format(i))
+            list_available_nodes.append(node_key + '{:0>2}'.format(i))
     result = subprocess.run(['sinfo', '-o=%c'], stdout=subprocess.PIPE)
-    sinfo_output = result.stdout.decode("utf-8")
-    ncpus_per_node = int(sinfo_output.split('=')[-1])
+    sinfo_core_output = result.stdout.decode("utf-8")
+    ncpus_per_node = int(sinfo_core_output.split('=')[-1])
     n_nodes = - (-max_number_processes // ncpus_per_node)
     nodes_list = list_available_nodes[0:n_nodes]
 else:

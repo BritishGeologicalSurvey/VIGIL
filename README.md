@@ -68,7 +68,7 @@ The following flags control the execution of hazard_fumaroles.py:
 usage: run_models.py [-h] [-N NPROC] [-RT RUN_TYPE] [-CS CONTINUOUS_SIMULATION] [-RS RANDOM_SOURCES] [-NS NSOURCES]
                      [-SINT SOURCES_INTERVAL] [-SLOC SOURCE_LOCATION] [-SDX SOURCE_DX] [-SDY SOURCE_DY] [-SDUR SOURCE_DUR]
                      [-D DOMAIN] [-NX NX] [-NY NY] [-DX DX] [-DY DY] [-SEM SOURCE_EMISSION] [-RER RANDOM_EMISSION] [-DI DIAGNO]
-                     [-TD TWODEE] [-DG DISGAS]
+                     [-TD TWODEE] [-DG DISGAS] [-US USE_SLURM] [-SP SLURM_PARTITION]
 
   -h, --help            show this help message and exit
   -N NPROC, --nproc NPROC
@@ -117,6 +117,10 @@ usage: run_models.py [-h] [-N NPROC] [-RT RUN_TYPE] [-CS CONTINUOUS_SIMULATION] 
                         on or off, to run Twodee
   -DG DISGAS, --disgas DISGAS
                         on or off, to run Disgas
+  -US USE_SLURM, --use_slurm USE_SLURM
+                        True or False, to use SLURM Workload Manager (default: False)
+  -SP SLURM_PARTITION, --slurm_partition SLURM_PARTITION
+                        Name of the cluster partition to run the Slurm jobs (default: )
 ```
 
 - post_process.py

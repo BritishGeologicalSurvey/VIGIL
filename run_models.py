@@ -436,11 +436,11 @@ def read_arguments():
         except ValueError:
             print("ERROR. Please provide a valid number for the variable -SDUR --source_dur")
             sys.exit()
-    if use_slurm.lower() == "on":
+    if use_slurm.lower() == "true":
         use_slurm = True
         if slurm_partition == '':
             print('ERROR. Cluster partition must be declared if use_slurm is on')
-    elif use_slurm.lower() == "off":
+    elif use_slurm.lower() == "false":
         use_slurm = False
     else:
         print("ERROR. Please provide a valid entry for the variable -US --use_slurm")

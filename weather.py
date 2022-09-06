@@ -477,8 +477,8 @@ def prepare_diagno_files(data_folder, year, month, day):
         diagno_preupr.write(
             "ST01"
             + " "
-            + "{0:7.1f}".format(easting)
-            + "{0:7.1f}".format(northing)
+            + "{0:7.1f}".format(easting / 1000)
+            + "{0:7.1f}".format(northing / 1000)
             + "{0:7.1f}".format(elevation)
             + "\n"
         )
@@ -661,8 +661,8 @@ def prepare_diagno_files(data_folder, year, month, day):
             diagno_presfc.write(
                 "ST02"
                 + "  "
-                + "{0:7.1f}".format(easting)
-                + "{0:7.1f}".format(northing)
+                + "{0:7.1f}".format(easting / 1000)
+                + "{0:7.1f}".format(northing / 1000)
                 + "\n"
             )
             diagno_presfc.write(presfc_file_records[8])
@@ -704,8 +704,8 @@ def prepare_diagno_files(data_folder, year, month, day):
             diagno_presfc.write(
                 "ST02"
                 + "  "
-                + "{0:7.1f}".format(easting)
-                + "{0:7.1f}".format(northing)
+                + "{0:7.1f}".format(easting / 1000)
+                + "{0:7.1f}".format(northing / 1000)
                 + "\n"
             )
             diagno_presfc.write(

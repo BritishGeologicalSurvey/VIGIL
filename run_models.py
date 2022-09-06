@@ -156,7 +156,7 @@ def read_arguments():
     disgas = args.disgas
     diagno = args.diagno
     use_slurm = args.use_slurm
-    slurm_partition = args.partition
+    slurm_partition = args.slurm_partition
     source_dx = args.source_dx
     source_dy = args.source_dy
     source_dur = args.source_dur
@@ -1072,19 +1072,33 @@ def run_diagno(max_number_processes):
                 ) as diagno_input_file:
                     for record in diagno_input_records:
                         if 'NX' in record:
-                            diagno_input_file.write(str(nx + 2) + '          NX\n')
+                            if disgas_on:
+                                diagno_input_file.write(str(nx + 2) + '          NX\n')
+                            elif twodee_on:
+                                diagno_input_file.write(str(nx) + '          NX\n')
                         elif 'NY' in record:
-                            diagno_input_file.write(str(ny + 2) + '          NY\n')
+                            if disgas_on:
+                                diagno_input_file.write(str(ny + 2) + '          NY\n')
+                            elif twodee_on:
+                                diagno_input_file.write(str(ny) + '          NY\n')
                         elif 'DXK' in record:
                             diagno_input_file.write("{0:7.3f}".format(dx / 1000) + '          DXK (km)\n')
                         elif 'DYK' in record:
                             diagno_input_file.write("{0:7.3f}".format(dy / 1000) + '          DYK (km)\n')
                         elif 'UTMXOR' in record:
-                            diagno_input_file.write("{0:7.3f}".format((bottom_left_easting - dx) / 1000) + '      '
-                                                                                                    'UTMXOR (km)\n')
+                            if disgas_on:
+                                diagno_input_file.write("{0:7.3f}".format((bottom_left_easting - dx) / 1000) + '      '
+                                                        'UTMXOR (km)\n')
+                            elif twodee_on:
+                                diagno_input_file.write("{0:7.3f}".format(bottom_left_easting / 1000) + '      '
+                                                        'UTMXOR (km)\n')
                         elif 'UTMYOR' in record:
-                            diagno_input_file.write("{0:7.3f}".format((bottom_left_northing - dy) / 1000) + '      '
-                                                                                                     'UTMYOR  (km)\n')
+                            if disgas_on:
+                                diagno_input_file.write("{0:7.3f}".format((bottom_left_northing - dy) / 1000) + '      '
+                                                        'UTMYOR  (km)\n')
+                            elif twodee_on:
+                                diagno_input_file.write("{0:7.3f}".format(bottom_left_northing / 1000) + '      '
+                                                        'UTMYOR  (km)\n')
                         else:
                             diagno_input_file.write(record)
                 os.chdir(diagno_folder)
@@ -1102,7 +1116,8 @@ def run_diagno(max_number_processes):
                         sys.exit()
                 p.wait()
                 ps.append(p)
-                if os.path.exists('preupr') and os.path.exists(os.path.join(root, 'weather_stations_list.txt')):
+                if shutil.which('preupr') is not None and \
+                        (not os.path.exists(os.path.join(root, 'weather_stations_list.txt'))):
                     if slurm:
                         try:
                             p = subprocess.Popen(["srun", "-n", "1", '--partition=' + partition, "preupr", "&"])

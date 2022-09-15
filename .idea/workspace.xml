@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Further improved the interaction with Slurm.">
+    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Fixed a bug affecting VIGIL when running TWODEE">
       <change beforePath="$PROJECT_DIR$/.idea/.name" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.name" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/run_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/run_models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/weather.py" beforeDir="false" afterPath="$PROJECT_DIR$/weather.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -15,7 +14,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="v_1.3.1" />
+        <entry key="$PROJECT_DIR$" value="v_1.3" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -456,7 +455,14 @@
       <option name="project" value="LOCAL" />
       <updated>1661867709597</updated>
     </task>
-    <option name="localTasksCounter" value="42" />
+    <task id="LOCAL-00042" summary="Fixed a bug affecting VIGIL when running TWODEE">
+      <created>1662473832232</created>
+      <option name="number" value="00042" />
+      <option name="presentableId" value="LOCAL-00042" />
+      <option name="project" value="LOCAL" />
+      <updated>1662473832232</updated>
+    </task>
+    <option name="localTasksCounter" value="43" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -471,7 +477,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Removed obsolete arguments from the examples" />
     <MESSAGE value="- Fixed a bug that prevented running post_process.py without necessarily plotting &#10;- Introduced folders structure for the persistence calculation outputs" />
     <MESSAGE value="Completed the implementation of the persistence maps, need testing" />
     <MESSAGE value="Improved the arguments in input and updated supporting documentation accordingly" />
@@ -496,6 +501,7 @@
     <MESSAGE value="Updated figures of example 2a and 2b" />
     <MESSAGE value="Added an extra layer of cells around the domain defined by the user for DIAGNO to avoid issues&#10;Implemented a check if the domain is within the topography&#10;Implemented control to avoid running preupr if preupr.dat does not exist (e.g. when running with the weather station)&#10;Fixed bug in checking the location of the volcano/weather station in the domain&#10;Fixed bug when checking the number of weather files requested by DIAGNO" />
     <MESSAGE value="Further improved the interaction with Slurm." />
-    <option name="LAST_COMMIT_MESSAGE" value="Further improved the interaction with Slurm." />
+    <MESSAGE value="Fixed a bug affecting VIGIL when running TWODEE" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixed a bug affecting VIGIL when running TWODEE" />
   </component>
 </project>

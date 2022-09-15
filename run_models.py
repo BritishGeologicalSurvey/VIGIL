@@ -1045,8 +1045,8 @@ def run_diagno(max_number_processes):
     n_elaborated_days = 0
     n_node = 0
     node = ''
-    ps = []
     while n_elaborated_days <= len(days):
+        ps = []
         start = n_elaborated_days
         end = n_elaborated_days + max_number_processes
         if end > len(days):
@@ -1156,8 +1156,8 @@ def run_diagno(max_number_processes):
         n_elaborated_days = end
         if n_elaborated_days == len(days):
             break
-    for p in ps:
-        p.wait()
+        for p in ps:
+            p.wait()
     print("All weather data have been successfully processed with Diagno")
     os.chdir(root)
 
@@ -1168,10 +1168,10 @@ def run_disgas(max_number_processes):
     n_elaborated_days = 0
     n_node = 0
     node = ''
-    ps = []
     if continuous_simulation:
         max_number_processes = 1
     while n_elaborated_days <= len(days):
+        ps = []
         start = n_elaborated_days
         end = n_elaborated_days + max_number_processes
         if end > len(days):
@@ -1232,8 +1232,8 @@ def run_disgas(max_number_processes):
         n_elaborated_days = end
         if n_elaborated_days == len(days):
             break
-    for p in ps:
-        p.wait()
+        for p in ps:
+            p.wait()
 
 
 def run_twodee(max_number_processes):
@@ -1242,10 +1242,10 @@ def run_twodee(max_number_processes):
     n_elaborated_days = 0
     n_node = 0
     node = ''
-    ps = []
     if continuous_simulation:
         max_number_processes = 1
     while n_elaborated_days <= len(days):
+        ps = []
         start = n_elaborated_days
         end = n_elaborated_days + max_number_processes
         if end > len(days):
@@ -1311,8 +1311,8 @@ def run_twodee(max_number_processes):
         n_elaborated_days = end
         if n_elaborated_days == len(days):
             break
-    for p in ps:
-        p.wait()
+        for p in ps:
+            p.wait()
 
 
 root = os.getcwd()

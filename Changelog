@@ -1,3 +1,9 @@
+15/08/2022 Fabio Dioguardi <fabio.dioguardi@uniba.it>
+Version 1.3.1 released
+
+15/08/2022 Fabio Dioguardi <fabio.dioguardi@uniba.it>
+Fixed a bug that prevented the correct usage of the option "-N --nproc". This option was ignored by the code in the previous version.
+
 30/08/2022 Fabio Dioguardi <fabio.dioguardi@uniba.it>
 Version 1.3 released
 

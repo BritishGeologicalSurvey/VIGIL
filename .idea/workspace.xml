@@ -465,7 +465,14 @@
       <option name="project" value="LOCAL" />
       <updated>1663254710102</updated>
     </task>
-    <option name="localTasksCounter" value="44" />
+    <task id="LOCAL-00044" summary="Fixed a bug that prevented the correct usage of the option &quot;-N --nproc&quot;. This option was ignored by the code in the previous version">
+      <created>1663254795506</created>
+      <option name="number" value="00044" />
+      <option name="presentableId" value="LOCAL-00044" />
+      <option name="project" value="LOCAL" />
+      <updated>1663254795506</updated>
+    </task>
+    <option name="localTasksCounter" value="45" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">

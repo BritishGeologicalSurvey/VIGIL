@@ -1158,6 +1158,8 @@ def run_diagno(max_number_processes):
             break
         for p in ps:
             p.wait()
+    for p in ps:
+        p.wait()
     print("All weather data have been successfully processed with Diagno")
     os.chdir(root)
 
@@ -1234,6 +1236,8 @@ def run_disgas(max_number_processes):
             break
         for p in ps:
             p.wait()
+    for p in ps:
+        p.wait()
 
 
 def run_twodee(max_number_processes):
@@ -1313,6 +1317,8 @@ def run_twodee(max_number_processes):
             break
         for p in ps:
             p.wait()
+    for p in ps:
+        p.wait()
 
 
 root = os.getcwd()

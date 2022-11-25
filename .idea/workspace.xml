@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Fixed a bug that prevented the correct usage of the option &quot;-N --nproc&quot;. This option was ignored by the code in the previous version" />
+    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Implemented background concentration in gas_properties.csv to prevent conflicts of background concentration when using different gas species&#10;Implemented capability to autoscale plot limits based on the specific gas specie concentration if -PL is not set&#10;Fixed a minor bug in the species concentration conversion function" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -487,7 +487,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Completed the implementation of the persistence maps, need testing" />
     <MESSAGE value="Improved the arguments in input and updated supporting documentation accordingly" />
     <MESSAGE value="Fixed the most important warnings" />
     <MESSAGE value="Updated twodee.inp in example_3 because there was an input missing" />
@@ -512,6 +511,7 @@
     <MESSAGE value="Further improved the interaction with Slurm." />
     <MESSAGE value="Fixed a bug affecting VIGIL when running TWODEE" />
     <MESSAGE value="Fixed a bug that prevented the correct usage of the option &quot;-N --nproc&quot;. This option was ignored by the code in the previous version" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixed a bug that prevented the correct usage of the option &quot;-N --nproc&quot;. This option was ignored by the code in the previous version" />
+    <MESSAGE value="Implemented background concentration in gas_properties.csv to prevent conflicts of background concentration when using different gas species&#10;Implemented capability to autoscale plot limits based on the specific gas specie concentration if -PL is not set&#10;Fixed a minor bug in the species concentration conversion function" />
+    <option name="LAST_COMMIT_MESSAGE" value="Implemented background concentration in gas_properties.csv to prevent conflicts of background concentration when using different gas species&#10;Implemented capability to autoscale plot limits based on the specific gas specie concentration if -PL is not set&#10;Fixed a minor bug in the species concentration conversion function" />
   </component>
 </project>

@@ -472,7 +472,14 @@
       <option name="project" value="LOCAL" />
       <updated>1663254795506</updated>
     </task>
-    <option name="localTasksCounter" value="45" />
+    <task id="LOCAL-00045" summary="Implemented background concentration in gas_properties.csv to prevent conflicts of background concentration when using different gas species&#10;Implemented capability to autoscale plot limits based on the specific gas specie concentration if -PL is not set&#10;Fixed a minor bug in the species concentration conversion function">
+      <created>1669372902644</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1669372902644</updated>
+    </task>
+    <option name="localTasksCounter" value="46" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">

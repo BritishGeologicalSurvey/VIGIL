@@ -1,3 +1,15 @@
+25/11/2022 Fabio Dioguardi <fabio.dioguardi@uniba.it>
+Version 1.3.2 released
+
+04/10/2022 Fabio Dioguardi <fabio.dioguardi@uniba.it>
+Implemented background concentration in gas_properties.csv to prevent conflicts of background concentration when using different gas species
+
+03/10/2022 Fabio Dioguardi <fabio.dioguardi@uniba.it>
+Implemented capability to autoscale plot limits based on the specific gas specie concentration if -PL is not set
+
+03/10/2022 Fabio Dioguardi <fabio.dioguardi@uniba.it>
+Fixed a minor bug in the species concentration conversion function
+
 15/08/2022 Fabio Dioguardi <fabio.dioguardi@uniba.it>
 Version 1.3.1 released
 

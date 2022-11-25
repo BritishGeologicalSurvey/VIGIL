@@ -902,6 +902,13 @@ def pre_process(run_type):
             except FileNotFoundError:
                 print("Unable to find a valid roughness file for TWODEE")
                 sys.exit()
+            try:
+                shutil.copyfile(
+                    os.path.join(diagno_daily, "surface_data.txt"),
+                    os.path.join(twodee_daily, "surface_data.txt"),
+                )
+            except (FileExistsError, FileNotFoundError):
+                print('ERROR with surface_data.txt')
             with open(
                 os.path.join(twodee_daily, "source.dat"),
                 "w",

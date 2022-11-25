@@ -500,6 +500,7 @@ def gas_properties():
     def extract_gas_properties(specie):
         data = pd.read_csv(gas_properties_file, on_bad_lines='skip')
         molar_ratio = None
+        bg_conc = None
         conc_thresholds = []
         exp_times = []
         if convert:
@@ -543,7 +544,14 @@ def gas_properties():
         except KeyError:
             print('WARNING. Exposure times of ' + specie + ' not found in gas_properties.csv. Gas '
                   'persistence calculation not possible for gas specie ' + specie)
-        return molar_ratio, molar_weight, conc_thresholds, exp_times
+        try:
+            y = np.sort(data['BG_' + specie])
+            bg_conc = list(y)[0]
+            if bg_conc != bg_conc:
+                print('WARNING. Background concentration of ' + specie + ' not found in gas_properties.csv')
+        except KeyError:
+            print('WARNING. Background concentration of ' + specie + ' not found in gas_properties.csv')
+        return molar_ratio, molar_weight, conc_thresholds, exp_times, bg_conc
 
     gas_properties_file = os.path.join(root, "gas_properties.csv")
     try:
@@ -556,19 +564,22 @@ def gas_properties():
     molar_weights = []
     concentration_thresholds = []
     exposure_times = []
+    background_concentrations = []
     for specie in species:
-        molar_ratio, molar_weight, concentration_thresholds_specie, exposure_times_specie = extract_gas_properties(
-            specie)
+        molar_ratio, molar_weight, concentration_thresholds_specie, exposure_times_specie, background_c = \
+            extract_gas_properties(specie)
         molar_ratios.append(molar_ratio)
         molar_weights.append(molar_weight)
         concentration_thresholds.append(concentration_thresholds_specie)
         exposure_times.append(exposure_times_specie)
-    molar_ratio, molar_weight, concentration_thresholds_specie, exposure_times_specie = extract_gas_properties(
-        original_specie)
+        background_concentrations.append(background_c)
+    molar_ratio, molar_weight, concentration_thresholds_specie, exposure_times_specie, background_c = \
+        extract_gas_properties(original_specie)
     molar_ratios_tracking_specie = molar_ratio
     molar_weights_tracking_specie = molar_weight
     concentration_thresholds_tracking_specie = concentration_thresholds_specie
     exposure_times_tracking_specie = exposure_times_specie
+    background_concentration_tracking_specie = background_c
     species_properties = []
     for i in range(0, len(species)):
         gas_specie = {}
@@ -577,6 +588,7 @@ def gas_properties():
         gas_specie["molar_weight"] = molar_weights[i]
         gas_specie["concentration_thresholds"] = concentration_thresholds[i]
         gas_specie["exposure_times"] = exposure_times[i]
+        gas_specie["background_concentration"] = background_concentrations[i]
         species_properties.append(gas_specie)
     if original_specie not in species:
         gas_specie = {}
@@ -585,6 +597,7 @@ def gas_properties():
         gas_specie["molar_weight"] = molar_weights_tracking_specie
         gas_specie["concentration_thresholds"] = concentration_thresholds_tracking_specie
         gas_specie["exposure_times"] = exposure_times_tracking_specie
+        gas_specie["background_concentration"] = background_concentration_tracking_specie
         species_properties.append(gas_specie)
     return species_properties
 
@@ -719,7 +732,7 @@ def elaborate_tracking_points():
 
 
 def probabilistic_tracking_points():
-    def plot_hazard_curves(file_input, folder):
+    def plot_hazard_curves(file_input, folder, min_con_tp_in, max_con_tp_in):
         import matplotlib
         matplotlib.use("Agg")
         from matplotlib import pyplot as plt
@@ -752,7 +765,7 @@ def probabilistic_tracking_points():
             else:
                 plt.title(specie_name + " concentration [kg m$\mathregular{^{-3}}$]")
                 plt.xlabel("C [kg m$\mathregular{^{-3}}$]")
-            plt.xlim(min_con_tp, max_con_tp)
+            plt.xlim(min_con_tp_in, max_con_tp_in)
             plt.ylabel("Exceedance probability")
             image_buffer = StringIO()
             plt.tight_layout()
@@ -789,9 +802,11 @@ def probabilistic_tracking_points():
                 os.mkdir(twodee_ecdf_tracking_points_specie)
             except FileExistsError:
                 print('Folder ' + twodee_ecdf_tracking_points_specie + ' already exists')
-    min_con_tp = 1000000000000000
-    max_con_tp = 0
+    min_con_tp_specie = []
+    max_con_tp_specie = []
     for l in range(0, len(species)):
+        min_con_tp = 1000000000000000
+        max_con_tp = 0
         for k in range(0, len(stations)):
             for i in range(0, len(all_time_steps)):
                 for j in range(0, len(days)):
@@ -803,6 +818,8 @@ def probabilistic_tracking_points():
                     if output_quantile[l][k][m][i] >= max_con_tp:
                         max_con_tp = output_quantile[l][k][m][i]
                 c_list = []
+        min_con_tp_specie.append(min_con_tp)
+        max_con_tp_specie.append(max_con_tp)
     for l in range(0, len(species)):
         for k in range(0, len(stations)):
             station = stations[k]
@@ -824,8 +841,8 @@ def probabilistic_tracking_points():
                     for m in range(0, len(quantiles)): \
                             output_quantile_string += '\t' + "{0:.2e}".format(output_quantile[l][k][m][i])
                     output_file.write(output_quantile_string + '\n' )
-            plot_file_folder = os.path.join(graphical_outputs_ecdf_tracking_points, specie)
-            plot_hazard_curves(ecdf_tracking_point_file, plot_file_folder)
+            plot_file_folder = os.path.join(graphical_outputs_ecdf_tracking_points, species[l])
+            plot_hazard_curves(ecdf_tracking_point_file, plot_file_folder, min_con_tp_specie[l], max_con_tp_specie[l])
 
 
 def extract_days():
@@ -886,7 +903,7 @@ def converter(input_file, processed_file, specie_input, model):
         if model == "twodee":
             file_time_step = os.path.split(processed_file)[1]
             file_time_step = file_time_step.split("_")[2]
-            file_time_step = int(file_time_step.split(".grd")[0])
+            file_time_step = file_time_step.split(".grd")[0]
             file_time_h = file_time_step[-4:]
             file_name = input_file.split(os.sep)[-1]
             file_folder = input_file.split(file_name)[0]
@@ -931,6 +948,14 @@ def converter(input_file, processed_file, specie_input, model):
                 for specie in species_properties:
                     if specie["specie_name"] == specie_input:
                         molar_ratio = specie["molar_ratio"]
+                        try:
+                            background_c = specie["background_concentration"]
+                        except UnboundLocalError:
+                            background_c = 0
+                        try:
+                            background_c = float(background_c)
+                        except TypeError:
+                            background_c = 0
                         if units == 'ppm':
                             species_conversion_factor = molar_ratio
                         elif units == 'kg/m3':
@@ -939,7 +964,10 @@ def converter(input_file, processed_file, specie_input, model):
                                     molar_weight = specie["molar_weight"]
                                 if specie["specie_name"] == original_specie:
                                     molar_weight_tracking_specie = specie["molar_weight"]
+                            background_c = background_c * ((molar_weight / 22.4) * (273 / t2m) * (p2m / 1013)) / 1000000
                             species_conversion_factor = molar_ratio * (molar_weight / molar_weight_tracking_specie)
+                Z_converted = np.where(Z_converted < 0, 0, Z_converted)
+                Z_converted += background_c
                 Z_converted = np.multiply(Z_converted, species_conversion_factor)
                 processed_file.write(
                     str(np.amin(Z_converted)) + "  " + str(np.amax(Z_converted)) + "\n"
@@ -1006,6 +1034,7 @@ def elaborate_day(day_input):
                             except IndexError:
                                 print('File ' + file_input + ' not found')
                                 overcome_matrix[j_overcome][i_overcome] += 0
+                linecache.clearcache()
 
             specie_input = index[0]
             concentration_threshold = index[1]
@@ -1133,6 +1162,9 @@ def elaborate_day(day_input):
                     file_directory = ''
                     for file in files_to_interpolate:
                         file_name = file.split(os.sep)[-1]
+                        file_specie = file.split(os.sep)[-2] 
+                        if file_specie != species[l_specie]:
+                            continue
                         file_directory = file.split(file_name)[0]
                         file_level = file_name.split('_')[1]
                         file_level = float(file_level.split('mabg')[0])
@@ -1141,9 +1173,11 @@ def elaborate_day(day_input):
                             file_time_step = int(file_time_step.split('.grd')[0])
                         except ValueError:
                             continue
-                        if file_level in levels_for_interpolation and file_time_step == time_step:
+                        if file_level in levels_for_interpolation and file_time_step == time_step and file_specie == species[l_specie]: 
                             files_to_use.append(file)
                             files_levels.append(file_level)
+                    if len(files_to_use) == 0:
+                        continue
                     files_levels = sorted(files_levels)
                     c_interpolated = interpolate(station['easting'], station['northing'], station['elevation'],
                                                  files_levels,
@@ -1160,6 +1194,9 @@ def elaborate_day(day_input):
                     file_directory = ''
                     for file in files_to_interpolate:
                         file_name = file.split(os.sep)[-1]
+                        file_specie = file.split(os.sep)[-2] 
+                        if file_specie != species[l_specie]:
+                            continue
                         file_directory = file.split(file_name)[0]
                         file_level = file_name.split('_')[1]
                         file_level = float(file_level.split('mabg')[0])
@@ -1168,9 +1205,11 @@ def elaborate_day(day_input):
                             file_time_step = int(file_time_step.split('.grd')[0])
                         except ValueError:
                             file_time_step = file_time_step.split('.grd')[0]
-                            if file_level in levels_for_interpolation and file_time_step == time_step:
+                            if file_level in levels_for_interpolation and file_time_step == time_step and file_specie == species[l_specie]: 
                                 files_to_use.append(file)
                                 files_levels.append(file_level)
+                    if len(files_to_use) == 0:
+                        continue
                     files_levels = sorted(files_levels)
                     c_interpolated = interpolate(station['easting'], station['northing'], station['elevation'],
                                                  files_levels,
@@ -1225,9 +1264,11 @@ def elaborate_day(day_input):
     for file in files_list_temp:
         if file[0:2] == "c_":
             files_list.append(file)
-            for specie in species:
-                files_list_path.append(os.path.join(model_output_folder, file))  #
-                models.append(model)
+            files_list_path.append(os.path.join(model_output_folder, file))
+            models.append(model)
+    for specie in species[1:]:
+        files_list_path += files_list_path
+        models += models
     time_steps_disgas = []
     if model == 'disgas':
         for file in files_list:
@@ -1302,24 +1343,24 @@ def elaborate_day(day_input):
         end = n_elaborated_files + max_number_processes
         if end > len(files_list_path):
             end = len(files_list_path)
-        try:
-            pool_files = ThreadingPool(max_number_processes)
-            pool_files.map(
+        pool_files = ThreadingPool(max_number_processes)
+        pool_files.map(
                 converter,
                 files_list_path[start:end],
                 processed_files[start:end],
                 species_list[start:end],
                 models[start:end],
-            )
-        except BaseException:
-            print("Unable to convert files")
-            sys.exit()
+        )
         n_elaborated_files = end
         if n_elaborated_files == len(files_list_path):
             break
     if time_av is not None:
         averaged_files = []
         time_min = min(time_steps_elaborated)
+        time_steps_elaborated = sorted(time_steps_elaborated)
+        time_step_simulation = (time_steps_elaborated[1] - time_steps_elaborated[0]).seconds
+        if model == 'twodee':
+            time_min -= datetime.timedelta(seconds=time_step_simulation)
         if time_av == 0:
             time_max = max(time_steps_elaborated)
         else:
@@ -1369,8 +1410,8 @@ def elaborate_day(day_input):
             if time_av == 0:
                 break
             else:
-                time_min = time_max
-                if time_min == max(time_steps_elaborated):
+                time_min = time_max + datetime.timedelta(seconds=time_step_simulation)
+                if time_min >= max(time_steps_elaborated):
                     break
                 time_max = time_min + datetime.timedelta(seconds=time_av * 3600)
                 if time_max > max(time_steps_elaborated):
@@ -1400,6 +1441,7 @@ def read_output_files_for_ecdf(ji):
         try:
             row = linecache.getline(file_input, j_ecdf + 6)
             c_read = (float(row.split(' ')[i_ecdf]))
+            linecache.clearcache()
             return c_read
         except IndexError:
             print('File ' + file_input + ' not found')
@@ -1407,8 +1449,11 @@ def read_output_files_for_ecdf(ji):
 
     j_ecdf = ji[0]
     i_ecdf = ji[1]
-    pool_file_read = ThreadingPool(len(files_to_process))
-    c_list_ecdf = pool_file_read.map(read_file, files_to_process)
+    #pool_file_read = ThreadingPool(len(files_to_process))
+    #c_list_ecdf = pool_file_read.map(read_file, files_to_process)
+    c_list_ecdf = []
+    for file_to_read in files_to_process:
+        c_list_ecdf.append(read_file(file_to_read))
     output_quantile_ecdf = np.quantile(c_list_ecdf, q=1 - probability)
     return j_ecdf, i_ecdf, output_quantile_ecdf
 
@@ -1997,26 +2042,40 @@ def save_plots(model, min_con, max_con):
                                                              str(concentration_thresholds[j]) + '_t_' +
                                                              str(exposure_times[j]) + 'H',
                                                              persistence_plot_file_name))
-
     if len(files_to_plot) == 0:
         print("No files to plot")
     else:
         if min_con == -1.0 and max_con == -1.0:
-            max_con = 0
-            min_con = 1000000000000000
+            for specie in species:
+                files_to_plot_specie = []
+                output_files_specie = []
+                max_con = 0
+                min_con = 1000000000000000
+                i = 0
+                for file_to_plot in files_to_plot:
+                    if specie in file_to_plot:
+                        files_to_plot_specie.append(file_to_plot)
+                        output_files_specie.append(output_files[i])
+                        if 'persistence' not in file_to_plot:
+                            ZZ = np.loadtxt(file_to_plot, skiprows=5)
+                            max_c = np.amax(ZZ)
+                            min_c = np.amin(ZZ)
+                            if max_c > max_con:
+                                max_con = max_c
+                            if min_c < min_con:
+                                min_con = min_c
+                    i += 1
+                i = 0
+                for file_to_plot in files_to_plot_specie:
+                    print("plotting " + file_to_plot)
+                    plot_file(file_to_plot, output_files_specie[i], dz_lines_res)
+                    i += 1
+        else:
+            i = 0
             for file_to_plot in files_to_plot:
-                ZZ = np.loadtxt(file_to_plot, skiprows=5)
-                max_c = np.amax(ZZ)
-                min_c = np.amin(ZZ)
-                if max_c > max_con:
-                    max_con = max_c
-                if min_c < min_con:
-                    min_con = min_c
-        i = 0
-        for file_to_plot in files_to_plot:
-            print("plotting " + file_to_plot)
-            plot_file(file_to_plot, output_files[i], dz_lines_res)
-            i += 1
+                print("plotting " + file_to_plot)
+                plot_file(file_to_plot, output_files[i], dz_lines_res)
+                i += 1
 
 
 root = os.getcwd()
@@ -2102,13 +2161,16 @@ if __name__ == '__main__':
             c = [[[[0 for i in range(0, n_time_steps + 10)] for j in range(0, len(days))]
                  for k in range(0, len(stations))] for l in range(0, len(species))]
         n_completed_processes = 0
+        returned_values = []
         while n_completed_processes <= len(days):
             start = n_completed_processes
             end = n_completed_processes + max_number_processes
             if end > len(days):
                 end = len(days)
             pool = Pool(max_number_processes)
-            returned_values = pool.map(elaborate_day, days[start:end])
+            returned_values_temp = pool.map(elaborate_day, days[start:end])
+            for returned_value_temp in returned_values_temp:
+                returned_values.append(returned_value_temp)
             pool.close()
             pool.join()
             n_completed_processes = end
@@ -2140,9 +2202,11 @@ if __name__ == '__main__':
         if tracking_points:
             probabilistic_tracking_points()
         if calculate_ecdf:
+            print('Line 2203')
             jis = [(j, i) for j in range(ny) for i in range(nx)]
             for probability in exceedance_probabilities:
                 all_output_files, all_ecdf_output_files = prepare_quantile_calculation(probability)
+                print(probability, len(all_output_files), len(all_ecdf_output_files))
                 for ii in range(0, len(all_ecdf_output_files)):
                     output_quantile = np.zeros((ny, nx))
                     files_to_process = all_output_files[ii]
@@ -2152,10 +2216,25 @@ if __name__ == '__main__':
                         end = n_completed_processes + max_number_processes
                         if end > len(jis):
                             end = len(jis)
+                        print(probability, start, end)
                         pool_ecdf = Pool(end - start)
                         output_quantile_return = pool_ecdf.map(read_output_files_for_ecdf, jis[start:end])
                         pool_ecdf.close()
                         pool_ecdf.join()
+                        #try:
+                        #    pool_ecdf = Pool(end - start)
+                        #    output_quantile_return = pool_ecdf.map(read_output_files_for_ecdf, jis[start:end])
+                        #    pool_ecdf.close()
+                        #    pool_ecdf.join()
+                        #except AttributeError:
+                        #    pool_ecdf.terminate()
+                        #    max_number_processes = int(max_number_processes / 2)
+                        #    start = n_completed_processes
+                        #    end = n_completed_processes + max_number_processes
+                        #    pool_ecdf = Pool(end - start)
+                        #    output_quantile_return = pool_ecdf.map(read_output_files_for_ecdf, jis[start:end])
+                        #    pool_ecdf.close()
+                        #    pool_ecdf.join()
                         for i_output in range(len(output_quantile_return)):
                             jj_ecdf = output_quantile_return[i_output][0]
                             ii_ecdf = output_quantile_return[i_output][1]

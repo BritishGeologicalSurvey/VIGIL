@@ -803,7 +803,6 @@ def pre_process(run_type):
                         if continuous_simulation:
                             if i > 0:
                                 hour_start = 0
-                                disgas_input_file.write("  HOUR   = 0\n")
                         disgas_input_file.write("  HOUR   = " + "{0:2.0f}".format(hour_start) + "\n")
                     elif 'SIMULATION_INTERVAL_(SEC)' in record:
                         try:

@@ -1197,8 +1197,8 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
             year_anl = year_yst
             month_anl = month_yst
             day_anl = day_yst
-            time_in -= timedelta(1)
-            day_before = str(time_in - timedelta(1))
+            now -= timedelta(1)
+            day_before = str(now - timedelta(1))
             year_yst = day_before[0:4]
             month_yst = day_before[5:7]
             day_yst = day_before[8:10]
@@ -1218,7 +1218,7 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
 
     # Retrieve weather data that best matches current time
     time_anl = datetime.strptime(year_anl + month_anl + day_anl + anl, "%Y%m%d%H")
-    ifcst = int((now - time_anl).total_seconds() / 3600)
+    ifcst = int((time_in - time_anl).total_seconds() / 3600)
     if ianl < 0:
         ianl = 18
         ifcst = ihour + 6

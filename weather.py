@@ -1123,19 +1123,6 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
     slat_source = str(lat_source)
     lon_corner = str(int(lon_source - 2))
     lat_corner = str(int(lat_source - 2))
-    if time_in != 999:
-        now = str(time_in)
-    else:
-        now = str(datetime.utcnow())
-    day_before = str(time_in - timedelta(1))
-    year = now[0:4]
-    month = now[5:7]
-    day = now[8:10]
-    hour = now[11:13]
-    year_yst = day_before[0:4]
-    month_yst = day_before[5:7]
-    day_yst = day_before[8:10]
-    data_folder = os.path.join(simulations, year + month + day)
     urls = []
     wtfiles = []
     wtfiles_int = []
@@ -1145,6 +1132,21 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
     lat_corners = []
     slon_sources = []
     slat_sources = []
+    if time_in != 999:
+        now = time_in
+        now_str = str(time_in)
+    else:
+        now = datetime.utcnow()
+        now_str = str(datetime.utcnow())
+    day_before = str(time_in - timedelta(1))
+    year = now_str[0:4]
+    month = now_str[5:7]
+    day = now_str[8:10]
+    hour = now_str[11:13]
+    year_yst = day_before[0:4]
+    month_yst = day_before[5:7]
+    day_yst = day_before[8:10]
+    data_folder = os.path.join(simulations, year + month + day)
     # Find last GFS analysis
     ihour = int(hour)
     if 0 <= ihour < 6:
@@ -1167,46 +1169,56 @@ def gfs_retrieve(lon_source, lat_source, nfcst, time_in):
             + "/"
             + anl
     )
-    try:
-        urllib.request.urlopen(url)
-    except urllib.error.HTTPError:
-        ianl = ianl - 6
-        print(
-            "Analysis file at "
-            + anl
-            + "z not yet available. Retrieving the latest available"
+    while True:
+        try:
+            print(url)
+            urllib.request.urlopen(url)
+            break
+        except urllib.error.HTTPError:
+            ianl = ianl - 6
+            print(
+                "Analysis file at "
+                + anl
+                + "z not yet available. Retrieving the latest available"
+            )
+        except urllib.error.URLError:
+            ianl = ianl - 6
+            print(
+                "Analysis file at "
+                + anl
+                + "z not yet available. Retrieving the latest available"
+            )
+        if (
+                ianl < 0
+        ):  # this is in case the analysis at 00z is not available; in this case, ianl = -6 from above, hence must be
+            # corrected. Additionally, the variable ianl will be updated later otherwise it would affect ifcst
+            anl = "18"
+            ianl = 18
+            year_anl = year_yst
+            month_anl = month_yst
+            day_anl = day_yst
+            time_in -= timedelta(1)
+            day_before = str(time_in - timedelta(1))
+            year_yst = day_before[0:4]
+            month_yst = day_before[5:7]
+            day_yst = day_before[8:10]
+        elif 0 <= ianl < 10:
+            anl = "0" + str(ianl)
+        else:
+            anl = str(ianl)
+        url = (
+                "http://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/gfs."
+                + year_anl
+                + month_anl
+                + day_anl
+                + "/"
+                + anl
         )
-    except urllib.error.URLError:
-        ianl = ianl - 6
-        print(
-            "Analysis file at "
-            + anl
-            + "z not yet available. Retrieving the latest available"
-        )
-    if (
-            ianl < 0
-    ):  # this is in case the analysis at 00z is not available; in this case, ianl = -6 from above, hence must be
-        # corrected. Additionally, the variable ianl will be updated later otherwise it would affect ifcst
-        anl = "18"
-        year_anl = year_yst
-        month_anl = month_yst
-        day_anl = day_yst
-    elif 0 <= ianl < 10:
-        anl = "0" + str(ianl)
-    else:
-        anl = str(ianl)
-    url = (
-            "http://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/gfs."
-            + year_anl
-            + month_anl
-            + day_anl
-            + "/"
-            + anl
-    )
     print("Most up to date GFS analysis: " + url)
 
     # Retrieve weather data that best matches current time
-    ifcst = ihour - ianl
+    time_anl = datetime.strptime(year_anl + month_anl + day_anl + anl, "%Y%m%d%H")
+    ifcst = int((now - time_anl).total_seconds() / 3600)
     if ianl < 0:
         ianl = 18
         ifcst = ihour + 6

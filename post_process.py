@@ -1368,7 +1368,14 @@ def elaborate_day(day_input):
             if time_max > max(time_steps_elaborated):
                 time_max = max(time_steps_elaborated)
         while time_max <= max(time_steps_elaborated):
+            time_diff = time_max - time_min
+            if int((time_max - time_min).total_seconds()) <= time_step_simulation:
+                print('Warning! Time-averaging interval smaller than or equal to the time step of the simulation')
+                tavgs_intervals = []
+                break
             time_max_s = datetime.datetime.strftime(time_max, '%H%M')
+            if time_max_s == '0000':
+                time_max_s = '2400'
             if datetime.datetime.strftime(time_min, '%H%M') + "-" + time_max_s + "-tavg" not in tavg_intervals:
                 tavg_intervals.append(datetime.datetime.strftime(time_min, '%H%M') + "-" + time_max_s + "-tavg")
             for i in range(0, len(species)):
@@ -1388,7 +1395,7 @@ def elaborate_day(day_input):
                         + datetime.datetime.strftime(time_min, '%Y%m%d%H%M')
                         + "-"
                         + datetime.datetime.strftime(time_max, '%Y%m%d%H%M')
-                        + "-tavg.grd",
+                        +"-tavg.grd",
                     )
                     try:
                         os.remove(time_averaged_file)
@@ -1410,7 +1417,8 @@ def elaborate_day(day_input):
             if time_av == 0:
                 break
             else:
-                time_min = time_max + datetime.timedelta(seconds=time_step_simulation)
+                #time_min = time_max + datetime.timedelta(seconds=time_step_simulation)
+                time_min = time_max
                 if time_min >= max(time_steps_elaborated):
                     break
                 time_max = time_min + datetime.timedelta(seconds=time_av * 3600)
@@ -1497,12 +1505,17 @@ def prepare_quantile_calculation(exc_prob):
                 tavg_interval_end_s = day + time_step.split('-')[1]
                 tavg_interval_start = datetime.datetime.strptime(tavg_interval_start_s, '%Y%m%d%H%M')
                 try:
-                    datetime.datetime.strptime(tavg_interval_end_s, '%Y%m%d%H%M')
-                except ValueError:
+                    tavg_interval_end = datetime.datetime.strptime(tavg_interval_end_s, '%Y%m%d%H%M')
+                except ValueError: #in case time_step.split('-')[1] = 2400
+                    if(int(time_step.split('-')[0][0:2]) + int(time_step.split('-')[1][0:2])) > 24:
+                        tavg_interval_end = tavg_interval_start + datetime.timedelta(hours=int(time_step.split('-')[1][0:2]) - int(time_step.split('-')[0][0:2]))
+                    else:
+                        tavg_interval_end = tavg_interval_start + datetime.timedelta(hours=int(time_step.split('-')[0][0:2]) + int(time_step.split('-')[1][0:2]))
+                if tavg_interval_end < tavg_interval_start:
                     tavg_interval_end = tavg_interval_start + \
-                                        datetime.timedelta(hours=(int(time_step.split('-')[1]) -
-                                                                  int(time_step.split('-')[0])))
-                    tavg_interval_end_s = datetime.datetime.strftime(tavg_interval_end, '%Y%m%d%H%M')
+                            datetime.timedelta(hours=int(time_step.split('-')[0][0:2]) +
+                                int(time_step.split('-')[1][0:2]))
+                tavg_interval_end_s = datetime.datetime.strftime(tavg_interval_end, '%Y%m%d%H%M')
                 day_interval = datetime.datetime.strftime(tavg_interval_start, '%Y%m%d')
                 if day != day_interval:
                     continue
@@ -1576,6 +1589,7 @@ def prepare_quantile_calculation(exc_prob):
         a, b = prepare_files(indexes[i_indexes])
         all_output_files.append(a)
         all_ecdf_output_files.append(b)
+    print(tavg_intervals)
     if len(tavg_intervals) > 0:
         for i_indexes in range(0, len(indexes_tavg)):
             a, b = prepare_files(indexes_tavg[i_indexes])
@@ -2202,11 +2216,9 @@ if __name__ == '__main__':
         if tracking_points:
             probabilistic_tracking_points()
         if calculate_ecdf:
-            print('Line 2203')
             jis = [(j, i) for j in range(ny) for i in range(nx)]
             for probability in exceedance_probabilities:
                 all_output_files, all_ecdf_output_files = prepare_quantile_calculation(probability)
-                print(probability, len(all_output_files), len(all_ecdf_output_files))
                 for ii in range(0, len(all_ecdf_output_files)):
                     output_quantile = np.zeros((ny, nx))
                     files_to_process = all_output_files[ii]
@@ -2216,25 +2228,10 @@ if __name__ == '__main__':
                         end = n_completed_processes + max_number_processes
                         if end > len(jis):
                             end = len(jis)
-                        print(probability, start, end)
                         pool_ecdf = Pool(end - start)
                         output_quantile_return = pool_ecdf.map(read_output_files_for_ecdf, jis[start:end])
                         pool_ecdf.close()
                         pool_ecdf.join()
-                        #try:
-                        #    pool_ecdf = Pool(end - start)
-                        #    output_quantile_return = pool_ecdf.map(read_output_files_for_ecdf, jis[start:end])
-                        #    pool_ecdf.close()
-                        #    pool_ecdf.join()
-                        #except AttributeError:
-                        #    pool_ecdf.terminate()
-                        #    max_number_processes = int(max_number_processes / 2)
-                        #    start = n_completed_processes
-                        #    end = n_completed_processes + max_number_processes
-                        #    pool_ecdf = Pool(end - start)
-                        #    output_quantile_return = pool_ecdf.map(read_output_files_for_ecdf, jis[start:end])
-                        #    pool_ecdf.close()
-                        #    pool_ecdf.join()
                         for i_output in range(len(output_quantile_return)):
                             jj_ecdf = output_quantile_return[i_output][0]
                             ii_ecdf = output_quantile_return[i_output][1]

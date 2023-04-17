@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Fixed an error in User_Manual.docx&#10;Improved the way weather.py handles weather data retrieval of GFS forecast">
-      <change beforePath="$PROJECT_DIR$/.idea/.name" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.name" afterDir="false" />
+    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Fixed a bug in post_process.py that prevented correct time-averaging of the outputs">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Manual/User_Manual.docx" beforeDir="false" afterPath="$PROJECT_DIR$/Manual/User_Manual.docx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/post_process.py" beforeDir="false" afterPath="$PROJECT_DIR$/post_process.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -13,7 +14,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="v_1.3.3" />
+        <entry key="$PROJECT_DIR$" value="v_1.3.4" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -489,7 +490,14 @@
       <option name="project" value="LOCAL" />
       <updated>1677498827394</updated>
     </task>
-    <option name="localTasksCounter" value="47" />
+    <task id="LOCAL-00047" summary="Fixed a bug in post_process.py that prevented correct time-averaging of the outputs">
+      <created>1679554274873</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1679554274873</updated>
+    </task>
+    <option name="localTasksCounter" value="48" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -504,7 +512,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Fixed the most important warnings" />
     <MESSAGE value="Updated twodee.inp in example_3 because there was an input missing" />
     <MESSAGE value="Fixed some bugs in the time-averaged outputs handling, but there is still work to do" />
     <MESSAGE value="Fixed other bugs and modified commands files in the examples" />
@@ -529,6 +536,7 @@
     <MESSAGE value="Fixed a bug that prevented the correct usage of the option &quot;-N --nproc&quot;. This option was ignored by the code in the previous version" />
     <MESSAGE value="Implemented background concentration in gas_properties.csv to prevent conflicts of background concentration when using different gas species&#10;Implemented capability to autoscale plot limits based on the specific gas specie concentration if -PL is not set&#10;Fixed a minor bug in the species concentration conversion function" />
     <MESSAGE value="Fixed an error in User_Manual.docx&#10;Improved the way weather.py handles weather data retrieval of GFS forecast" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixed an error in User_Manual.docx&#10;Improved the way weather.py handles weather data retrieval of GFS forecast" />
+    <MESSAGE value="Fixed a bug in post_process.py that prevented correct time-averaging of the outputs" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixed a bug in post_process.py that prevented correct time-averaging of the outputs" />
   </component>
 </project>

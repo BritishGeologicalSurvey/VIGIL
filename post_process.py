@@ -498,6 +498,7 @@ def folder_structure():
 
 def gas_properties():
     def extract_gas_properties(specie):
+        global persistence
         data = pd.read_csv(gas_properties_file, on_bad_lines='skip')
         molar_ratio = None
         bg_conc = None
@@ -551,6 +552,29 @@ def gas_properties():
                 print('WARNING. Background concentration of ' + specie + ' not found in gas_properties.csv')
         except KeyError:
             print('WARNING. Background concentration of ' + specie + ' not found in gas_properties.csv')
+        for i_exp in range(len(exp_times)):
+            if float(exp_times[i_exp]) < simulation_time / n_time_steps / 3600:
+                print('WARNING. For specie ' + specie + ' the exposure time ' + str(exp_times[i_exp]) +
+                      ' h for the concentration threshold ' + str(conc_thresholds[i_exp]) +
+                      ' ppm is less than the simulation output time step ' +
+                      str(simulation_time / n_time_steps / 3600) + ' h')
+                print('The persistence calculation will assume that the concentration threshold will be overcome for'
+                      ' this time shorter than the time step of the simulation')
+            elif float(exp_times[i_exp]) > simulation_time / 3600:
+                print('WARNING. For specie ' + specie + ' the exposure time ' + str(exp_times[i_exp]) +
+                      ' h for the concentration threshold ' + str(conc_thresholds[i_exp]) +
+                      ' ppm is greater than the simulation duration ' + str(simulation_time / 3600) + ' h')
+                exp_times[i_exp] = 'remove'
+                conc_thresholds[i_exp] = 'remove'
+        while len(exp_times) > 0:
+            try:
+                exp_times.remove('remove')
+                conc_thresholds.remove('remove')
+            except ValueError:
+                break
+        if len(exp_times) == 0:
+            persistence = False
+            print('WARNING. Persistence calculation not possible')
         return molar_ratio, molar_weight, conc_thresholds, exp_times, bg_conc
 
     gas_properties_file = os.path.join(root, "gas_properties.csv")
@@ -1589,7 +1613,6 @@ def prepare_quantile_calculation(exc_prob):
         a, b = prepare_files(indexes[i_indexes])
         all_output_files.append(a)
         all_ecdf_output_files.append(b)
-    print(tavg_intervals)
     if len(tavg_intervals) > 0:
         for i_indexes in range(0, len(indexes_tavg)):
             a, b = prepare_files(indexes_tavg[i_indexes])
@@ -2148,7 +2171,6 @@ root = os.getcwd()
 
 if __name__ == '__main__':
     days, days_to_plot = extract_days()
-    species_properties = gas_properties()
     if max_number_processes > cpu_count():
         print('WARNING. Number of requested simulataneous processes larger than the available ' + str(cpu_count())
               + ' cores')
@@ -2169,6 +2191,7 @@ if __name__ == '__main__':
     for model in models_to_elaborate:
         x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, simulation_time, output_levels, hour_start, minute_start = \
             domain(model)
+        species_properties = gas_properties()
         if tracking_points:
             stations = elaborate_tracking_points()
             # Initialize array of concentration to be used for ECDFs in the tracking points

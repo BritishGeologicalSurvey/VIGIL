@@ -156,7 +156,7 @@ def read_arguments():
     source_dx_in = args.source_dx
     source_dy_in = args.source_dy
     source_dur_in = args.source_dur
-    source_easting_in = source_northing = source_el = 0
+    source_easting_in = source_northing_in = source_el_in = 0
     sources_interval_in = sources_interval_in.split(',')
     source_location = source_location_in.split(',')
     domain = domain_in.split(',')
@@ -191,8 +191,8 @@ def read_arguments():
             ):  # identify valid geographic coordinates
                 try:
                     out_utm = utm.from_latlon(bottom_left_1, bottom_left_2)
-                    bottom_left_easting = float(out_utm[0])
-                    bottom_left_northing = float(out_utm[1])
+                    bottom_left_easting_in = float(out_utm[0])
+                    bottom_left_northing_in = float(out_utm[1])
                 except ValueError:
                     print(
                         "ERROR. Please provide valid coordinates for the bottom left corner of the domain"
@@ -200,8 +200,8 @@ def read_arguments():
                     sys.exit()
                 try:
                     out_utm = utm.from_latlon(top_right_1, top_right_2)
-                    top_right_easting = float(out_utm[0])
-                    top_right_northing = float(out_utm[1])
+                    top_right_easting_in = float(out_utm[0])
+                    top_right_northing_in = float(out_utm[1])
                 except ValueError:
                     print(
                         "ERROR. Please provide valid coordinates for the top right corner of the domain"
@@ -211,29 +211,29 @@ def read_arguments():
                 print("ERROR. Please provide valid coordinates")
                 sys.exit()
         elif coordinates_type == "UTM":
-            bottom_left_northing = float(domain[1])
-            bottom_left_easting = float(domain[2])
-            top_right_northing = float(domain[3])
-            top_right_easting = float(domain[4])
+            bottom_left_northing_in = float(domain[1])
+            bottom_left_easting_in = float(domain[2])
+            top_right_northing_in = float(domain[3])
+            top_right_easting_in = float(domain[4])
         else:
             print("ERROR. Please provide a valide type of coordinates (UTM or GEO)")
             sys.exit()
         if (
-            bottom_left_northing == top_right_northing
-            or bottom_left_easting == top_right_easting
+            bottom_left_northing_in == top_right_northing_in
+            or bottom_left_easting_in == top_right_easting_in
         ):
             print("ERROR. Coordinates of the corners cannot coincide")
             sys.exit()
         if (
-            bottom_left_northing > top_right_northing
-            and bottom_left_easting > top_right_easting
+            bottom_left_northing_in > top_right_northing_in
+            and bottom_left_easting_in > top_right_easting_in
         ):  # Check coordinates are in the proper order, otherwise swap
-            temp = bottom_left_northing
-            bottom_left_northing = top_right_northing
-            top_right_northing = temp
-            temp = bottom_left_easting
-            bottom_left_easting = top_right_easting
-            top_right_easting = temp
+            temp = bottom_left_northing_in
+            bottom_left_northing_in = top_right_northing_in
+            top_right_northing_in = temp
+            temp = bottom_left_easting_in
+            bottom_left_easting_in = top_right_easting_in
+            top_right_easting_in = temp
         with open(topography, 'r') as topography_file:
             for pos, line in enumerate(topography_file):
                 if pos == 2:
@@ -242,15 +242,15 @@ def read_arguments():
                 elif pos == 3:
                     y_bottom_top = float(line.split(' ')[0])
                     y_top_top = float(line.split(' ')[1])
-            if bottom_left_northing < y_bottom_top or bottom_left_easting < x_left_top or \
-                    top_right_northing > y_top_top or top_right_easting > x_right_top:
+            if bottom_left_northing_in < y_bottom_top or bottom_left_easting_in < x_left_top or \
+                    top_right_northing_in > y_top_top or top_right_easting_in > x_right_top:
                 print('ERROR. Defined computational domain not consistent with topography.grd')
                 print('Topography domain extent')
                 print('X_west (m) = ' + str(x_left_top) + ' X_east (m) = ' + str(x_right_top))
                 print('Y_south (m) = ' + str(y_bottom_top) + ' Y_north (m) = ' + str(y_top_top))
                 print('Computational domain extent')
-                print('X_west (m) = ' + str(bottom_left_easting) + ' X_east (m) = ' + str(top_right_easting))
-                print('Y_south (m) = ' + str(bottom_left_northing) + ' Y_north (m) = ' + str(top_right_northing))
+                print('X_west (m) = ' + str(bottom_left_easting_in) + ' X_east (m) = ' + str(top_right_easting_in))
+                print('Y_south (m) = ' + str(bottom_left_northing_in) + ' Y_north (m) = ' + str(top_right_northing_in))
                 sys.exit()
     try:
         nx_in = int(nx_in)
@@ -277,25 +277,25 @@ def read_arguments():
             print("ERROR. Either (NX, NY) or (DX, DY) must be specified")
             sys.exit()
         elif dx_in != -1 and dy_in != -1:
-            if dx_in < 0 or dx_in > (top_right_easting - bottom_left_easting) or dy_in < 0 \
-                    or dy_in > (top_right_northing - bottom_left_northing):
+            if dx_in < 0 or dx_in > (top_right_easting_in - bottom_left_easting_in) or dy_in < 0 \
+                    or dy_in > (top_right_northing_in - bottom_left_northing_in):
                 print("ERROR. Please provide a valid number for (DX, DY)")
                 sys.exit()
             else:
-                nx_in = int((top_right_easting - bottom_left_easting) / dx_in)
-                ny_in = int((top_right_northing - bottom_left_northing) / dy_in)
+                nx_in = int((top_right_easting_in - bottom_left_easting_in) / dx_in)
+                ny_in = int((top_right_northing_in - bottom_left_northing_in) / dy_in)
     elif nx_in != -1 and ny_in != -1:
         if nx_in < 0 or ny_in < 0:
             print("ERROR. Please provide a valid number for (NX, NY)")
             sys.exit()
         else:
-            dx_in = (top_right_easting - bottom_left_easting) / float(nx_in)
-            dy_in = (top_right_northing - bottom_left_northing) / float(ny_in)
+            dx_in = (top_right_easting_in - bottom_left_easting_in) / float(nx_in)
+            dy_in = (top_right_northing_in - bottom_left_northing_in) / float(ny_in)
     # Check provided nx, ny or dx, dy match the provided domain extent, otherwise correct
-    if bottom_left_easting + dx_in * nx_in != top_right_easting:
-        top_right_easting = bottom_left_easting + dx_in * nx_in
-    if bottom_left_northing + dy_in * ny_in != top_right_northing:
-        top_right_northing = bottom_left_northing + dy_in * ny_in
+    if bottom_left_easting_in + dx_in * nx_in != top_right_easting_in:
+        top_right_easting_in = bottom_left_easting_in + dx_in * nx_in
+    if bottom_left_northing_in + dy_in * ny_in != top_right_northing_in:
+        top_right_northing_in = bottom_left_northing_in + dy_in * ny_in
 
     if random_sources_in == "on":
         try:
@@ -352,7 +352,7 @@ def read_arguments():
                                     float(source_location[1]), float(source_location[2])
                                 )
                                 source_easting_in = float(out_utm[0])
-                                source_northing = float(out_utm[1])
+                                source_northing_in = float(out_utm[1])
                             except ValueError:
                                 print(
                                     "ERROR. Please provide valid coordinates of the source location"
@@ -360,14 +360,14 @@ def read_arguments():
                                 sys.exit()
                     elif coordinates_type == "UTM":
                         source_easting_in = float(source_location[1])
-                        source_northing = float(source_location[0])
+                        source_northing_in = float(source_location[0])
                         if (
-                            not bottom_left_easting
+                            not bottom_left_easting_in
                             <= source_easting_in
-                            <= top_right_easting
-                            or not bottom_left_northing
-                            <= source_northing
-                            <= top_right_northing
+                            <= top_right_easting_in
+                            or not bottom_left_northing_in
+                            <= source_northing_in
+                            <= top_right_northing_in
                         ):
                             print("ERROR. Location not within the domain")
                             sys.exit()
@@ -382,7 +382,7 @@ def read_arguments():
                         )
                         sys.exit()
                     else:
-                        source_el = float(source_location[2])
+                        source_el_in = float(source_location[2])
     if random_emission_in == "on":
         try:
             sources_file = open("flux.txt", "r")
@@ -394,21 +394,21 @@ def read_arguments():
         print("ERROR. Valid options for -RER --random_sources are on and off")
         sys.exit()
     if model.lower() == 'twodee':
-        twodee_on = True
-        disgas_on = False
+        twodee = True
+        disgas = False
     elif model.lower() == 'disgas':
-        twodee_on = False
-        disgas_on = True
+        twodee = False
+        disgas = True
     elif model.lower() == 'automatic':
-        twodee_on = True
-        disgas_on = True
+        twodee = True
+        disgas = True
     else:
         print("ERROR. Please provide a valid entry for the variable -DM --dispersion_model")
         sys.exit()
     if diagno.lower() == "on":
-        diagno_on = True
+        diagno = True
     elif diagno.lower() == "off":
-        diagno_on = False
+        diagno = False
     else:
         print("ERROR. Please provide a valid entry for the variable -DI --diagno")
         sys.exit()
@@ -448,14 +448,14 @@ def read_arguments():
         nsources_in,
         sources_interval_in,
         source_easting_in,
-        source_northing,
-        source_el,
+        source_northing_in,
+        source_el_in,
         source_emission_in,
         random_emission_in,
-        bottom_left_northing,
-        bottom_left_easting,
-        top_right_northing,
-        top_right_easting,
+        bottom_left_northing_in,
+        bottom_left_easting_in,
+        top_right_northing_in,
+        top_right_easting_in,
         nx_in,
         ny_in,
         dx_in,
@@ -463,9 +463,9 @@ def read_arguments():
         source_dx_in,
         source_dy_in,
         source_dur_in,
-        diagno_on,
-        twodee_on,
-        disgas_on,
+        diagno,
+        twodee,
+        disgas,
         use_slurm,
         slurm_partition,
     )

@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Fixed a bug in environment.yml (scipy was missing)">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Included new argument that replaces -TD -DG">
       <change beforePath="$PROJECT_DIR$/run_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/run_models.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -503,7 +502,14 @@
       <option name="project" value="LOCAL" />
       <updated>1683725826862</updated>
     </task>
-    <option name="localTasksCounter" value="49" />
+    <task id="LOCAL-00049" summary="Included new argument that replaces -TD -DG">
+      <created>1683727074517</created>
+      <option name="number" value="00049" />
+      <option name="presentableId" value="LOCAL-00049" />
+      <option name="project" value="LOCAL" />
+      <updated>1683727074517</updated>
+    </task>
+    <option name="localTasksCounter" value="50" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -518,7 +524,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Fixed some bugs in the time-averaged outputs handling, but there is still work to do" />
     <MESSAGE value="Fixed other bugs and modified commands files in the examples" />
     <MESSAGE value="Removed unused commands from twodee.inp in example_3" />
     <MESSAGE value="Improved the option DIAGNO off and removed some misleading messages" />
@@ -543,6 +548,7 @@
     <MESSAGE value="Fixed an error in User_Manual.docx&#10;Improved the way weather.py handles weather data retrieval of GFS forecast" />
     <MESSAGE value="Fixed a bug in post_process.py that prevented correct time-averaging of the outputs" />
     <MESSAGE value="Fixed a bug in environment.yml (scipy was missing)" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixed a bug in environment.yml (scipy was missing)" />
+    <MESSAGE value="Included new argument that replaces -TD -DG" />
+    <option name="LAST_COMMIT_MESSAGE" value="Included new argument that replaces -TD -DG" />
   </component>
 </project>

@@ -121,10 +121,7 @@ def read_arguments():
                                               "been run"
     )
     parser.add_argument(
-        "-TD", "--twodee", default="off", help="on or off, to run Twodee"
-    )
-    parser.add_argument(
-        "-DG", "--disgas", default="off", help="on or off, to run Disgas"
+        "-DM", "--dispersion_model", default="off", help="Twodee, Disgas or Automatic"
     )
     parser.add_argument(
         "-US", "--use_slurm", default="False", help="True or False, to use SLURM Workload Manager"
@@ -134,49 +131,48 @@ def read_arguments():
     )
     args = parser.parse_args()
     nproc = args.nproc
-    run_type = args.run_type
-    continuous_simulation = args.continuous_simulation
-    random_sources = args.random_sources
-    nsources = args.nsources
+    run_type_in = args.run_type
+    continuous_simulation_in = args.continuous_simulation
+    random_sources_in = args.random_sources
+    nsources_in = args.nsources
     source_location_in = args.source_location
     sources_interval_in = args.sources_interval
     domain_in = args.domain
-    nx = args.nx
-    ny = args.ny
-    dx = args.dx
-    dy = args.dy
-    source_emission = args.source_emission
-    random_emission = args.random_emission
+    nx_in = args.nx
+    ny_in = args.ny
+    dx_in = args.dx
+    dy_in = args.dy
+    source_emission_in = args.source_emission
+    random_emission_in = args.random_emission
     try:
-        max_number_processes = int(nproc)
+        max_number_processes_in = int(nproc)
     except ValueError:
         print("Please provide a valid number for the maximum number of process")
         sys.exit()
-    twodee = args.twodee
-    disgas = args.disgas
+    model = args.dispersion_model
     diagno = args.diagno
     use_slurm = args.use_slurm
     slurm_partition = args.slurm_partition
-    source_dx = args.source_dx
-    source_dy = args.source_dy
-    source_dur = args.source_dur
-    source_easting = source_northing = source_el = 0
-    sources_interval = sources_interval_in.split(',')
+    source_dx_in = args.source_dx
+    source_dy_in = args.source_dy
+    source_dur_in = args.source_dur
+    source_easting_in = source_northing = source_el = 0
+    sources_interval_in = sources_interval_in.split(',')
     source_location = source_location_in.split(',')
     domain = domain_in.split(',')
-    run_type = run_type.lower()
-    if run_type != 'new' and run_type != 'restart':
+    run_type_in = run_type_in.lower()
+    if run_type_in != 'new' and run_type_in != 'restart':
         print('ERROR. Please provide a valid entry for -RT --run_type')
         sys.exit()
-    if continuous_simulation.lower() == "true":
-        continuous_simulation = True
-    elif continuous_simulation.lower() == "false":
-        continuous_simulation = False
+    if continuous_simulation_in.lower() == "true":
+        continuous_simulation_in = True
+    elif continuous_simulation_in.lower() == "false":
+        continuous_simulation_in = False
     else:
         print("ERROR. Wrong value for variable -CS --continuous_simulation")
         sys.exit()
     try:
-        source_emission = float(source_emission)
+        source_emission_in = float(source_emission_in)
     except ValueError:
         print("Please provide a valid number for the emission rate of the source")
         sys.exit()
@@ -257,51 +253,51 @@ def read_arguments():
                 print('Y_south (m) = ' + str(bottom_left_northing) + ' Y_north (m) = ' + str(top_right_northing))
                 sys.exit()
     try:
-        nx = int(nx)
+        nx_in = int(nx_in)
     except ValueError:
         print("Please provide a valid number for -NX --nx")
         sys.exit()
     try:
-        ny = int(ny)
+        ny_in = int(ny_in)
     except ValueError:
         print("Please provide a valid number for -NY --ny")
         sys.exit()
     try:
-        dx = float(dx)
+        dx_in = float(dx_in)
     except ValueError:
         print("Please provide a valid number for -DX --dx")
         sys.exit()
     try:
-        dy = float(dy)
+        dy_in = float(dy_in)
     except ValueError:
         print("Please provide a valid number for -DY --dy")
         sys.exit()
-    if nx == -1 or ny == -1:
-        if dx == -1 or dy == -1:
+    if nx_in == -1 or ny_in == -1:
+        if dx_in == -1 or dy_in == -1:
             print("ERROR. Either (NX, NY) or (DX, DY) must be specified")
             sys.exit()
-        elif dx != -1 and dy != -1:
-            if dx < 0 or dx > (top_right_easting - bottom_left_easting) or dy < 0 \
-                    or dy > (top_right_northing - bottom_left_northing):
+        elif dx_in != -1 and dy_in != -1:
+            if dx_in < 0 or dx_in > (top_right_easting - bottom_left_easting) or dy_in < 0 \
+                    or dy_in > (top_right_northing - bottom_left_northing):
                 print("ERROR. Please provide a valid number for (DX, DY)")
                 sys.exit()
             else:
-                nx = int((top_right_easting - bottom_left_easting) / dx)
-                ny = int((top_right_northing - bottom_left_northing) / dy)
-    elif nx != -1 and ny != -1:
-        if nx < 0 or ny < 0:
+                nx_in = int((top_right_easting - bottom_left_easting) / dx_in)
+                ny_in = int((top_right_northing - bottom_left_northing) / dy_in)
+    elif nx_in != -1 and ny_in != -1:
+        if nx_in < 0 or ny_in < 0:
             print("ERROR. Please provide a valid number for (NX, NY)")
             sys.exit()
         else:
-            dx = (top_right_easting - bottom_left_easting) / float(nx)
-            dy = (top_right_northing - bottom_left_northing) / float(ny)
+            dx_in = (top_right_easting - bottom_left_easting) / float(nx_in)
+            dy_in = (top_right_northing - bottom_left_northing) / float(ny_in)
     # Check provided nx, ny or dx, dy match the provided domain extent, otherwise correct
-    if bottom_left_easting + dx * nx != top_right_easting:
-        top_right_easting = bottom_left_easting + dx * nx
-    if bottom_left_northing + dy * ny != top_right_northing:
-        top_right_northing = bottom_left_northing + dy * ny
+    if bottom_left_easting + dx_in * nx_in != top_right_easting:
+        top_right_easting = bottom_left_easting + dx_in * nx_in
+    if bottom_left_northing + dy_in * ny_in != top_right_northing:
+        top_right_northing = bottom_left_northing + dy_in * ny_in
 
-    if random_sources == "on":
+    if random_sources_in == "on":
         try:
             np.loadtxt("probability_map.grd", skiprows=5)
         except ValueError:
@@ -309,26 +305,26 @@ def read_arguments():
                 "Please provide a valid probability_map.grd file when random_sources option is on"
             )
             sys.exit()
-        if nsources == "random":
-            if len(sources_interval) != 2:
+        if nsources_in == "random":
+            if len(sources_interval_in) != 2:
                 print(
                     "ERROR. Please specify the minimum and maximum number of sources with -SINT --sources_interval"
                 )
                 sys.exit()
         else:
             try:
-                nsources = int(nsources)
+                nsources_in = int(nsources_in)
             except ValueError:
                 print("Please provide a valid integer for -NS --nsources")
                 sys.exit()
-        if random_emission == "off" and source_emission == 999:
+        if random_emission_in == "off" and source_emission_in == 999:
             print(
                 "ERROR. random_sources set to on requires either random_emission set to on or a "
                 "specified source_emission"
             )
             sys.exit()
     else:
-        if random_sources != "off":
+        if random_sources_in != "off":
             print("ERROR. Valid options for -RS --random_sources are on and off")
             sys.exit()
         else:
@@ -355,7 +351,7 @@ def read_arguments():
                                 out_utm = utm.from_latlon(
                                     float(source_location[1]), float(source_location[2])
                                 )
-                                source_easting = float(out_utm[0])
+                                source_easting_in = float(out_utm[0])
                                 source_northing = float(out_utm[1])
                             except ValueError:
                                 print(
@@ -363,11 +359,11 @@ def read_arguments():
                                 )
                                 sys.exit()
                     elif coordinates_type == "UTM":
-                        source_easting = float(source_location[1])
+                        source_easting_in = float(source_location[1])
                         source_northing = float(source_location[0])
                         if (
                             not bottom_left_easting
-                            <= source_easting
+                            <= source_easting_in
                             <= top_right_easting
                             or not bottom_left_northing
                             <= source_northing
@@ -387,29 +383,27 @@ def read_arguments():
                         sys.exit()
                     else:
                         source_el = float(source_location[2])
-    if random_emission == "on":
+    if random_emission_in == "on":
         try:
             sources_file = open("flux.txt", "r")
             sources_file.close()
         except FileNotFoundError:
             print("ERROR. File flux.txt not found")
             sys.exit()
-    elif random_emission != "off":
+    elif random_emission_in != "off":
         print("ERROR. Valid options for -RER --random_sources are on and off")
         sys.exit()
-    if twodee.lower() == "on":
+    if model.lower() == 'twodee':
         twodee_on = True
-    elif twodee.lower() == "off":
-        twodee_on = False
-    else:
-        print("ERROR. Please provide a valid entry for the variable -TD --twodee")
-        sys.exit()
-    if disgas.lower() == "on":
-        disgas_on = True
-    elif disgas.lower() == "off":
         disgas_on = False
+    elif model.lower() == 'disgas':
+        twodee_on = False
+        disgas_on = True
+    elif model.lower() == 'automatic':
+        twodee_on = True
+        disgas_on = True
     else:
-        print("ERROR. Please provide a valid entry for the variable -DG --disgas")
+        print("ERROR. Please provide a valid entry for the variable -DM --dispersion_model")
         sys.exit()
     if diagno.lower() == "on":
         diagno_on = True
@@ -418,21 +412,21 @@ def read_arguments():
     else:
         print("ERROR. Please provide a valid entry for the variable -DI --diagno")
         sys.exit()
-    if source_dx != 999999:
+    if source_dx_in != 999999:
         try:
-            source_dx = float(source_dx)
+            source_dx_in = float(source_dx_in)
         except ValueError:
             print("ERROR. Please provide a valid number for the variable -SDX --source_dx")
             sys.exit()
-    if source_dy != 999999:
+    if source_dy_in != 999999:
         try:
-            source_dy = float(source_dy)
+            source_dy_in = float(source_dy_in)
         except ValueError:
             print("ERROR. Please provide a valid number for the variable -SDY --source_dy")
             sys.exit()
-    if source_dur != 0:
+    if source_dur_in != 0:
         try:
-            source_dur = float(source_dur)
+            source_dur_in = float(source_dur_in)
         except ValueError:
             print("ERROR. Please provide a valid number for the variable -SDUR --source_dur")
             sys.exit()
@@ -447,28 +441,28 @@ def read_arguments():
         sys.exit()
     slurm_partition = slurm_partition.lower()
     return (
-        run_type,
-        continuous_simulation,
-        max_number_processes,
-        random_sources,
-        nsources,
-        sources_interval,
-        source_easting,
+        run_type_in,
+        continuous_simulation_in,
+        max_number_processes_in,
+        random_sources_in,
+        nsources_in,
+        sources_interval_in,
+        source_easting_in,
         source_northing,
         source_el,
-        source_emission,
-        random_emission,
+        source_emission_in,
+        random_emission_in,
         bottom_left_northing,
         bottom_left_easting,
         top_right_northing,
         top_right_easting,
-        nx,
-        ny,
-        dx,
-        dy,
-        source_dx,
-        source_dy,
-        source_dur,
+        nx_in,
+        ny_in,
+        dx_in,
+        dy_in,
+        source_dx_in,
+        source_dy_in,
+        source_dur_in,
         diagno_on,
         twodee_on,
         disgas_on,

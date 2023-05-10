@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Fixed a bug in post_process.py that prevented correct time-averaging of the outputs">
+    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Added setup.py and init file in src in order to create a package that can be installed from within the conda environment">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Manual/User_Manual.docx" beforeDir="false" afterPath="$PROJECT_DIR$/Manual/User_Manual.docx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/post_process.py" beforeDir="false" afterPath="$PROJECT_DIR$/post_process.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/environment.yml" beforeDir="false" afterPath="$PROJECT_DIR$/environment.yml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -14,7 +13,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="v_1.3.4" />
+        <entry key="$PROJECT_DIR$" value="v_2.0" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -152,8 +151,8 @@
     <recent_temporary>
       <list>
         <item itemvalue="Python.scratch_12" />
-        <item itemvalue="Python.scratch_10" />
         <item itemvalue="Python.scratch_11" />
+        <item itemvalue="Python.scratch_10" />
         <item itemvalue="Python.scratch_9" />
         <item itemvalue="Python.scratch_4" />
       </list>

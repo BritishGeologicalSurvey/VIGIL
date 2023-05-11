@@ -474,7 +474,7 @@ def read_arguments():
 def prepare_days():
     try:
         raw_days = []  # store the days as originally formatted
-        days = []  # store days in format YYYYMMDD as per folder name
+        formatted_days = []  # store days in format YYYYMMDD as per folder name
         # read days_list file
         with open(
             os.path.join(root, "days_list.txt"), "r", encoding="utf-8", errors="surrogateescape"
@@ -488,7 +488,7 @@ def prepare_days():
         temp = raw_days[k].split(" ")
         temp = temp[0].split("-")
         days.append(temp[0] + temp[1] + temp[2])
-    return sorted(days)
+    return sorted(formatted_days)
 
 
 def pre_process(run_type):
@@ -1164,6 +1164,57 @@ def run_diagno(max_number_processes):
     os.chdir(root)
 
 
+def read_diagno_outputs():
+    from scipy.io import FortranFile
+
+    nx_source = [i_source for i_source in range(43, 44)]
+    ny_source = [j_source for j_source in range(56, 57)]
+    f = FortranFile('diagno.out', 'r')
+    vx = []
+    vy = []
+    wind = []
+    while True:
+        try:
+            for nline in range(0, 3):
+                f.read_reals(dtype='float32')
+            nx, ny, nz = f.read_reals(dtype='int')
+            for nline in range(0, 5):
+                f.read_reals(dtype='float32')
+            npoints = 0
+            vx_average = 0
+            for j in range(0, ny):
+                vx_vector = f.read_reals(dtype='float32')
+                if j in ny_source:
+                    for i_v in range(0, len(vx_vector)):
+                        if i_v in nx_source:
+                            vx_average += vx_vector[i]
+                            npoints += 1
+            vx.append(vx_average / npoints)
+            for k in range(1, nz):
+                for j in range(0, ny):
+                    f.read_reals(dtype='float32')
+            npoints = 0
+            vy_average = 0
+            for j in range(0, ny):
+                vy_vector = f.read_reals(dtype='float32')
+                if j in ny_source:
+                    for i_v in range(0, len(vy_vector)):
+                        if i_v in nx_source:
+                            vy_average += vy_vector[i]
+                            npoints += 1
+            vy.append(vy_average / npoints)
+            wind.append((vx[-1] ** 2 + vy[-1] ** 2) ** 0.5)
+            for k in range(1, nz):
+                for j in range(0, ny):
+                    f.read_reals(dtype='float32')
+            # Skip vz
+            for k in range(0, nz):
+                for j in range(0, ny):
+                    f.read_reals(dtype='float32')
+        except BaseException:
+            break
+
+
 def run_disgas(max_number_processes):
     import datetime
     disgas = os.path.join(root, "simulations", "disgas")
@@ -1406,6 +1457,10 @@ days = pre_process(run_type)
 
 if diagno_on:
     run_diagno(max_number_processes)
+
+if disgas_on and twodee_on: #We are in automatic scenario detection mode, hence we need to read the meteorological data
+# at the source locations
+    read_diagno_outputs()
 
 if disgas_on:
     run_disgas(max_number_processes)

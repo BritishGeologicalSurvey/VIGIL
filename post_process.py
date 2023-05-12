@@ -72,7 +72,7 @@ def read_arguments():
         "-S", "--species", default='', help="List of gas species (e.g. CO2)"
     )
     parser.add_argument(
-        "-TS", "--tracking_specie", default=None, help="The original emitted specie that is tracked in the simulation"
+        "-TS", "--tracking_specie", default='', help="The original emitted specie that is tracked in the simulation"
     )
     parser.add_argument(
         "-N",
@@ -215,7 +215,7 @@ def read_arguments():
         if levels_in == '':
             print("ERROR. Please specify at least one level to plot")
             sys.exit()
-    if original_specie == None:
+    if original_specie == '':
         print('ERROR. Please specify the name of the tracked specie')
         sys.exit()
     if species_in == '':

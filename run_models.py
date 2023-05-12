@@ -129,6 +129,10 @@ def read_arguments():
     parser.add_argument(
         "-SP", "--slurm_partition", default="", help="Name of the cluster partition to run the Slurm jobs"
     )
+    parser.add_argument(
+        "-GC", "--gas_constant", default=0, help="Specific gas constant (J/KgK) of the emitted specie. To be "
+                                                 "specified when DM = automatic "
+    )
     args = parser.parse_args()
     nproc = args.nproc
     run_type_in = args.run_type
@@ -144,6 +148,7 @@ def read_arguments():
     dy_in = args.dy
     source_emission_in = args.source_emission
     random_emission_in = args.random_emission
+    gas_constant_in = args.gas_constant
     try:
         max_number_processes_in = int(nproc)
     except ValueError:
@@ -402,6 +407,11 @@ def read_arguments():
     elif model.lower() == 'automatic':
         twodee = True
         disgas = True
+        gas_constant_in = float(gas_constant_in)
+        if gas_constant_in == 0:
+            print('ERROR. Please provide the specific gas constant of the emitted gas specie in the automatic '
+                  'scenario mode')
+            sys.exit()
     else:
         print("ERROR. Please provide a valid entry for the variable -DM --dispersion_model")
         sys.exit()
@@ -468,16 +478,16 @@ def read_arguments():
         disgas,
         use_slurm,
         slurm_partition,
+        gas_constant_in,
     )
 
 
 def prepare_days():
+    days_prepared = []
     try:
         raw_days = []  # store the days as originally formatted
-        formatted_days = []  # store days in format YYYYMMDD as per folder name
-        # read days_list file
         with open(
-            os.path.join(root, "days_list.txt"), "r", encoding="utf-8", errors="surrogateescape"
+                os.path.join(root, "days_list.txt"), "r", encoding="utf-8", errors="surrogateescape"
         ) as days_list_file:
             for line in days_list_file:
                 raw_days.append(line)
@@ -487,11 +497,11 @@ def prepare_days():
     for k in range(0, len(raw_days)):
         temp = raw_days[k].split(" ")
         temp = temp[0].split("-")
-        days.append(temp[0] + temp[1] + temp[2])
-    return sorted(formatted_days)
+        days_prepared.append(temp[0] + temp[1] + temp[2])
+    return sorted(days_prepared)
 
 
-def pre_process(run_type):
+def pre_process(run_mode):
     def sample_random_sources(
         n_sources, input_file, dur_min, dur_max, source_size_min, source_size_max
     ):
@@ -594,6 +604,7 @@ def pre_process(run_type):
     random_dx = []
     random_dy = []
     random_dur = []
+    gas_fluxes = []
     dur_min = 1
     dur_max = 86400
     source_size_min = 0.1
@@ -643,9 +654,14 @@ def pre_process(run_type):
                     probabilities.append(float(records[3]))
                     fluxes_input.append(float(records[4]))
                     if twodee_on:
-                        dx_sources.append(float(records[5]))
-                        dy_sources.append(float(records[6]))
-                        dur.append(float(records[7]))
+                        try:
+                            dx_sources.append(float(records[5]))
+                            dy_sources.append(float(records[6]))
+                            dur.append(float(records[7]))
+                        except IndexError:
+                            dx_sources.append(1)
+                            dy_sources.append(1)
+                            dur.append(86400)
                     n_sources += 1
                 except ValueError:
                     continue
@@ -661,54 +677,35 @@ def pre_process(run_type):
             dur.append(source_dur)
         n_sources = len(easting)
 
-    disgas = os.path.join(root, "simulations", "disgas")
-    twodee = os.path.join(root, "simulations", "twodee")
-    diagno = os.path.join(root, "simulations", "diagno")
-    if diagno_on:
-        # Set DIAGNO folder
-        try:
-            os.mkdir(diagno)
-        except FileExistsError:
-            print("Folder " + diagno + " already exists")
-    if disgas_on:
-        # Set DISGAS folder
-        try:
-            os.mkdir(disgas)
-        except FileExistsError:
-            print("Folder " + disgas + " already exists")
-    if twodee_on:
-        # Set TWODEE folder
-        try:
-            os.mkdir(twodee)
-        except FileExistsError:
-            print("Folder " + twodee + " already exists")
-    days = prepare_days()
-    for i in range(0, len(days)):
-        day = days[i]
-        if continuous_simulation:
-            if i == 0:
-                run_type = 'new'
+    for j_source in range(0, n_sources):
+        if source_emission != 999:
+            gas_fluxes.append(source_emission)
+        else:
+            if fluxes_input[j_source] == 99999999 and random_emission == "on":
+                gas_fluxes.append(fluxes()[0])
             else:
-                run_type = 'restart'
+                gas_fluxes.append(fluxes_input[j_source])
+#    disgas = os.path.join(root, "simulations", "disgas")
+#    twodee = os.path.join(root, "simulations", "twodee")
+    diagno = os.path.join(root, "simulations", "diagno")
+    runs = os.path.join(root, "simulations", "runs")
+    # Set runs folder
+    try:
+        os.mkdir(runs)
+    except FileExistsError:
+        print("Folder " + runs + " already exists")
+    for i_day in range(0, len(days)):
+        day = days[i_day]
         diagno_daily = os.path.join(diagno, str(day))
+        if continuous_simulation:
+            if i_day == 0:
+                run_mode = 'new'
+            else:
+                run_mode = 'restart'
         path = os.path.join(root, "simulations", str(day))
-        if diagno_on:
-            files = os.listdir(path)
-            try:
-                os.mkdir(diagno_daily)
-            except FileExistsError:
-                print("Folder " + diagno_daily + " already exists")
-            for f in files:
-                path_f = os.path.join(path, f)
-                try:
-                    shutil.move(path_f, diagno_daily)
-                except FileExistsError:
-                    print("File " + f + " already present in " + diagno)
-            shutil.copy(topography, os.path.join(diagno_daily, "topography.grd"))
-
         # Set DISGAS folder
         if disgas_on:
-            disgas_daily = os.path.join(disgas, str(day))
+            disgas_daily = os.path.join(runs, str(day))
             outfiles = os.path.join(disgas_daily, "outfiles")
             try:
                 os.mkdir(disgas_daily)
@@ -727,22 +724,15 @@ def pre_process(run_type):
                 encoding="utf-8",
                 errors="surrogateescape",
             ) as source_file:
-                for j in range(0, n_sources):
-                    if source_emission != 999:
-                        gas_flux = source_emission
-                    else:
-                        if fluxes_input[j] == 99999999 and random_emission == "on":
-                            gas_flux = fluxes()[0]
-                        else:
-                            gas_flux = fluxes_input[j]
+                for j_source in range(0, n_sources):
                     source_file.write(
-                        "{0:7.3f}".format(easting[j])
+                        "{0:7.3f}".format(easting[j_source])
                         + " "
-                        + "{0:7.3f}".format(northing[j])
+                        + "{0:7.3f}".format(northing[j_source])
                         + " "
-                        + "{0:7.2f}".format(elevations[j])
+                        + "{0:7.2f}".format(elevations[j_source])
                         + " "
-                        + str(gas_flux)
+                        + str(gas_fluxes[j_source])
                         + "\n"
                     )
             source_file.close()
@@ -755,7 +745,7 @@ def pre_process(run_type):
             except (FileExistsError, FileNotFoundError):
                 roughness_file_exist = False
             try:
-                shutil.move(
+                shutil.copy(
                     os.path.join(diagno_daily, "surface_data.txt"),
                     os.path.join(disgas_daily, "surface_data.txt"),
                 )
@@ -795,7 +785,7 @@ def pre_process(run_type):
                             hour_start = record.split('=')[1].strip()
                             hour_start = float(hour_start.split(' ')[0])
                         if continuous_simulation:
-                            if i > 0:
+                            if i_day > 0:
                                 hour_start = 0
                         disgas_input_file.write("  HOUR   = " + "{0:2.0f}".format(hour_start) + "\n")
                     elif 'SIMULATION_INTERVAL_(SEC)' in record:
@@ -821,12 +811,12 @@ def pre_process(run_type):
                     elif 'Y_ORIGIN_(UTM_M)' in record:
                         disgas_input_file.write("  Y_ORIGIN_(UTM_M) = " + str(bottom_left_northing) + "\n")
                     elif 'RESTART_RUN' in record:
-                        if run_type == 'restart':
+                        if run_mode == 'restart':
                             disgas_input_file.write("  RESTART_RUN = YES\n")
                         else:
                             disgas_input_file.write("  RESTART_RUN = NO\n")
                     elif 'RESET_TIME' in record:
-                        if run_type == 'restart':
+                        if run_mode == 'restart':
                             disgas_input_file.write("  RESET_TIME = YES\n")
                         else:
                             disgas_input_file.write("  RESET_TIME = NO\n")
@@ -874,7 +864,7 @@ def pre_process(run_type):
                         disgas_input_file.write(record)
             shutil.copy(disgas_input, disgas_original)
         if twodee_on:
-            twodee_daily = os.path.join(twodee, str(day))
+            twodee_daily = os.path.join(runs, str(day))
             outfiles_twodee = os.path.join(twodee_daily, "outfiles")
             try:
                 os.mkdir(twodee_daily)
@@ -909,19 +899,12 @@ def pre_process(run_type):
                 errors="surrogateescape",
             ) as source_file:
                 for j in range(0, n_sources):
-                    if source_emission != 999:
-                        gas_flux = source_emission
-                    else:
-                        if fluxes_input[j] == 99999999 and random_emission == "on":
-                            gas_flux = fluxes()[0]
-                        else:
-                            gas_flux = fluxes_input[j]
                     source_file.write(
                         "{0:7.3f}".format(easting[j])
                         + " "
                         + "{0:7.3f}".format(northing[j])
                         + " "
-                        + "{0:7.3f}".format(gas_flux)
+                        + "{0:7.3f}".format(gas_fluxes[j])
                         + " "
                         + "{0:7.2f}".format(dx_sources[j])
                         + " "
@@ -955,7 +938,7 @@ def pre_process(run_type):
                             hour_start = record.split('=')[1].strip()
                             hour_start = float(hour_start.split(' ')[0])
                         if continuous_simulation:
-                            if i > 0:
+                            if i_day > 0:
                                 hour_start = 0
                         twodee_input_file.write("  HOUR   = " + "{0:2.0f}".format(hour_start) + "\n")
                     elif 'SIMULATION_INTERVAL_(SEC)' in record:
@@ -983,7 +966,7 @@ def pre_process(run_type):
                     elif 'Y_ORIGIN_(UTM_M)' in record:
                         twodee_input_file.write("  Y_ORIGIN_(UTM_M) = " + str(bottom_left_northing) + "\n")
                     elif 'RESTART_RUN' in record:
-                        if run_type == 'restart':
+                        if run_mode == 'restart':
                             twodee_input_file.write("  RESTART_RUN = YES\n")
                         else:
                             twodee_input_file.write("  RESTART_RUN = NO\n")
@@ -1036,23 +1019,46 @@ def pre_process(run_type):
                     else:
                         twodee_input_file.write(record)
             shutil.copy(twodee_input, twodee_original)
-        if diagno_on:
+    return easting, northing, gas_fluxes
+
+
+def run_diagno(max_np):
+    def prepare_diagno():
+        diagno = os.path.join(root, "simulations", "diagno")
+        try:
+            os.mkdir(diagno)
+        except FileExistsError:
+            print("Folder " + diagno + " already exists")
+        for i_day in range(0, len(days)):
+            day_diagno = days[i_day]
+            diagno_daily = os.path.join(diagno, str(day_diagno))
+            path = os.path.join(root, "simulations", str(day))
+            files = os.listdir(path)
+            try:
+                os.mkdir(diagno_daily)
+            except FileExistsError:
+                print("Folder " + diagno_daily + " already exists")
+            for f in files:
+                path_f = os.path.join(path, f)
+                try:
+                    shutil.move(path_f, diagno_daily)
+                except FileExistsError:
+                    print("File " + f + " already present in " + diagno)
+            shutil.copy(topography, os.path.join(diagno_daily, "topography.grd"))
             shutil.rmtree(path)
-    return days
 
-
-def run_diagno(max_number_processes):
+    prepare_diagno()
     n_elaborated_days = 0
     n_node = 0
     node = ''
     while n_elaborated_days <= len(days):
         ps = []
-        start = n_elaborated_days
-        end = n_elaborated_days + max_number_processes
-        if end > len(days):
-            end = len(days)
+        start_day = n_elaborated_days
+        end_day = n_elaborated_days + max_np
+        if end_day > len(days):
+            end_day = len(days)
         try:
-            for day in days[start:end]:
+            for day in days[start_day:end_day]:
                 if len(nodes_list) > 0:
                     try:
                         node = nodes_list[n_node]
@@ -1167,70 +1173,119 @@ def run_diagno(max_number_processes):
 def read_diagno_outputs():
     from scipy.io import FortranFile
 
-    nx_source = [i_source for i_source in range(43, 44)]
-    ny_source = [j_source for j_source in range(56, 57)]
-    f = FortranFile('diagno.out', 'r')
-    vx = []
-    vy = []
-    wind = []
-    while True:
-        try:
-            for nline in range(0, 3):
+    disgas_days = []
+    twodee_days = []
+    tz0 = 298
+    p_air = 101325
+    r_air = 287
+    area_source = dx * dy
+    r_source = (area_source / 3.1416) ** 0.5
+    for day in days:
+        diagno_output_file = os.path.join(root, "simulations", "diagno", day, 'diagno.out')
+        diagno_input_file = os.path.join(root, "simulations", "diagno", day, 'diagno.inp')
+        with open(diagno_input_file, 'r') as diagno_input_data:
+            for line in diagno_input_data:
+                if 'NY\n' in line:
+                    ny_diagno = int(line.split('NY')[0])
+                elif 'NZ\n' in line:
+                    nz_diagno = int(line.split('NZ')[0])
+                elif 'TINF\n' in line:
+                    tz0 = float(line.split('TINF')[0])
+        rho_air = p_air / (r_air * tz0)
+        rho_gas = p_air / (r_gas * tz0)
+        g_prime = (9.81 * (rho_gas - rho_air)) / rho_air
+        f = FortranFile(diagno_output_file, 'r')
+        vx_average_sources = [0 for flux in gas_fluxes_sources]
+        vy_average_sources = [0 for flux in gas_fluxes_sources]
+        n_times_source_counted = [0 for flux in gas_fluxes_sources]
+        n_steps = 0
+        while True:
+            try:
+                for nline in range(0, 2):
+                    f.read_reals(dtype='float32')
+                n_steps += 1
+                xor_diagno, yor_diagno = f.read_reals(dtype='float32')
                 f.read_reals(dtype='float32')
-            nx, ny, nz = f.read_reals(dtype='int')
-            for nline in range(0, 5):
-                f.read_reals(dtype='float32')
-            npoints = 0
-            vx_average = 0
-            for j in range(0, ny):
-                vx_vector = f.read_reals(dtype='float32')
-                if j in ny_source:
+                dx_diagno, dy_diagno = f.read_reals(dtype='float32')
+                for nline in range(0, 4):
+                    f.read_reals(dtype='float32')
+                for j in range(0, ny_diagno):
+                    y_domain = yor_diagno + j * dy_diagno
+                    vx_vector = f.read_reals(dtype='float32')
                     for i_v in range(0, len(vx_vector)):
-                        if i_v in nx_source:
-                            vx_average += vx_vector[i]
-                            npoints += 1
-            vx.append(vx_average / npoints)
-            for k in range(1, nz):
-                for j in range(0, ny):
-                    f.read_reals(dtype='float32')
-            npoints = 0
-            vy_average = 0
-            for j in range(0, ny):
-                vy_vector = f.read_reals(dtype='float32')
-                if j in ny_source:
+                        x_domain = xor_diagno + i_v * dx_diagno
+                        for i_source in range(0, len(gas_fluxes_sources)):
+                            x_source = easting_sources[i_source]
+                            y_source = northing_sources[i_source]
+                            if x_domain - dx_diagno < x_source < x_domain + dx_diagno and \
+                                    y_domain - dy_diagno < y_source < y_domain + dy_diagno:
+                                vx_average_sources[i_source] += vx_vector[i_v]
+                                n_times_source_counted[i_source] += 1
+                vx_average_sources = [vx_average_sources[i_source] / n_times_source_counted[i_source] for i_source in range(0, len(gas_fluxes_sources))] 
+                n_times_source_counted = [0 for flux in gas_fluxes_sources]
+                for k in range(1, nz_diagno):
+                    for j in range(0, ny_diagno):
+                        f.read_reals(dtype='float32')
+                for j in range(0, ny_diagno):
+                    y_domain = yor_diagno + j * dy_diagno
+                    vy_vector = f.read_reals(dtype='float32')
                     for i_v in range(0, len(vy_vector)):
-                        if i_v in nx_source:
-                            vy_average += vy_vector[i]
-                            npoints += 1
-            vy.append(vy_average / npoints)
-            wind.append((vx[-1] ** 2 + vy[-1] ** 2) ** 0.5)
-            for k in range(1, nz):
-                for j in range(0, ny):
-                    f.read_reals(dtype='float32')
-            # Skip vz
-            for k in range(0, nz):
-                for j in range(0, ny):
-                    f.read_reals(dtype='float32')
-        except BaseException:
-            break
+                        x_domain = xor_diagno + i_v * dx_diagno
+                        for i_source in range(0, len(gas_fluxes_sources)):
+                            x_source = easting_sources[i_source]
+                            y_source = northing_sources[i_source]
+                            if x_domain - dx_diagno < x_source < x_domain + dx_diagno and \
+                                    y_domain - dy_diagno < y_source < y_domain + dy_diagno:
+                                vy_average_sources[i_source] += vy_vector[i_v]
+                                n_times_source_counted[i_source] += 1
+                vy_average_sources = [vy_average_sources[i_source] / n_times_source_counted[i_source] for i_source in range(0, len(gas_fluxes_sources))] 
+                n_times_source_counted = [0 for flux in gas_fluxes_sources]
+                for k in range(1, nz_diagno):
+                    for j in range(0, ny_diagno):
+                        f.read_reals(dtype='float32')
+                # Skip vz
+                for k in range(0, nz_diagno):
+                    for j in range(0, ny_diagno):
+                        f.read_reals(dtype='float32')
+            except BaseException:
+                break
+        vx_average_sources = [vx_average_sources[i_source] / n_steps for i_source in range(0, len(vx_average_sources))]
+        print(vx_average_sources)
+        vy_average_sources = [vy_average_sources[i_source] / n_steps for i_source in range(0, len(vy_average_sources))]
+        print(vy_average_sources)
+        wind_average_sources = [(vx_average_sources[i_source] ** 2 + vy_average_sources[i_source] ** 2) ** 0.5
+                                for i_source in range(0, len(vx_average_sources))]
+        print(wind_average_sources)
+        q_average_sources = [gas_fluxes_sources[i_source] / rho_gas for i_source in range(0, len(gas_fluxes_sources))]
+        print(q_average_sources)
+        ri_sources = [(1 / wind_average_sources[i_source]) * ((g_prime * q_average_sources[i_source]) / r_source)
+                      ** (2 / 3) for i_source in range(0, len(wind_average_sources))]
+        print(ri_sources)
+        # Flux weight-averaged Richardson number of all sources in the domain
+        ri_average_sources_domain = np.sum(np.multiply(ri_sources, q_average_sources)) / np.sum(q_average_sources)
+        if ri_average_sources_domain > 1:
+            twodee_days.append(day)
+        else:
+            disgas_days.append(day)
+    return disgas_days, twodee_days
 
 
-def run_disgas(max_number_processes):
+def run_disgas(max_np):
     import datetime
-    disgas = os.path.join(root, "simulations", "disgas")
+    disgas = os.path.join(root, "simulations", "runs")
     n_elaborated_days = 0
     n_node = 0
     node = ''
     if continuous_simulation:
-        max_number_processes = 1
+        max_np = 1
     while n_elaborated_days <= len(days):
         ps = []
-        start = n_elaborated_days
-        end = n_elaborated_days + max_number_processes
-        if end > len(days):
-            end = len(days)
+        start_day = n_elaborated_days
+        end_day = n_elaborated_days + max_np
+        if end_day > len(days):
+            end_day = len(days)
         try:
-            for day in days[start:end]:
+            for day in days[start_day:end_day]:
                 if len(nodes_list) > 0:
                     try:
                         node = nodes_list[n_node]
@@ -1282,7 +1337,7 @@ def run_disgas(max_number_processes):
         except BaseException:
             print("Unable to run DISGAS")
             sys.exit()
-        n_elaborated_days = end
+        n_elaborated_days = end_day
         if n_elaborated_days == len(days):
             break
         for p in ps:
@@ -1291,22 +1346,22 @@ def run_disgas(max_number_processes):
         p.wait()
 
 
-def run_twodee(max_number_processes):
+def run_twodee(max_np):
     import datetime
-    twodee = os.path.join(root, "simulations", "twodee")
+    twodee = os.path.join(root, "simulations", "runs")
     n_elaborated_days = 0
     n_node = 0
     node = ''
     if continuous_simulation:
-        max_number_processes = 1
+        max_np = 1
     while n_elaborated_days <= len(days):
         ps = []
-        start = n_elaborated_days
-        end = n_elaborated_days + max_number_processes
-        if end > len(days):
-            end = len(days)
+        start_day = n_elaborated_days
+        end_day = n_elaborated_days + max_np
+        if end_day > len(days):
+            end_day = len(days)
         try:
-            for day in days[start:end]:
+            for day in days[start_day:end_day]:
                 if len(nodes_list) > 0:
                     try:
                         node = nodes_list[n_node]
@@ -1363,7 +1418,7 @@ def run_twodee(max_number_processes):
         except BaseException:
             print("Unable to run TWODEE")
             sys.exit()
-        n_elaborated_days = end
+        n_elaborated_days = end_day
         if n_elaborated_days == len(days):
             break
         for p in ps:
@@ -1405,6 +1460,7 @@ topography = os.path.join(root, "topography.grd")
     disgas_on,
     slurm,
     partition,
+    r_gas,
 ) = read_arguments()
 
 if disgas_on == "off" and twodee_on == "off":
@@ -1443,8 +1499,8 @@ if slurm:
             end = int(node_range[1])
         except IndexError:
             end = start
-        for i in range(start, end + 1):
-            list_available_nodes.append(node_key + '{:0>2}'.format(i))
+        for i_node in range(start, end + 1):
+            list_available_nodes.append(node_key + '{:0>2}'.format(i_node))
     result = subprocess.run(['sinfo', '-o=%c'], stdout=subprocess.PIPE)
     sinfo_core_output = result.stdout.decode("utf-8")
     ncpus_per_node = int(sinfo_core_output.split('=')[-1])
@@ -1453,14 +1509,20 @@ if slurm:
 else:
     nodes_list = []
 
-days = pre_process(run_type)
+days = prepare_days()
+
+easting_sources, northing_sources, gas_fluxes_sources = pre_process(run_type)
 
 if diagno_on:
     run_diagno(max_number_processes)
 
-if disgas_on and twodee_on: #We are in automatic scenario detection mode, hence we need to read the meteorological data
-# at the source locations
-    read_diagno_outputs()
+if disgas_on and twodee_on:  # We are in automatic scenario detection mode, hence we need to read the meteorological
+    # data at the source locations to calculate the Richardson number at the source
+    days_disgas, days_twodee = read_diagno_outputs()
+
+print(days_disgas)
+print(days_twodee)
+sys.exit()
 
 if disgas_on:
     run_disgas(max_number_processes)

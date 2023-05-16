@@ -130,8 +130,7 @@ def read_arguments():
         "-SP", "--slurm_partition", default="", help="Name of the cluster partition to run the Slurm jobs"
     )
     parser.add_argument(
-        "-GC", "--gas_constant", default=0, help="Specific gas constant (J/KgK) of the emitted specie. To be "
-                                                 "specified when DM = automatic "
+        "-TS", "--tracking_specie", default='', help="The original emitted specie that is tracked in the simulation"
     )
     args = parser.parse_args()
     nproc = args.nproc
@@ -148,7 +147,7 @@ def read_arguments():
     dy_in = args.dy
     source_emission_in = args.source_emission
     random_emission_in = args.random_emission
-    gas_constant_in = args.gas_constant
+    tracking_specie_in = args.tracking_specie
     try:
         max_number_processes_in = int(nproc)
     except ValueError:
@@ -407,11 +406,6 @@ def read_arguments():
     elif model.lower() == 'automatic':
         twodee = True
         disgas = True
-        gas_constant_in = float(gas_constant_in)
-        if gas_constant_in == 0:
-            print('ERROR. Please provide the specific gas constant of the emitted gas specie in the automatic '
-                  'scenario mode')
-            sys.exit()
     else:
         print("ERROR. Please provide a valid entry for the variable -DM --dispersion_model")
         sys.exit()
@@ -449,6 +443,9 @@ def read_arguments():
     else:
         print("ERROR. Please provide a valid entry for the variable -US --use_slurm")
         sys.exit()
+    if tracking_specie_in == '':
+        print('ERROR. Please specify the name of the tracked specie -TS --tracking_specie')
+        sys.exit()
     slurm_partition = slurm_partition.lower()
     return (
         run_type_in,
@@ -478,7 +475,7 @@ def read_arguments():
         disgas,
         use_slurm,
         slurm_partition,
-        gas_constant_in,
+        tracking_specie_in,
     )
 
 
@@ -502,6 +499,31 @@ def prepare_days():
 
 
 def pre_process(run_mode):
+    def extract_gas_properties():
+        import pandas as pd
+        data = pd.read_csv('gas_properties.csv', on_bad_lines='skip')
+        try:
+            y = np.sort(data['R_' + tracking_specie])
+            r_gas = list(y)[0]
+            if gas_constant != gas_constant:
+                print('ERROR. Specific gas constant of ' + tracking_specie + ' not found in gas_properties.csv')
+                sys.exit()
+        except KeyError:
+            print('ERROR. Specific gas constant of ' + tracking_specie + ' not found in gas_properties.csv')
+            sys.exit()
+        try:
+            y = np.sort(data['T_' + tracking_specie])
+            t_gas = list(y)[0]
+            if gas_temperature != gas_temperature:
+                print('ERROR. Gas temperature of ' + tracking_specie + ' not found in gas_properties.csv')
+                sys.exit()
+        except KeyError:
+            print('ERROR. Gas temperature of ' + tracking_specie + ' not found in gas_properties.csv')
+            sys.exit()
+        rho_g = 101325 / (r_gas * t_gas)
+        rho_g_20 = 101325 / (r_gas * 293) # Time-averaged gas density for the twodee.inp file
+        return r_gas, t_gas, rho_g, rho_g_20
+
     def sample_random_sources(
         n_sources, input_file, dur_min, dur_max, source_size_min, source_size_max
     ):
@@ -595,6 +617,8 @@ def pre_process(run_mode):
         sampled_flux = sample(list_x, 1)
         return sampled_flux
 
+    # Extract temperature and gas constant of the tracking specie
+    gas_constant, gas_temperature, gas_density, gas_density_20 = extract_gas_properties()
     # Set source files for DISGAS and TWODEE. TWODEE also needs source start and stop time, to be generalized
     random_eastings = []
     random_northings = []
@@ -965,6 +989,12 @@ def pre_process(run_mode):
                         twodee_input_file.write("  X_ORIGIN_(UTM_M) = " + str(bottom_left_easting) + "\n")
                     elif 'Y_ORIGIN_(UTM_M)' in record:
                         twodee_input_file.write("  Y_ORIGIN_(UTM_M) = " + str(bottom_left_northing) + "\n")
+                    elif 'AMBIENT_GAS_DENSITY_20C_(KG/M3)' in record:
+                        twodee_input_file.write('  AMBIENT_GAS_DENSITY_20C_(KG/M3) = 1.204\n')
+                    elif 'DENSE_GAS_DENSITY_20C_(KG/M3)' in record:
+                        twodee_input_file.write('  DENSE_GAS_DENSITY_20C_(KG/M3) = ' + str(gas_density_20) + '\n')
+                    elif 'AVERAGED_TEMPERATURE_(C)' in record:
+                        twodee_input_file.write('  AVERAGED_TEMPERATURE_(C) = ' + str(gas_temperature) + '\n') #FABIO: to be improved if we decide to read temperatures from the source file
                     elif 'RESTART_RUN' in record:
                         if run_mode == 'restart':
                             twodee_input_file.write("  RESTART_RUN = YES\n")
@@ -1019,7 +1049,7 @@ def pre_process(run_mode):
                     else:
                         twodee_input_file.write(record)
             shutil.copy(twodee_input, twodee_original)
-    return easting, northing, gas_fluxes
+    return easting, northing, gas_fluxes, gas_density
 
 
 def run_diagno(max_np):
@@ -1460,7 +1490,7 @@ topography = os.path.join(root, "topography.grd")
     disgas_on,
     slurm,
     partition,
-    r_gas,
+    tracking_specie,
 ) = read_arguments()
 
 if disgas_on == "off" and twodee_on == "off":
@@ -1509,9 +1539,16 @@ if slurm:
 else:
     nodes_list = []
 
+gas_properties_file = os.path.join(root, 'gas_properties.csv')
+try:
+    open(gas_properties_file)
+except FileNotFoundError:
+    print('ERROR. File gas_properties.csv not found')
+    sys.exit()
+
 days = prepare_days()
 
-easting_sources, northing_sources, gas_fluxes_sources = pre_process(run_type)
+easting_sources, northing_sources, gas_fluxes_sources, rho_tracking_specie = pre_process(run_type)
 
 if diagno_on:
     run_diagno(max_number_processes)

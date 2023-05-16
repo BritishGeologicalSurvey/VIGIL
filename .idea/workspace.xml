@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Initialized the function to extrapolate wind conditions at the source">
+    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Implemented run_models.py with the new scenario automatic calculator, needs to be refined and fully tested">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/post_process.py" beforeDir="false" afterPath="$PROJECT_DIR$/post_process.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/run_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/run_models.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -30,21 +29,21 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "Git.Branch.Popup.ShowAllRemotes": "true",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "settings.editor.selected.configurable": "org.jetbrains.plugins.github.ui.GithubSettingsConfigurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;Git.Branch.Popup.ShowAllRemotes&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;org.jetbrains.plugins.github.ui.GithubSettingsConfigurable&quot;
   },
-  "keyToStringList": {
-    "com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File": [
-      "Python"
+  &quot;keyToStringList&quot;: {
+    &quot;com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File&quot;: [
+      &quot;Python&quot;
     ]
   }
-}]]></component>
-  <component name="RunManager" selected="Python.scratch_1">
+}</component>
+  <component name="RunManager" selected="Python.scratch_2">
     <configuration name="scratch_1" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="VIGIL" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -129,7 +128,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="scratch_9" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="scratch_2" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="VIGIL" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -141,7 +140,7 @@
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$APPLICATION_CONFIG_DIR$/scratches/scratch_9.py" />
+      <option name="SCRIPT_NAME" value="$APPLICATION_CONFIG_DIR$/scratches/scratch_2.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -152,11 +151,11 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.scratch_2" />
         <item itemvalue="Python.scratch_1" />
         <item itemvalue="Python.scratch_12" />
         <item itemvalue="Python.scratch_11" />
         <item itemvalue="Python.scratch_10" />
-        <item itemvalue="Python.scratch_9" />
       </list>
     </recent_temporary>
   </component>
@@ -168,13 +167,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1650985604184</updated>
-    </task>
-    <task id="LOCAL-00003" summary="Updadated Changelog">
-      <created>1651134016991</created>
-      <option name="number" value="00003" />
-      <option name="presentableId" value="LOCAL-00003" />
-      <option name="project" value="LOCAL" />
-      <updated>1651134016991</updated>
     </task>
     <task id="LOCAL-00004" summary="Default options for the arguments now visible when invoking --help -h">
       <created>1651152970836</created>
@@ -512,7 +504,14 @@
       <option name="project" value="LOCAL" />
       <updated>1683819519447</updated>
     </task>
-    <option name="localTasksCounter" value="52" />
+    <task id="LOCAL-00052" summary="Implemented run_models.py with the new scenario automatic calculator, needs to be refined and fully tested">
+      <created>1683910493434</created>
+      <option name="number" value="00052" />
+      <option name="presentableId" value="LOCAL-00052" />
+      <option name="project" value="LOCAL" />
+      <updated>1683910493434</updated>
+    </task>
+    <option name="localTasksCounter" value="53" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -527,7 +526,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Improved the option DIAGNO off and removed some misleading messages" />
     <MESSAGE value="diagno.inp now specifies 2 &quot;stations&quot; when using era5 or gfs. To be improved" />
     <MESSAGE value="Implemented cross-checking of the location of the &quot;volcano&quot;, if it's outside the domain identified in topography.grd, the position is adjusted to the centre of this domain" />
     <MESSAGE value="Improved handling of existing output files in post_processing folder" />
@@ -552,6 +550,7 @@
     <MESSAGE value="Included new argument that replaces -TD -DG" />
     <MESSAGE value="Removed several minor warnings from run_models.py" />
     <MESSAGE value="Initialized the function to extrapolate wind conditions at the source" />
-    <option name="LAST_COMMIT_MESSAGE" value="Initialized the function to extrapolate wind conditions at the source" />
+    <MESSAGE value="Implemented run_models.py with the new scenario automatic calculator, needs to be refined and fully tested" />
+    <option name="LAST_COMMIT_MESSAGE" value="Implemented run_models.py with the new scenario automatic calculator, needs to be refined and fully tested" />
   </component>
 </project>

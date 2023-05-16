@@ -505,7 +505,7 @@ def pre_process(run_mode):
         try:
             y = np.sort(data['R_' + tracking_specie])
             r_gas = list(y)[0]
-            if gas_constant != gas_constant:
+            if r_gas != r_gas:
                 print('ERROR. Specific gas constant of ' + tracking_specie + ' not found in gas_properties.csv')
                 sys.exit()
         except KeyError:
@@ -514,37 +514,37 @@ def pre_process(run_mode):
         try:
             y = np.sort(data['T_' + tracking_specie])
             t_gas = list(y)[0]
-            if gas_temperature != gas_temperature:
+            if t_gas != t_gas:
                 print('ERROR. Gas temperature of ' + tracking_specie + ' not found in gas_properties.csv')
                 sys.exit()
         except KeyError:
             print('ERROR. Gas temperature of ' + tracking_specie + ' not found in gas_properties.csv')
             sys.exit()
         rho_g = 101325 / (r_gas * t_gas)
-        rho_g_20 = 101325 / (r_gas * 293) # Time-averaged gas density for the twodee.inp file
+        rho_g_20 = 101325 / (r_gas * 293)  # Time-averaged gas density for the twodee.inp file
         return r_gas, t_gas, rho_g, rho_g_20
 
     def sample_random_sources(
-        n_sources, input_file, dur_min, dur_max, source_size_min, source_size_max
+        n_sources_inp, input_file, dur_min_inp, dur_max_inp, source_size_min_inp, source_size_max_inp
     ):
         from random import choices
 
         with open(input_file) as probability_file:
             i = 1
-            for line in probability_file:
+            for line_probability in probability_file:
                 if i == 2:
-                    nx = int(line.split(" ")[0])
-                    ny = int(line.split(" ")[1])
+                    nx = int(line_probability.split(" ")[0])
+                    ny = int(line_probability.split(" ")[1])
                     i += 1
                     continue
                 elif i == 3:
-                    xmin = float(line.split(" ")[0])
-                    xmax = float(line.split(" ")[1])
+                    xmin = float(line_probability.split(" ")[0])
+                    xmax = float(line_probability.split(" ")[1])
                     i += 1
                     continue
                 elif i == 4:
-                    ymin = float(line.split(" ")[0])
-                    ymax = float(line.split(" ")[1])
+                    ymin = float(line_probability.split(" ")[0])
+                    ymax = float(line_probability.split(" ")[1])
                     i += 1
                     continue
                 else:
@@ -553,7 +553,7 @@ def pre_process(run_mode):
         probabilities_input = np.loadtxt(input_file, skiprows=5)
         location_cum_indexes = []
         location_indexes = []
-        probabilities = []
+        sampled_probabilities = []
         dxs = []
         dys = []
         durs = []
@@ -567,15 +567,15 @@ def pre_process(run_mode):
         y = np.linspace(ymin, ymax, ny)
         for i in range(0, nx):
             for j in range(0, ny):
-                probabilities.append(probabilities_input[i, j])
-        selected_locations = choices(location_cum_indexes, probabilities, k=n_sources)
-        source_size = source_size_min
-        while source_size <= source_size_max:
+                sampled_probabilities.append(probabilities_input[i, j])
+        selected_locations = choices(location_cum_indexes, sampled_probabilities, k=n_sources_inp)
+        source_size = source_size_min_inp
+        while source_size <= source_size_max_inp:
             dxs.append(source_size)
             dys.append(source_size)
             source_size += 0.1
-        source_duration = dur_min
-        while source_duration <= dur_max:
+        source_duration = dur_min_inp
+        while source_duration <= dur_max_inp:
             durs.append(source_duration)
             source_duration += 60
         for location in selected_locations:
@@ -583,7 +583,7 @@ def pre_process(run_mode):
             column = location_indexes[location][1]
             xpr = x[row]
             ypr = y[column]
-            probability = probabilities[location]
+            probability = sampled_probabilities[location]
             random_eastings.append(xpr)
             random_northings.append(ypr)
             random_elevations.append(0.0)
@@ -592,6 +592,8 @@ def pre_process(run_mode):
             random_dx.append(choices(dxs, k=1)[0])
             random_dy.append(choices(dys, k=1)[0])
             random_dur.append(choices(durs, k=1)[0])
+            random_temperatures.append(gas_temperature)  # FABIO for the moment the sampled locations have all the
+            # same temperatures specified in gas_properties.csv
 
         return (
             random_eastings,
@@ -602,15 +604,14 @@ def pre_process(run_mode):
             random_dx,
             random_dy,
             random_dur,
+            random_temperatures,
         )
 
     def fluxes():
-        import numpy as np
-
         fluxes_in = []
         with open("flux.txt") as flux_file:
-            for line in flux_file:
-                fluxes_in.append(float(line))
+            for line_flux in flux_file:
+                fluxes_in.append(float(line_flux))
         flux_file.close()
         x = np.sort(fluxes_in)
         list_x = list(x)
@@ -629,6 +630,7 @@ def pre_process(run_mode):
     random_dy = []
     random_dur = []
     gas_fluxes = []
+    random_temperatures = []
     dur_min = 1
     dur_max = 86400
     source_size_min = 0.1
@@ -648,6 +650,7 @@ def pre_process(run_mode):
             random_dx,
             random_dy,
             random_dur,
+            random_temperatures,
         ) = sample_random_sources(
             n_random_sources,
             "probability_map.grd",
@@ -664,10 +667,13 @@ def pre_process(run_mode):
     dx_sources = random_dx
     dy_sources = random_dy
     dur = random_dur
+    source_temperatures = random_temperatures
     n_sources = 0
     try:
         with open(
-            "sources_input.txt", "r", encoding="utf-8", errors="surrogateescape"
+            "sources_input.txt", "r", encoding="utf-8", errors="surrogateescape"  # FABIO: temperatures must be
+                # specified in sources_input.txt, check how this fits with the gas temperature specified in
+                # gas_properties.csv
         ) as locations_file:
             for line in locations_file:
                 try:
@@ -677,11 +683,12 @@ def pre_process(run_mode):
                     elevations.append(float(records[2]))
                     probabilities.append(float(records[3]))
                     fluxes_input.append(float(records[4]))
+                    source_temperatures.append(float(records[5]))
                     if twodee_on:
                         try:
-                            dx_sources.append(float(records[5]))
-                            dy_sources.append(float(records[6]))
-                            dur.append(float(records[7]))
+                            dx_sources.append(float(records[6]))
+                            dy_sources.append(float(records[7]))
+                            dur.append(float(records[8]))
                         except IndexError:
                             dx_sources.append(1)
                             dy_sources.append(1)
@@ -689,13 +696,18 @@ def pre_process(run_mode):
                     n_sources += 1
                 except ValueError:
                     continue
-    except BaseException:
+                except IndexError:
+                    print('ERROR. Badly formatted sources_input.txt file (probably one or more data are missing')
+                    sys.exit()
+    except FileNotFoundError:
         if random_sources != "on":
             easting.append(source_easting)
             northing.append(source_northing)
             elevations.append(source_el)
             probabilities.append(1.0)
             fluxes_input.append(source_emission)
+            source_temperatures.append(gas_temperature)  # FABIO: if problems with reading sources_input.txt, assign
+            # the same temperauture to all sources
             dx_sources.append(source_dx)
             dy_sources.append(source_dy)
             dur.append(source_dur)
@@ -1049,7 +1061,7 @@ def pre_process(run_mode):
                     else:
                         twodee_input_file.write(record)
             shutil.copy(twodee_input, twodee_original)
-    return easting, northing, gas_fluxes, gas_density
+    return easting, northing, gas_fluxes, source_temperatures, gas_density, gas_constant
 
 
 def run_diagno(max_np):
@@ -1211,6 +1223,9 @@ def read_diagno_outputs():
     area_source = dx * dy
     r_source = (area_source / 3.1416) ** 0.5
     for day in days:
+        g_prime_sources = []
+        rho_gas_sources = []
+        ri_sources = []
         diagno_output_file = os.path.join(root, "simulations", "diagno", day, 'diagno.out')
         diagno_input_file = os.path.join(root, "simulations", "diagno", day, 'diagno.inp')
         with open(diagno_input_file, 'r') as diagno_input_data:
@@ -1222,8 +1237,12 @@ def read_diagno_outputs():
                 elif 'TINF\n' in line:
                     tz0 = float(line.split('TINF')[0])
         rho_air = p_air / (r_air * tz0)
-        rho_gas = p_air / (r_gas * tz0)
-        g_prime = (9.81 * (rho_gas - rho_air)) / rho_air
+        # g_prime = (9.81 * (rho_tracking_specie - rho_air)) / rho_air  #FABIO: capire se serve rho_tracking_specie
+        for i_source in range(0, len(gas_fluxes_sources)):
+            t_source = temperatures_sources[i_source]
+            rho_gas_sources.append(p_air / (r_tracking_specie * t_source))
+            g_prime_sources.append((9.81 * (rho_gas_sources[-1] - rho_air)) / rho_air)
+        # singolo valore
         f = FortranFile(diagno_output_file, 'r')
         vx_average_sources = [0 for flux in gas_fluxes_sources]
         vy_average_sources = [0 for flux in gas_fluxes_sources]
@@ -1251,7 +1270,8 @@ def read_diagno_outputs():
                                     y_domain - dy_diagno < y_source < y_domain + dy_diagno:
                                 vx_average_sources[i_source] += vx_vector[i_v]
                                 n_times_source_counted[i_source] += 1
-                vx_average_sources = [vx_average_sources[i_source] / n_times_source_counted[i_source] for i_source in range(0, len(gas_fluxes_sources))] 
+                vx_average_sources = [vx_average_sources[i_source] / n_times_source_counted[i_source] for i_source
+                                      in range(0, len(gas_fluxes_sources))]
                 n_times_source_counted = [0 for flux in gas_fluxes_sources]
                 for k in range(1, nz_diagno):
                     for j in range(0, ny_diagno):
@@ -1268,7 +1288,8 @@ def read_diagno_outputs():
                                     y_domain - dy_diagno < y_source < y_domain + dy_diagno:
                                 vy_average_sources[i_source] += vy_vector[i_v]
                                 n_times_source_counted[i_source] += 1
-                vy_average_sources = [vy_average_sources[i_source] / n_times_source_counted[i_source] for i_source in range(0, len(gas_fluxes_sources))] 
+                vy_average_sources = [vy_average_sources[i_source] / n_times_source_counted[i_source] for i_source
+                                      in range(0, len(gas_fluxes_sources))]
                 n_times_source_counted = [0 for flux in gas_fluxes_sources]
                 for k in range(1, nz_diagno):
                     for j in range(0, ny_diagno):
@@ -1286,10 +1307,15 @@ def read_diagno_outputs():
         wind_average_sources = [(vx_average_sources[i_source] ** 2 + vy_average_sources[i_source] ** 2) ** 0.5
                                 for i_source in range(0, len(vx_average_sources))]
         print(wind_average_sources)
-        q_average_sources = [gas_fluxes_sources[i_source] / rho_gas for i_source in range(0, len(gas_fluxes_sources))]
+        q_average_sources = [gas_fluxes_sources[i_source] / rho_gas_sources[i_source] for i_source
+                             in range(0, len(gas_fluxes_sources))]
         print(q_average_sources)
-        ri_sources = [(1 / wind_average_sources[i_source]) * ((g_prime * q_average_sources[i_source]) / r_source)
-                      ** (2 / 3) for i_source in range(0, len(wind_average_sources))]
+        for i_source in range(0, len(wind_average_sources)):
+            try:
+                ri_sources.append((1 / wind_average_sources[i_source]) * ((g_prime_sources[i_source] * q_average_sources[i_source])
+                          / r_source) ** (2 / 3) for i_source in range(0, len(wind_average_sources)))
+            except ValueError:  # FABIO when gprime <0, in this case for the moment we set Ri = 0.01 (small number)
+                ri_sources.append(0.01)
         print(ri_sources)
         # Flux weight-averaged Richardson number of all sources in the domain
         ri_average_sources_domain = np.sum(np.multiply(ri_sources, q_average_sources)) / np.sum(q_average_sources)
@@ -1548,7 +1574,8 @@ except FileNotFoundError:
 
 days = prepare_days()
 
-easting_sources, northing_sources, gas_fluxes_sources, rho_tracking_specie = pre_process(run_type)
+easting_sources, northing_sources, gas_fluxes_sources, temperatures_sources, rho_tracking_specie, r_tracking_specie = \
+    pre_process(run_type)
 
 if diagno_on:
     run_diagno(max_number_processes)
@@ -1557,8 +1584,8 @@ if disgas_on and twodee_on:  # We are in automatic scenario detection mode, henc
     # data at the source locations to calculate the Richardson number at the source
     days_disgas, days_twodee = read_diagno_outputs()
 
-print(days_disgas)
-print(days_twodee)
+    print(days_disgas)
+    print(days_twodee)
 sys.exit()
 
 if disgas_on:

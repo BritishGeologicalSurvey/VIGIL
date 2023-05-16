@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Implemented run_models.py with the new scenario automatic calculator, needs to be refined and fully tested">
+    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Implemented function to read the tracking gas specie properties from the gas_properties.csv file">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/run_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/run_models.py" afterDir="false" />
     </list>
@@ -167,13 +167,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1650985604184</updated>
-    </task>
-    <task id="LOCAL-00004" summary="Default options for the arguments now visible when invoking --help -h">
-      <created>1651152970836</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
-      <option name="project" value="LOCAL" />
-      <updated>1651152970836</updated>
     </task>
     <task id="LOCAL-00005" summary="Introduced option -PER --persistence">
       <created>1656067726278</created>
@@ -511,7 +504,14 @@
       <option name="project" value="LOCAL" />
       <updated>1683910493434</updated>
     </task>
-    <option name="localTasksCounter" value="53" />
+    <task id="LOCAL-00053" summary="Implemented function to read the tracking gas specie properties from the gas_properties.csv file">
+      <created>1684243736555</created>
+      <option name="number" value="00053" />
+      <option name="presentableId" value="LOCAL-00053" />
+      <option name="project" value="LOCAL" />
+      <updated>1684243736571</updated>
+    </task>
+    <option name="localTasksCounter" value="54" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -526,7 +526,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="diagno.inp now specifies 2 &quot;stations&quot; when using era5 or gfs. To be improved" />
     <MESSAGE value="Implemented cross-checking of the location of the &quot;volcano&quot;, if it's outside the domain identified in topography.grd, the position is adjusted to the centre of this domain" />
     <MESSAGE value="Improved handling of existing output files in post_processing folder" />
     <MESSAGE value="Fixed small bug in post_process.py in the handling of pre-existing files in post_processing folder" />
@@ -551,6 +550,7 @@
     <MESSAGE value="Removed several minor warnings from run_models.py" />
     <MESSAGE value="Initialized the function to extrapolate wind conditions at the source" />
     <MESSAGE value="Implemented run_models.py with the new scenario automatic calculator, needs to be refined and fully tested" />
-    <option name="LAST_COMMIT_MESSAGE" value="Implemented run_models.py with the new scenario automatic calculator, needs to be refined and fully tested" />
+    <MESSAGE value="Implemented function to read the tracking gas specie properties from the gas_properties.csv file" />
+    <option name="LAST_COMMIT_MESSAGE" value="Implemented function to read the tracking gas specie properties from the gas_properties.csv file" />
   </component>
 </project>

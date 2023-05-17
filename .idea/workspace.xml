@@ -168,13 +168,6 @@
       <option name="presentableId" value="Default" />
       <updated>1650985604184</updated>
     </task>
-    <task id="LOCAL-00005" summary="Introduced option -PER --persistence">
-      <created>1656067726278</created>
-      <option name="number" value="00005" />
-      <option name="presentableId" value="LOCAL-00005" />
-      <option name="project" value="LOCAL" />
-      <updated>1656067726278</updated>
-    </task>
     <task id="LOCAL-00006" summary="Introduced option -PER --persistence in the README.md and User_Manual.docx files&#10;Introduced new format of the gas_properties.csv files to read data needed for the persistence calculations">
       <created>1656075937343</created>
       <option name="number" value="00006" />
@@ -511,7 +504,14 @@
       <option name="project" value="LOCAL" />
       <updated>1684243736571</updated>
     </task>
-    <option name="localTasksCounter" value="54" />
+    <task id="LOCAL-00054" summary="Implemented function to read the tracking gas specie properties from the gas_properties.csv file">
+      <created>1684256260139</created>
+      <option name="number" value="00054" />
+      <option name="presentableId" value="LOCAL-00054" />
+      <option name="project" value="LOCAL" />
+      <updated>1684256260139</updated>
+    </task>
+    <option name="localTasksCounter" value="55" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">

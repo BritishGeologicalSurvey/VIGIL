@@ -1223,9 +1223,9 @@ def read_diagno_outputs():
     area_source = dx * dy
     r_source = (area_source / 3.1416) ** 0.5
     for day in days:
+        ri_sources = []
         g_prime_sources = []
         rho_gas_sources = []
-        ri_sources = []
         diagno_output_file = os.path.join(root, "simulations", "diagno", day, 'diagno.out')
         diagno_input_file = os.path.join(root, "simulations", "diagno", day, 'diagno.inp')
         with open(diagno_input_file, 'r') as diagno_input_data:
@@ -1242,6 +1242,8 @@ def read_diagno_outputs():
             t_source = temperatures_sources[i_source]
             rho_gas_sources.append(p_air / (r_tracking_specie * t_source))
             g_prime_sources.append((9.81 * (rho_gas_sources[-1] - rho_air)) / rho_air)
+        print('g_prime')
+        print(g_prime_sources)
         # singolo valore
         f = FortranFile(diagno_output_file, 'r')
         vx_average_sources = [0 for flux in gas_fluxes_sources]
@@ -1270,6 +1272,8 @@ def read_diagno_outputs():
                                     y_domain - dy_diagno < y_source < y_domain + dy_diagno:
                                 vx_average_sources[i_source] += vx_vector[i_v]
                                 n_times_source_counted[i_source] += 1
+                            if i_source == 1:
+                                print(i_source, vx_average_sources[i_source])
                 vx_average_sources = [vx_average_sources[i_source] / n_times_source_counted[i_source] for i_source
                                       in range(0, len(gas_fluxes_sources))]
                 n_times_source_counted = [0 for flux in gas_fluxes_sources]
@@ -1288,6 +1292,8 @@ def read_diagno_outputs():
                                     y_domain - dy_diagno < y_source < y_domain + dy_diagno:
                                 vy_average_sources[i_source] += vy_vector[i_v]
                                 n_times_source_counted[i_source] += 1
+                            if i_source == 1:
+                                print(i_source, vy_average_sources[i_source])
                 vy_average_sources = [vy_average_sources[i_source] / n_times_source_counted[i_source] for i_source
                                       in range(0, len(gas_fluxes_sources))]
                 n_times_source_counted = [0 for flux in gas_fluxes_sources]
@@ -1301,21 +1307,25 @@ def read_diagno_outputs():
             except BaseException:
                 break
         vx_average_sources = [vx_average_sources[i_source] / n_steps for i_source in range(0, len(vx_average_sources))]
+        print('vx_average_sources')
         print(vx_average_sources)
         vy_average_sources = [vy_average_sources[i_source] / n_steps for i_source in range(0, len(vy_average_sources))]
+        print('vy_average_sources')
         print(vy_average_sources)
         wind_average_sources = [(vx_average_sources[i_source] ** 2 + vy_average_sources[i_source] ** 2) ** 0.5
                                 for i_source in range(0, len(vx_average_sources))]
+        print('wind_average_sources')
         print(wind_average_sources)
         q_average_sources = [gas_fluxes_sources[i_source] / rho_gas_sources[i_source] for i_source
                              in range(0, len(gas_fluxes_sources))]
+        print('q_average_sources')
         print(q_average_sources)
         for i_source in range(0, len(wind_average_sources)):
             try:
-                ri_sources.append((1 / wind_average_sources[i_source]) * ((g_prime_sources[i_source] * q_average_sources[i_source])
-                          / r_source) ** (2 / 3) for i_source in range(0, len(wind_average_sources)))
+                ri_sources.append((1 / wind_average_sources[i_source]) * ((g_prime_sources[i_source] * q_average_sources[i_source]) / r_source) ** (2 / 3))
             except ValueError:  # FABIO when gprime <0, in this case for the moment we set Ri = 0.01 (small number)
                 ri_sources.append(0.01)
+        print('ri_sources')
         print(ri_sources)
         # Flux weight-averaged Richardson number of all sources in the domain
         ri_average_sources_domain = np.sum(np.multiply(ri_sources, q_average_sources)) / np.sum(q_average_sources)

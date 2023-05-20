@@ -168,13 +168,6 @@
       <option name="presentableId" value="Default" />
       <updated>1650985604184</updated>
     </task>
-    <task id="LOCAL-00008" summary="Updated post-processing folders to include persistence calculation outputs">
-      <created>1656511786445</created>
-      <option name="number" value="00008" />
-      <option name="presentableId" value="LOCAL-00008" />
-      <option name="project" value="LOCAL" />
-      <updated>1656511786445</updated>
-    </task>
     <task id="LOCAL-00009" summary="Updated commands.txt in the examples and the manual to make it consistent with the new domain discretization option in input">
       <created>1656594769545</created>
       <option name="number" value="00009" />
@@ -511,7 +504,14 @@
       <option name="project" value="LOCAL" />
       <updated>1684428816404</updated>
     </task>
-    <option name="localTasksCounter" value="57" />
+    <task id="LOCAL-00057" summary="Implemented mandatory height=10 m in diagno, to extract the winds necessary for Ri">
+      <created>1684591995454</created>
+      <option name="number" value="00057" />
+      <option name="presentableId" value="LOCAL-00057" />
+      <option name="project" value="LOCAL" />
+      <updated>1684591995454</updated>
+    </task>
+    <option name="localTasksCounter" value="58" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">

@@ -1004,7 +1004,8 @@ def pre_process(run_mode):
                     elif 'AMBIENT_GAS_DENSITY_20C_(KG/M3)' in record:
                         twodee_input_file.write('  AMBIENT_GAS_DENSITY_20C_(KG/M3) = 1.204\n')
                     elif 'DENSE_GAS_DENSITY_20C_(KG/M3)' in record:
-                        twodee_input_file.write('  DENSE_GAS_DENSITY_20C_(KG/M3) = ' + str(gas_density_20) + '\n')
+                        twodee_input_file.write('  DENSE_GAS_DENSITY_20C_(KG/M3) = ' +
+                                                "{0:6.3f}".format(gas_density_20) + '\n')
                     elif 'AVERAGED_TEMPERATURE_(C)' in record:
                         twodee_input_file.write('  AVERAGED_TEMPERATURE_(C) = ' + str(gas_temperature) + '\n') #FABIO: to be improved if we decide to read temperatures from the source file
                     elif 'RESTART_RUN' in record:
@@ -1241,17 +1242,19 @@ def run_diagno(max_np):
 def read_diagno_outputs():
     from scipy.io import FortranFile
 
-    disgas_days = []
-    twodee_days = []
+    disgas_sources_days = []
+    twodee_sources_days = []
     tz0 = 298
     p_air = 101325
     r_air = 287
     area_source = dx * dy
     r_source = (area_source / 3.1416) ** 0.5
     for day in days:
-        ri_sources = []
+        # ri_sources = []
         g_prime_sources = []
         rho_gas_sources = []
+        twodee_sources = []
+        disgas_sources = []
         diagno_output_file = os.path.join(root, "simulations", "diagno", day, 'diagno.out')
         diagno_input_file = os.path.join(root, "simulations", "diagno", day, 'diagno.inp')
         with open(diagno_input_file, 'r') as diagno_input_data:
@@ -1293,9 +1296,8 @@ def read_diagno_outputs():
                 if k_z == 0:
                     print('WARNING. Unable to find level z = 10 m in diagno.out. Reading the wind output from the '
                           'first level above the ground')
-                for nline in range(0, 3): # FABIO: modified because we now read z_diagno
+                for nline in range(0, 3):
                     f.read_reals(dtype='float32')
-                # FABIO: da qui modificare per leggere i venti a k_z10
                 for k in range(0, nz_diagno):
                     for j in range(0, ny_diagno):
                         y_domain = yor_diagno + j * dy_diagno
@@ -1326,9 +1328,9 @@ def read_diagno_outputs():
                                         y_domain - dy_diagno < y_source < y_domain + dy_diagno:
                                     vy_average_sources[i_source] += vy_vector[i_v]
                                     n_times_source_counted[i_source] += 1
-                vy_time_average_sources = [vy_time_average_sources[i_source] + vy_average_sources[i_source] / n_times_source_counted[i_source] for i_source
-                                      in range(0, len(gas_fluxes_sources))]
-                print('vy',vy_time_average_sources[1],n_steps)
+                vy_time_average_sources = [vy_time_average_sources[i_source] + vy_average_sources[i_source] /
+                                           n_times_source_counted[i_source] for i_source in
+                                           range(0, len(gas_fluxes_sources))]
                 n_times_source_counted = [0 for flux in gas_fluxes_sources]
                 # Skip vz
                 for k in range(0, nz_diagno):
@@ -1347,17 +1349,17 @@ def read_diagno_outputs():
                              for i_source in range(0, len(gas_fluxes_sources))]
         for i_source in range(0, len(wind_time_average_sources)):
             try:
-                ri_sources.append((1 / wind_time_average_sources[i_source] ** 2) * ((g_prime_sources[i_source] *
-                                  q_average_sources[i_source]) / r_source) ** (2 / 3))
+                ri_source = (1 / wind_time_average_sources[i_source] ** 2) * ((g_prime_sources[i_source] *
+                             q_average_sources[i_source]) / r_source) ** (2 / 3)
             except ValueError:  # When gprime <0, in this case for the moment we set Ri = 0.01 (small number)
-                ri_sources.append(0.01)
-        # Flux weight-averaged Richardson number of all sources in the domain
-        ri_average_sources_domain = np.sum(np.multiply(ri_sources, q_average_sources)) / np.sum(q_average_sources)
-        if ri_average_sources_domain > 1:
-            twodee_days.append(day)
-        else:
-            disgas_days.append(day)
-    return disgas_days, twodee_days
+                ri_source = 0.01
+            if ri_source > 1:
+                twodee_sources.append(ri_source)
+            else:
+                disgas_sources.append(ri_source)
+        disgas_sources_days.append(disgas_sources)
+        twodee_sources_days.append(twodee_sources)
+    return disgas_sources_days, twodee_sources_days
 
 
 def run_disgas(max_np):

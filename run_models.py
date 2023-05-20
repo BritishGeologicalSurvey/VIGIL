@@ -1263,14 +1263,10 @@ def read_diagno_outputs():
                 elif 'TINF\n' in line:
                     tz0 = float(line.split('TINF')[0])
         rho_air = p_air / (r_air * tz0)
-        # g_prime = (9.81 * (rho_tracking_specie - rho_air)) / rho_air  #FABIO: capire se serve rho_tracking_specie
         for i_source in range(0, len(gas_fluxes_sources)):
             t_source = temperatures_sources[i_source]
             rho_gas_sources.append(p_air / (r_tracking_specie * t_source))
             g_prime_sources.append((9.81 * (rho_gas_sources[-1] - rho_air)) / rho_air)
-        print('g_prime')
-        print(g_prime_sources)
-        # singolo valore
         f = FortranFile(diagno_output_file, 'r')
         vx_time_average_sources = [0 for flux in gas_fluxes_sources]
         vy_time_average_sources = [0 for flux in gas_fluxes_sources]
@@ -1287,78 +1283,74 @@ def read_diagno_outputs():
                 f.read_reals(dtype='float32')
                 dx_diagno, dy_diagno = f.read_reals(dtype='float32')
                 z_diagno = f.read_reals(dtype='float32')
-                # FABIO: to find the height where z = 10 m to extract the wind
                 min_diff = 100000000
+                k_z = 0
                 for k in range(0, len(z_diagno)):
                     z_diff = abs(10 - z_diagno[k])
                     if z_diff <= min_diff:
                         min_diff = z_diff
-                        k_z10 = k
+                        k_z = k
+                if k_z == 0:
+                    print('WARNING. Unable to find level z = 10 m in diagno.out. Reading the wind output from the '
+                          'first level above the ground')
                 for nline in range(0, 3): # FABIO: modified because we now read z_diagno
                     f.read_reals(dtype='float32')
                 # FABIO: da qui modificare per leggere i venti a k_z10
-                for j in range(0, ny_diagno):
-                    y_domain = yor_diagno + j * dy_diagno
-                    vx_vector = f.read_reals(dtype='float32')
-                    for i_v in range(0, len(vx_vector)):
-                        x_domain = xor_diagno + i_v * dx_diagno
-                        for i_source in range(0, len(gas_fluxes_sources)):
-                            x_source = easting_sources[i_source]
-                            y_source = northing_sources[i_source]
-                            if x_domain - dx_diagno < x_source < x_domain + dx_diagno and \
-                                    y_domain - dy_diagno < y_source < y_domain + dy_diagno:
-                                vx_average_sources[i_source] += vx_vector[i_v]
-                                n_times_source_counted[i_source] += 1
-                vx_time_average_sources = [vx_time_average_sources[i_source] + vx_average_sources[i_source] / n_times_source_counted[i_source] for i_source
-                                      in range(0, len(gas_fluxes_sources))]
-                n_times_source_counted = [0 for flux in gas_fluxes_sources]
-                for k in range(1, nz_diagno):
+                for k in range(0, nz_diagno):
                     for j in range(0, ny_diagno):
-                        f.read_reals(dtype='float32')
-                for j in range(0, ny_diagno):
-                    y_domain = yor_diagno + j * dy_diagno
-                    vy_vector = f.read_reals(dtype='float32')
-                    for i_v in range(0, len(vy_vector)):
-                        x_domain = xor_diagno + i_v * dx_diagno
-                        for i_source in range(0, len(gas_fluxes_sources)):
-                            x_source = easting_sources[i_source]
-                            y_source = northing_sources[i_source]
-                            if x_domain - dx_diagno < x_source < x_domain + dx_diagno and \
-                                    y_domain - dy_diagno < y_source < y_domain + dy_diagno:
-                                vy_average_sources[i_source] += vy_vector[i_v]
-                                n_times_source_counted[i_source] += 1
+                        y_domain = yor_diagno + j * dy_diagno
+                        vx_vector = f.read_reals(dtype='float32')
+                        for i_v in range(0, len(vx_vector)):
+                            x_domain = xor_diagno + i_v * dx_diagno
+                            for i_source in range(0, len(gas_fluxes_sources)):
+                                x_source = easting_sources[i_source]
+                                y_source = northing_sources[i_source]
+                                if k == k_z and x_domain - dx_diagno < x_source < x_domain + dx_diagno and \
+                                        y_domain - dy_diagno < y_source < y_domain + dy_diagno:
+                                    vx_average_sources[i_source] += vx_vector[i_v]
+                                    n_times_source_counted[i_source] += 1
+                vx_time_average_sources = [vx_time_average_sources[i_source] + vx_average_sources[i_source] /
+                                           n_times_source_counted[i_source]
+                                           for i_source in range(0, len(gas_fluxes_sources))]
+                n_times_source_counted = [0 for flux in gas_fluxes_sources]
+                for k in range(0, nz_diagno):
+                    for j in range(0, ny_diagno):
+                        y_domain = yor_diagno + j * dy_diagno
+                        vy_vector = f.read_reals(dtype='float32')
+                        for i_v in range(0, len(vy_vector)):
+                            x_domain = xor_diagno + i_v * dx_diagno
+                            for i_source in range(0, len(gas_fluxes_sources)):
+                                x_source = easting_sources[i_source]
+                                y_source = northing_sources[i_source]
+                                if k == k_z and x_domain - dx_diagno < x_source < x_domain + dx_diagno and \
+                                        y_domain - dy_diagno < y_source < y_domain + dy_diagno:
+                                    vy_average_sources[i_source] += vy_vector[i_v]
+                                    n_times_source_counted[i_source] += 1
                 vy_time_average_sources = [vy_time_average_sources[i_source] + vy_average_sources[i_source] / n_times_source_counted[i_source] for i_source
                                       in range(0, len(gas_fluxes_sources))]
                 print('vy',vy_time_average_sources[1],n_steps)
                 n_times_source_counted = [0 for flux in gas_fluxes_sources]
-                for k in range(1, nz_diagno):
-                    for j in range(0, ny_diagno):
-                        f.read_reals(dtype='float32')
                 # Skip vz
                 for k in range(0, nz_diagno):
                     for j in range(0, ny_diagno):
                         f.read_reals(dtype='float32')
             except BaseException:
                 break
-        vx_time_average_sources = [vx_time_average_sources[i_source] / n_steps for i_source in range(0, len(vx_time_average_sources))]
-        print('vx_time_average_sources')
-        print(vx_time_average_sources)
-        vy_time_average_sources = [vy_time_average_sources[i_source] / n_steps for i_source in range(0, len(vy_time_average_sources))]
-        print('vy_time_average_sources')
-        print(vy_time_average_sources)
-        wind_time_average_sources = [(vx_time_average_sources[i_source] ** 2 + vy_time_average_sources[i_source] ** 2) ** 0.5 for i_source in range(0, len(vx_time_average_sources))]
-        print('wind_time_average_sources')
-        print(wind_time_average_sources)
-        q_average_sources = [gas_fluxes_sources[i_source] / rho_gas_sources[i_source] for i_source in range(0, len(gas_fluxes_sources))]
-        print('q_average_sources')
-        print(q_average_sources)
+        vx_time_average_sources = [vx_time_average_sources[i_source] / n_steps
+                                   for i_source in range(0, len(vx_time_average_sources))]
+        vy_time_average_sources = [vy_time_average_sources[i_source] / n_steps
+                                   for i_source in range(0, len(vy_time_average_sources))]
+        wind_time_average_sources = [(vx_time_average_sources[i_source] ** 2 +
+                                      vy_time_average_sources[i_source] ** 2) ** 0.5
+                                     for i_source in range(0, len(vx_time_average_sources))]
+        q_average_sources = [gas_fluxes_sources[i_source] / rho_gas_sources[i_source]
+                             for i_source in range(0, len(gas_fluxes_sources))]
         for i_source in range(0, len(wind_time_average_sources)):
             try:
-                ri_sources.append((1 / wind_time_average_sources[i_source] ** 2) * ((g_prime_sources[i_source] * q_average_sources[i_source]) / r_source) ** (2 / 3))
-            except ValueError:  # FABIO when gprime <0, in this case for the moment we set Ri = 0.01 (small number)
+                ri_sources.append((1 / wind_time_average_sources[i_source] ** 2) * ((g_prime_sources[i_source] *
+                                  q_average_sources[i_source]) / r_source) ** (2 / 3))
+            except ValueError:  # When gprime <0, in this case for the moment we set Ri = 0.01 (small number)
                 ri_sources.append(0.01)
-        print('ri_sources')
-        print(ri_sources)
         # Flux weight-averaged Richardson number of all sources in the domain
         ri_average_sources_domain = np.sum(np.multiply(ri_sources, q_average_sources)) / np.sum(q_average_sources)
         if ri_average_sources_domain > 1:

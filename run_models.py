@@ -406,6 +406,10 @@ def read_arguments():
     elif model.lower() == 'automatic':
         twodee = True
         disgas = True
+        if continuous_simulation_in:
+            print('ERROR. Option Automatic for -DM --dispersion_model is currently not compatible with the continuous '
+                  'simulation mode')
+            sys.exit()
     else:
         print("ERROR. Please provide a valid entry for the variable -DM --dispersion_model")
         sys.exit()
@@ -723,9 +727,14 @@ def pre_process(run_mode):
                 gas_fluxes.append(fluxes_input[j_source])
 #    disgas = os.path.join(root, "simulations", "disgas")
 #    twodee = os.path.join(root, "simulations", "twodee")
-    diagno = os.path.join(root, "simulations", "diagno")
-    runs = os.path.join(root, "simulations", "runs")
+    simulations = os.path.join(root, "simulations")
+    diagno = os.path.join(simulations, "diagno")
+    runs = os.path.join(simulations, "runs")
     # Set runs folder
+    try:
+        os.mkdir(simulations)
+    except FileExistsError:
+        print("Folder " + simulations + " already exists")
     try:
         os.mkdir(runs)
     except FileExistsError:
@@ -742,6 +751,7 @@ def pre_process(run_mode):
         # Set DISGAS folder
         if disgas_on:
             disgas_daily = os.path.join(runs, str(day))
+            runs_disgas.append(disgas_daily)
             outfiles = os.path.join(disgas_daily, "outfiles")
             try:
                 os.mkdir(disgas_daily)
@@ -901,6 +911,7 @@ def pre_process(run_mode):
             shutil.copy(disgas_input, disgas_original)
         if twodee_on:
             twodee_daily = os.path.join(runs, str(day))
+            runs_twodee.append(twodee_daily)
             outfiles_twodee = os.path.join(twodee_daily, "outfiles")
             try:
                 os.mkdir(twodee_daily)
@@ -1007,7 +1018,9 @@ def pre_process(run_mode):
                         twodee_input_file.write('  DENSE_GAS_DENSITY_20C_(KG/M3) = ' +
                                                 "{0:6.3f}".format(gas_density_20) + '\n')
                     elif 'AVERAGED_TEMPERATURE_(C)' in record:
-                        twodee_input_file.write('  AVERAGED_TEMPERATURE_(C) = ' + str(gas_temperature) + '\n') #FABIO: to be improved if we decide to read temperatures from the source file
+                        twodee_input_file.write('  AVERAGED_TEMPERATURE_(C) = ' + str(gas_temperature) + '\n')
+                        # Average temperature initialized with the temperature specified in gas_properties.csv.
+                        # If T for each source is provided in sources_input.txt, this will be reassigned
                     elif 'RESTART_RUN' in record:
                         if run_mode == 'restart':
                             twodee_input_file.write("  RESTART_RUN = YES\n")
@@ -1062,7 +1075,8 @@ def pre_process(run_mode):
                     else:
                         twodee_input_file.write(record)
             shutil.copy(twodee_input, twodee_original)
-    return easting, northing, gas_fluxes, source_temperatures, gas_density, gas_constant
+    return easting, northing, elevations, dx_sources, dy_sources, dur, gas_fluxes, source_temperatures, gas_density, \
+           gas_constant
 
 
 def run_diagno(max_np):
@@ -1242,8 +1256,111 @@ def run_diagno(max_np):
 def read_diagno_outputs():
     from scipy.io import FortranFile
 
-    disgas_sources_days = []
-    twodee_sources_days = []
+    def prepare_temporary_simulations(day_simulation):
+        disgas_folder = os.path.join(runs, day_simulation, 'disgas')
+        twodee_folder = os.path.join(runs, day_simulation, 'twodee')
+        runs_disgas.append(disgas_folder)
+        runs_twodee.append(twodee_folder)
+        disgas_inp = os.path.join(runs, day_simulation, 'disgas.inp')
+        twodee_inp = os.path.join(runs, day_simulation, 'twodee.inp')
+        disgas_inp_new = os.path.join(disgas_folder, 'disgas.inp')
+        twodee_inp_new = os.path.join(disgas_folder, 'disgas.inp')
+        disgas_input_records = []
+        twodee_input_records = []
+        try:
+            os.mkdir(disgas_folder)
+        except FileExistsError:
+            print('Folder ' + disgas_folder + ' already exists')
+        try:
+            os.mkdir(twodee_folder)
+        except FileExistsError:
+            print('Folder ' + twodee_folder + ' already exists')
+        # Copy the necessary files into the temporary disgas folder
+        shutil.copy(os.path.join(runs, day_simulation, 'roughness.grd'), os.path.join(disgas_folder, 'roughness.grd'))
+        shutil.copy(os.path.join(runs, day_simulation, 'surface_data.txt'),
+                    os.path.join(disgas_folder, 'surface_data.txt'))
+        try:
+            os.mkdir(os.path.join(disgas_folder, 'outfiles'))
+        except FileExistsError:
+            print('Folder ' + os.path.join(disgas_folder, 'outfiles') + ' already exists')
+        # Copy the necessary files into the temporary twodee folder
+        shutil.copy(os.path.join(runs, day_simulation, 'roughness.grd'), os.path.join(twodee_folder, 'roughness.grd'))
+        shutil.copy(os.path.join(runs, day_simulation, 'surface_data.txt'),
+                    os.path.join(twodee_folder, 'surface_data.txt'))
+        try:
+            os.mkdir(os.path.join(twodee_folder, 'outfiles'))
+        except FileExistsError:
+            print('Folder ' + os.path.join(twodee_folder, 'outfiles') + ' already exists')
+        with open(os.path.join(disgas_folder, "source.dat"), "w", encoding="utf-8", errors="surrogateescape",) \
+                as source_file:
+            for j_source in index_sources_disgas:
+                source_file.write(
+                    "{0:7.3f}".format(easting_sources[j_source])
+                    + " "
+                    + "{0:7.3f}".format(northing_sources[j_source])
+                    + " "
+                    + "{0:7.2f}".format(elevation_sources[j_source])
+                    + " "
+                    + str(gas_fluxes_sources[j_source])
+                    + "\n")
+        with open(
+                os.path.join(twodee_folder, "source.dat"), "w", encoding="utf-8", errors="surrogateescape",) \
+                as source_file:
+            for j_source in index_sources_twodee:
+                source_file.write(
+                    "{0:7.3f}".format(easting_sources[j_source])
+                    + " "
+                    + "{0:7.3f}".format(northing_sources[j_source])
+                    + " "
+                    + "{0:7.3f}".format(gas_fluxes_sources[j_source])
+                    + " "
+                    + "{0:7.2f}".format(dx_sources[j_source])
+                    + " "
+                    + "{0:7.2f}".format(dy_sources[j_source])
+                    + " KG_SEC 0 "
+                    + "{0:7.3f}".format(dur_sources[j_source])
+                    + "\n")
+        # Update the input files where necessary
+        with open(disgas_inp, "r", encoding="utf-8", errors="surrogateescape") as disgas_or_input:
+            for line_input in disgas_or_input:
+                disgas_input_records.append(line_input)
+        with open(disgas_inp_new, "w", encoding="utf-8", errors="surrogateescape") as disgas_input_file:
+            for record in disgas_input_records:
+                if "ROUGHNESS_FILE_PATH" in record:
+                    disgas_input_file.write("   ROUGHNESS_FILE_PATH   = " +
+                                            os.path.join(disgas_folder, "roughness.grd") + " \n")
+                elif "RESTART_FILE_PATH" in record:
+                    disgas_input_file.write("   RESTART_FILE_PATH   = " + os.path.join(disgas_folder, "restart.dat") +
+                                            " \n")
+                elif "SOURCE_FILE_PATH" in record:
+                    disgas_input_file.write("   SOURCE_FILE_PATH   = " + os.path.join(disgas_folder, "source.dat")
+                        + " \n")
+                elif "WIND_FILE_PATH" in record:
+                    disgas_input_file.write("   WIND_FILE_PATH   = " + os.path.join(disgas_folder, "winds.dat") + " \n")
+                elif "OUTPUT_DIRECTORY" in record:
+                    disgas_input_file.write( "   OUTPUT_DIRECTORY    = " + os.path.join(disgas_folder, 'outfiles') +
+                                             " \n")
+                else:
+                    disgas_input_file.write(record)
+        with open(twodee_inp, "r", encoding="utf-8", errors="surrogateescape") as twodee_or_input:
+            for line_input in twodee_or_input:
+                twodee_input_records.append(line_input)
+        with open(twodee_inp_new, "w", encoding="utf-8", errors="surrogateescape") as twodee_input_file:
+            for record in twodee_input_records:
+                if "OUTPUT_DIRECTORY" in record:
+                    twodee_input_file.write("   OUTPUT_DIRECTORY   = " + os.path.join(twodee_folder, 'outfiles') +
+                                            " \n")
+                elif "ROUGHNESS_FILE" in record and "ROUGHNESS_FILE_FORMAT" not in record:
+                    twodee_input_file.write("   ROUGHNESS_FILE   = " + os.path.join(twodee_folder, "roughness.grd") +
+                                            " \n")
+                elif "SOURCE_FILE" in record:
+                    twodee_input_file.write("   SOURCE_FILE   = " + os.path.join(twodee_folder, "source.dat") + " \n")
+                elif "RESTART_FILE" in record:
+                    twodee_input_file.write("   RESTART_FILE   = " + os.path.join(twodee_folder, "restart.dat") + " \n")
+                else:
+                    twodee_input_file.write(record)
+
+    runs = os.path.join(root, "simulations", "runs")
     tz0 = 298
     p_air = 101325
     r_air = 287
@@ -1255,6 +1372,8 @@ def read_diagno_outputs():
         rho_gas_sources = []
         twodee_sources = []
         disgas_sources = []
+        index_sources_twodee = []
+        index_sources_disgas = []
         diagno_output_file = os.path.join(root, "simulations", "diagno", day, 'diagno.out')
         diagno_input_file = os.path.join(root, "simulations", "diagno", day, 'diagno.inp')
         with open(diagno_input_file, 'r') as diagno_input_data:
@@ -1355,11 +1474,12 @@ def read_diagno_outputs():
                 ri_source = 0.01
             if ri_source > 1:
                 twodee_sources.append(ri_source)
+                index_sources_twodee.append(i_source)
             else:
                 disgas_sources.append(ri_source)
-        disgas_sources_days.append(disgas_sources)
-        twodee_sources_days.append(twodee_sources)
-    return disgas_sources_days, twodee_sources_days
+                index_sources_disgas.append(i_source)
+        if len(index_sources_twodee) != 0 and len(index_sources_disgas) != 0:  # The run needs to be split
+            prepare_temporary_simulations(day)
 
 
 def run_disgas(max_np):
@@ -1370,23 +1490,23 @@ def run_disgas(max_np):
     node = ''
     if continuous_simulation:
         max_np = 1
-    while n_elaborated_days <= len(days):
+    while n_elaborated_days <= len(runs_disgas):
         ps = []
         start_day = n_elaborated_days
         end_day = n_elaborated_days + max_np
-        if end_day > len(days):
-            end_day = len(days)
+        if end_day > len(runs_disgas):
+            end_day = len(runs_disgas)
         try:
-            for day in days[start_day:end_day]:
+            for run in runs_disgas[start_day:end_day]:
+                day = run.split(os.sep)[-1]
                 if len(nodes_list) > 0:
                     try:
                         node = nodes_list[n_node]
                     except IndexError:
                         node = ''
-                disgas_folder = os.path.join(disgas, day)
-                disgas_input_file = os.path.join(disgas_folder, "disgas.inp")
+                disgas_input_file = os.path.join(run, "disgas.inp")
                 disgas_log_file = os.path.join(
-                    disgas_folder, "disgas_log_" + day + ".txt"
+                    run, "disgas_log.txt"
                 )
                 if continuous_simulation and day != days[0]:
                     current_day = datetime.datetime.strptime(day, '%Y%m%d')
@@ -1395,13 +1515,13 @@ def run_disgas(max_np):
                     disgas_previous_day = os.path.join(disgas, str(previous_day))
                     try:
                         shutil.copyfile(os.path.join(disgas_previous_day, "restart.dat"),
-                                        os.path.join(disgas_folder, "restart.dat"))
+                                        os.path.join(run, "restart.dat"))
                     except FileNotFoundError:
                         print('ERROR. Restart run requested but file ' +
                               os.path.join(disgas_previous_day, "restart.dat") + ' not found')
                         sys.exit()
                 if not diagno_on:
-                    disgas_output_folder = os.path.join(disgas_folder, 'outfiles')
+                    disgas_output_folder = os.path.join(run, 'outfiles')
                     try:
                         os.mkdir(disgas_output_folder)
                     except FileExistsError:
@@ -1446,28 +1566,27 @@ def run_twodee(max_np):
     node = ''
     if continuous_simulation:
         max_np = 1
-    while n_elaborated_days <= len(days):
+    while n_elaborated_days <= len(runs_twodee):
         ps = []
         start_day = n_elaborated_days
         end_day = n_elaborated_days + max_np
-        if end_day > len(days):
-            end_day = len(days)
+        if end_day > len(runs_twodee):
+            end_day = len(runs_twodee)
         try:
-            for day in days[start_day:end_day]:
+            for run in runs_twodee[start_day:end_day]:
+                day = run.split(os.sep)[-1]
                 if len(nodes_list) > 0:
                     try:
                         node = nodes_list[n_node]
                     except IndexError:
                         node = ''
                 diagno = os.path.join(root, "simulations", "diagno", day)
-                twodee_folder = os.path.join(twodee, day)
                 shutil.copyfile(
                     os.path.join(diagno, "diagno.out"),
-                    os.path.join(twodee_folder, "diagno.out"),
+                    os.path.join(run, "diagno.out"),
                 )
-                twodee_input_file = os.path.join(twodee_folder, "twodee.inp")
-                twodee_log_file = os.path.join(
-                    twodee_folder, "twodee_log_" + day + ".txt"
+                twodee_input_file = os.path.join(run, "twodee.inp")
+                twodee_log_file = os.path.join(run, "twodee_log.txt"
                 )
                 if continuous_simulation and day != days[0]:
                     current_day = datetime.datetime.strptime(day, '%Y%m%d')
@@ -1476,13 +1595,13 @@ def run_twodee(max_np):
                     twodee_previous_day = os.path.join(twodee, str(previous_day))
                     try:
                         shutil.copyfile(os.path.join(twodee_previous_day, "restart.dat"),
-                                        os.path.join(twodee_folder, "restart.dat"))
+                                        os.path.join(run, "restart.dat"))
                     except FileNotFoundError:
                         print('ERROR. Restart run requested but file ' +
                               os.path.join(twodee_previous_day, "restart.dat") + ' not found')
                         sys.exit()
                 if not diagno_on:
-                    twodee_output_folder = os.path.join(twodee_folder, 'outfiles')
+                    twodee_output_folder = os.path.join(run, 'outfiles')
                     try:
                         os.mkdir(twodee_output_folder)
                     except FileExistsError:
@@ -1610,19 +1729,22 @@ except FileNotFoundError:
 
 days = prepare_days()
 
-easting_sources, northing_sources, gas_fluxes_sources, temperatures_sources, rho_tracking_specie, r_tracking_specie = \
-    pre_process(run_type)
+runs_disgas = []
+runs_twodee = []
+
+easting_sources, northing_sources, elevation_sources, gas_fluxes_sources, dx_sources, dy_sources, dur_sources, \
+    temperatures_sources, rho_tracking_specie, r_tracking_specie = pre_process(run_type)
 
 if diagno_on:
     run_diagno(max_number_processes)
 
 if disgas_on and twodee_on:  # We are in automatic scenario detection mode, hence we need to read the meteorological
-    # data at the source locations to calculate the Richardson number at the source
-    days_disgas, days_twodee = read_diagno_outputs()
+    # data at the source locations to calculate the Richardson number at the source and assign the right solver to each
+    # simulation, for this reason we re-initialize the runs vectors
+    runs_disgas = []
+    runs_twodee = []
+    read_diagno_outputs()
 
-    print(days_disgas)
-    print(days_twodee)
-sys.exit()
 
 if disgas_on:
     run_disgas(max_number_processes)

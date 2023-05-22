@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Implemented mandatory height=10 m in diagno, to extract the winds necessary for Ri">
+    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Sources are classified according to Ri. This is to simulate them properly with DISGAS or TWODEE depending on Ri">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/run_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/run_models.py" afterDir="false" />
     </list>
@@ -167,13 +167,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1650985604184</updated>
-    </task>
-    <task id="LOCAL-00009" summary="Updated commands.txt in the examples and the manual to make it consistent with the new domain discretization option in input">
-      <created>1656594769545</created>
-      <option name="number" value="00009" />
-      <option name="presentableId" value="LOCAL-00009" />
-      <option name="project" value="LOCAL" />
-      <updated>1656594769545</updated>
     </task>
     <task id="LOCAL-00010" summary="Fixed a bug in the way the slurm nodes were handled when slurm is not used">
       <created>1656598243311</created>
@@ -511,7 +504,14 @@
       <option name="project" value="LOCAL" />
       <updated>1684591995454</updated>
     </task>
-    <option name="localTasksCounter" value="58" />
+    <task id="LOCAL-00058" summary="Sources are classified according to Ri. This is to simulate them properly with DISGAS or TWODEE depending on Ri">
+      <created>1684595913815</created>
+      <option name="number" value="00058" />
+      <option name="presentableId" value="LOCAL-00058" />
+      <option name="project" value="LOCAL" />
+      <updated>1684595913815</updated>
+    </task>
+    <option name="localTasksCounter" value="59" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -526,7 +526,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Improved handling of existing output files in post_processing folder" />
     <MESSAGE value="Fixed small bug in post_process.py in the handling of pre-existing files in post_processing folder" />
     <MESSAGE value="Improved handling of open files to save memory (to test)" />
     <MESSAGE value="Updated commands.txt in the example folders" />
@@ -551,6 +550,7 @@
     <MESSAGE value="Implemented run_models.py with the new scenario automatic calculator, needs to be refined and fully tested" />
     <MESSAGE value="Implemented function to read the tracking gas specie properties from the gas_properties.csv file" />
     <MESSAGE value="Implemented mandatory height=10 m in diagno, to extract the winds necessary for Ri" />
-    <option name="LAST_COMMIT_MESSAGE" value="Implemented mandatory height=10 m in diagno, to extract the winds necessary for Ri" />
+    <MESSAGE value="Sources are classified according to Ri. This is to simulate them properly with DISGAS or TWODEE depending on Ri" />
+    <option name="LAST_COMMIT_MESSAGE" value="Sources are classified according to Ri. This is to simulate them properly with DISGAS or TWODEE depending on Ri" />
   </component>
 </project>

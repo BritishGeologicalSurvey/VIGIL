@@ -1257,6 +1257,10 @@ def read_diagno_outputs():
     from scipy.io import FortranFile
 
     def prepare_temporary_simulations(day_simulation):
+        try:
+            os.remove(os.path.join(runs, day_simulation, 'source.dat'))
+        except FileNotFoundError:
+            pass
         disgas_folder = os.path.join(runs, day_simulation, 'disgas')
         twodee_folder = os.path.join(runs, day_simulation, 'twodee')
         runs_disgas.append(disgas_folder)
@@ -1479,9 +1483,27 @@ def read_diagno_outputs():
                 disgas_sources.append(ri_source)
                 index_sources_disgas.append(i_source)
         if len(index_sources_twodee) != 0 and len(index_sources_disgas) != 0:  # The run needs to be split
+            for run in runs_disgas:
+                if day in run:
+                    runs_disgas.remove(run)
+                    break
+            for run in runs_twodee:
+                if day in run:
+                    runs_twodee.remove(run)
+                    break
             prepare_temporary_simulations(day)
+        elif len(index_sources_twodee) == 0 and len(index_sources_disgas) != 0:
+            for run in runs_twodee:
+                if day in run:
+                    runs_twodee.remove(run)
+                    break
+        else:
+            for run in runs_disgas:
+                if day in run:
+                    runs_disgas.remove(run)
+                    break
 
-
+            
 def run_disgas(max_np):
     import datetime
     disgas = os.path.join(root, "simulations", "runs")
@@ -1732,7 +1754,7 @@ days = prepare_days()
 runs_disgas = []
 runs_twodee = []
 
-easting_sources, northing_sources, elevation_sources, gas_fluxes_sources, dx_sources, dy_sources, dur_sources, \
+easting_sources, northing_sources, elevation_sources, dx_sources, dy_sources, dur_sources, gas_fluxes_sources, \
     temperatures_sources, rho_tracking_specie, r_tracking_specie = pre_process(run_type)
 
 if diagno_on:
@@ -1741,10 +1763,12 @@ if diagno_on:
 if disgas_on and twodee_on:  # We are in automatic scenario detection mode, hence we need to read the meteorological
     # data at the source locations to calculate the Richardson number at the source and assign the right solver to each
     # simulation, for this reason we re-initialize the runs vectors
-    runs_disgas = []
-    runs_twodee = []
     read_diagno_outputs()
 
+if len(runs_disgas) == 0:
+    disgas_on = False
+elif len(runs_twodee) == 0:
+    twodee_on = False
 
 if disgas_on:
     run_disgas(max_number_processes)

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Started the implementation of simulation splitting based on the source Ri">
+    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Implemented run splitting, to be fully tested">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/run_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/run_models.py" afterDir="false" />
     </list>
@@ -167,13 +167,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1650985604184</updated>
-    </task>
-    <task id="LOCAL-00011" summary="Removed obsolete arguments from the examples">
-      <created>1656658379131</created>
-      <option name="number" value="00011" />
-      <option name="presentableId" value="LOCAL-00011" />
-      <option name="project" value="LOCAL" />
-      <updated>1656658379131</updated>
     </task>
     <task id="LOCAL-00012" summary="- Fixed a bug that prevented running post_process.py without necessarily plotting &#10;- Introduced folders structure for the persistence calculation outputs">
       <created>1656679207753</created>
@@ -511,7 +504,14 @@
       <option name="project" value="LOCAL" />
       <updated>1684776026442</updated>
     </task>
-    <option name="localTasksCounter" value="60" />
+    <task id="LOCAL-00060" summary="Implemented run splitting, to be fully tested">
+      <created>1684853123537</created>
+      <option name="number" value="00060" />
+      <option name="presentableId" value="LOCAL-00060" />
+      <option name="project" value="LOCAL" />
+      <updated>1684853123537</updated>
+    </task>
+    <option name="localTasksCounter" value="61" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -526,7 +526,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Improved handling of open files to save memory (to test)" />
     <MESSAGE value="Updated commands.txt in the example folders" />
     <MESSAGE value="Improved plot styles and updated commands.txt in the examples" />
     <MESSAGE value="Improved file handling in ecdf and persistence functions" />
@@ -551,6 +550,7 @@
     <MESSAGE value="Implemented mandatory height=10 m in diagno, to extract the winds necessary for Ri" />
     <MESSAGE value="Sources are classified according to Ri. This is to simulate them properly with DISGAS or TWODEE depending on Ri" />
     <MESSAGE value="Started the implementation of simulation splitting based on the source Ri" />
-    <option name="LAST_COMMIT_MESSAGE" value="Started the implementation of simulation splitting based on the source Ri" />
+    <MESSAGE value="Implemented run splitting, to be fully tested" />
+    <option name="LAST_COMMIT_MESSAGE" value="Implemented run splitting, to be fully tested" />
   </component>
 </project>

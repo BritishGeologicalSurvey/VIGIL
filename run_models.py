@@ -1135,7 +1135,6 @@ def run_diagno(max_np):
                 for record in diagno_input_records:
                     if 'CELLZB' in record:
                         old_record = record
-                        print(record)
                         heights = []
                         new_record_string = ''
                         str_heights = record.split('CELLZB(1:NZ+1)')[0].split(' ')
@@ -1144,15 +1143,12 @@ def run_diagno(max_np):
                                 heights.append(float(height))
                             except ValueError:
                                 continue
-                        print(heights)
                         if 10. not in heights:
                             heights.append(10.)
                             heights = sorted(heights)
-                        print(heights)
                         for height in heights:
                             new_record_string += str(height) + ' '
                         new_record_string += ' CELLZB(1:NZ+1) (m)'
-                        print(new_record_string)
                 if new_record_string != '':
                     diagno_input_records = [new_record_string if item == old_record else item for item in
                                             diagno_input_records]
@@ -1268,7 +1264,7 @@ def read_diagno_outputs():
         disgas_inp = os.path.join(runs, day_simulation, 'disgas.inp')
         twodee_inp = os.path.join(runs, day_simulation, 'twodee.inp')
         disgas_inp_new = os.path.join(disgas_folder, 'disgas.inp')
-        twodee_inp_new = os.path.join(disgas_folder, 'disgas.inp')
+        twodee_inp_new = os.path.join(twodee_folder, 'twodee.inp')
         disgas_input_records = []
         twodee_input_records = []
         try:
@@ -1289,8 +1285,6 @@ def read_diagno_outputs():
             print('Folder ' + os.path.join(disgas_folder, 'outfiles') + ' already exists')
         # Copy the necessary files into the temporary twodee folder
         shutil.copy(os.path.join(runs, day_simulation, 'roughness.grd'), os.path.join(twodee_folder, 'roughness.grd'))
-        shutil.copy(os.path.join(runs, day_simulation, 'surface_data.txt'),
-                    os.path.join(twodee_folder, 'surface_data.txt'))
         try:
             os.mkdir(os.path.join(twodee_folder, 'outfiles'))
         except FileExistsError:
@@ -1328,6 +1322,33 @@ def read_diagno_outputs():
         with open(disgas_inp, "r", encoding="utf-8", errors="surrogateescape") as disgas_or_input:
             for line_input in disgas_or_input:
                 disgas_input_records.append(line_input)
+        with open(twodee_inp, "r", encoding="utf-8", errors="surrogateescape") as twodee_or_input:
+            for line_input in twodee_or_input:
+                twodee_input_records.append(line_input)
+        output_interval = 0
+        output_interval_disgas = 0
+        output_interval_twodee = 0
+        for record in disgas_input_records:
+            if "OUTPUT_INTERVAL_(SEC)" in record:
+                output_interval_disgas = float(record.split('=')[1])
+        for record in twodee_input_records:
+            if "OUTPUT_INTERVAL_(SEC)" in record:
+                output_interval_twodee = float(record.split('=')[1])
+        if output_interval_disgas != output_interval_twodee:
+            print('Warning. The output intervals of twodee and disgas differs, this is not compatible with automatic '
+                  'scenario')
+            if output_interval_twodee < output_interval_disgas:
+                output_interval = output_interval_twodee
+            else:
+                output_interval = output_interval_disgas
+        # FABIO: da qui! Vanno uniformate anche le altezze per l'output, questo serve per il merging. Credo sia meglio
+        # unire le altezze e inoltre va verificato che queste siano compatibili con l'output di diagno, es. rimuovere
+        # altezze che sono maggiori dell'altezza massima in diagno.inp ed emettere un Warning
+        output_heights_disgas = []
+        output_heights_twodee = []
+        for record in disgas_input_records:
+            if "Z_LAYERS_(M) " in record:
+                output_heights_disgas = float(record.split('=')[1])
         with open(disgas_inp_new, "w", encoding="utf-8", errors="surrogateescape") as disgas_input_file:
             for record in disgas_input_records:
                 if "ROUGHNESS_FILE_PATH" in record:
@@ -1341,17 +1362,27 @@ def read_diagno_outputs():
                         + " \n")
                 elif "WIND_FILE_PATH" in record:
                     disgas_input_file.write("   WIND_FILE_PATH   = " + os.path.join(disgas_folder, "winds.dat") + " \n")
+                elif "OUTPUT_INTERVAL_(SEC)" in record:
+                    disgas_input_file.write("  OUTPUT_INTERVAL_(SEC) = " + str(output_interval) + " \n")
                 elif "OUTPUT_DIRECTORY" in record:
-                    disgas_input_file.write( "   OUTPUT_DIRECTORY    = " + os.path.join(disgas_folder, 'outfiles') +
-                                             " \n")
+                    disgas_input_file.write("   OUTPUT_DIRECTORY    = " + os.path.join(disgas_folder, 'outfiles') +
+                                            " \n")
                 else:
                     disgas_input_file.write(record)
-        with open(twodee_inp, "r", encoding="utf-8", errors="surrogateescape") as twodee_or_input:
-            for line_input in twodee_or_input:
-                twodee_input_records.append(line_input)
         with open(twodee_inp_new, "w", encoding="utf-8", errors="surrogateescape") as twodee_input_file:
             for record in twodee_input_records:
-                if "OUTPUT_DIRECTORY" in record:
+                # in twodee.inp we need to match nx, ny, x_origin, y_origin with those of diagno
+                if "NX" in record:
+                    twodee_input_file.write("  NX     = " + str(nx_diagno) + "\n")
+                elif "NY" in record:
+                    twodee_input_file.write("  NY     = " + str(ny_diagno) + "\n")
+                elif "X_ORIGIN_(UTM_M)" in record:
+                    twodee_input_file.write("  X_ORIGIN_(UTM_M) = " + str(xor_diagno) + "\n")
+                elif "Y_ORIGIN_(UTM_M)" in record:
+                    twodee_input_file.write("  Y_ORIGIN_(UTM_M) = " + str(yor_diagno) + "\n")
+                elif "OUTPUT_INTERVAL_(SEC)" in record:
+                    twodee_input_file.write("  OUTPUT_INTERVAL_(SEC) = " + str(output_interval) + " \n")
+                elif "OUTPUT_DIRECTORY" in record:
                     twodee_input_file.write("   OUTPUT_DIRECTORY   = " + os.path.join(twodee_folder, 'outfiles') +
                                             " \n")
                 elif "ROUGHNESS_FILE" in record and "ROUGHNESS_FILE_FORMAT" not in record:
@@ -1363,6 +1394,10 @@ def read_diagno_outputs():
                     twodee_input_file.write("   RESTART_FILE   = " + os.path.join(twodee_folder, "restart.dat") + " \n")
                 else:
                     twodee_input_file.write(record)
+        os.remove(disgas_inp)
+        os.remove(twodee_inp)
+        os.remove(os.path.join(runs, day_simulation, 'roughness.grd'))
+        os.remove(os.path.join(runs, day_simulation, 'surface_data.txt'))
 
     runs = os.path.join(root, "simulations", "runs")
     tz0 = 298
@@ -1382,6 +1417,8 @@ def read_diagno_outputs():
         diagno_input_file = os.path.join(root, "simulations", "diagno", day, 'diagno.inp')
         with open(diagno_input_file, 'r') as diagno_input_data:
             for line in diagno_input_data:
+                if 'NX\n' in line:
+                    nx_diagno = int(line.split('NX')[0])
                 if 'NY\n' in line:
                     ny_diagno = int(line.split('NY')[0])
                 elif 'NZ\n' in line:
@@ -1602,14 +1639,8 @@ def run_twodee(max_np):
                         node = nodes_list[n_node]
                     except IndexError:
                         node = ''
-                diagno = os.path.join(root, "simulations", "diagno", day)
-                shutil.copyfile(
-                    os.path.join(diagno, "diagno.out"),
-                    os.path.join(run, "diagno.out"),
-                )
                 twodee_input_file = os.path.join(run, "twodee.inp")
-                twodee_log_file = os.path.join(run, "twodee_log.txt"
-                )
+                twodee_log_file = os.path.join(run, "twodee_log.txt")
                 if continuous_simulation and day != days[0]:
                     current_day = datetime.datetime.strptime(day, '%Y%m%d')
                     previous_day = current_day - datetime.timedelta(days=1)
@@ -1658,6 +1689,10 @@ def run_twodee(max_np):
             p.wait()
     for p in ps:
         p.wait()
+
+
+def merge_outputs():
+    print('Ciao')
 
 
 root = os.getcwd()
@@ -1775,3 +1810,7 @@ if disgas_on:
 
 if twodee_on:
     run_twodee(max_number_processes)
+
+if disgas_on and twodee_on:  # Some runs may have been split, we need to check this and if this is the case, we need
+    # to merge the simulations outputs
+    merge_outputs()

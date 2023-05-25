@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Implemented run splitting, to be fully tested">
+    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Fixed some bugs in the automatic scenario run splitting.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/run_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/run_models.py" afterDir="false" />
     </list>
@@ -43,7 +43,7 @@
     ]
   }
 }</component>
-  <component name="RunManager" selected="Python.scratch_3">
+  <component name="RunManager" selected="Python.scratch_4">
     <configuration name="scratch_1" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="VIGIL" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -57,27 +57,6 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$APPLICATION_CONFIG_DIR$/scratches/scratch_1.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="scratch_11" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="VIGIL" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$APPLICATION_CONFIG_DIR$/scratches" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$APPLICATION_CONFIG_DIR$/scratches/scratch_11.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -149,13 +128,34 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="scratch_4" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="VIGIL" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$APPLICATION_CONFIG_DIR$/scratches" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$APPLICATION_CONFIG_DIR$/scratches/scratch_4.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.scratch_4" />
         <item itemvalue="Python.scratch_3" />
         <item itemvalue="Python.scratch_2" />
         <item itemvalue="Python.scratch_1" />
         <item itemvalue="Python.scratch_12" />
-        <item itemvalue="Python.scratch_11" />
       </list>
     </recent_temporary>
   </component>
@@ -167,13 +167,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1650985604184</updated>
-    </task>
-    <task id="LOCAL-00012" summary="- Fixed a bug that prevented running post_process.py without necessarily plotting &#10;- Introduced folders structure for the persistence calculation outputs">
-      <created>1656679207753</created>
-      <option name="number" value="00012" />
-      <option name="presentableId" value="LOCAL-00012" />
-      <option name="project" value="LOCAL" />
-      <updated>1656679207769</updated>
     </task>
     <task id="LOCAL-00013" summary="Completed the implementation of the persistence maps, need testing">
       <created>1657036043937</created>
@@ -511,7 +504,14 @@
       <option name="project" value="LOCAL" />
       <updated>1684853123537</updated>
     </task>
-    <option name="localTasksCounter" value="61" />
+    <task id="LOCAL-00061" summary="Fixed some bugs in the automatic scenario run splitting.">
+      <created>1684943936586</created>
+      <option name="number" value="00061" />
+      <option name="presentableId" value="LOCAL-00061" />
+      <option name="project" value="LOCAL" />
+      <updated>1684943936586</updated>
+    </task>
+    <option name="localTasksCounter" value="62" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -526,7 +526,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Updated commands.txt in the example folders" />
     <MESSAGE value="Improved plot styles and updated commands.txt in the examples" />
     <MESSAGE value="Improved file handling in ecdf and persistence functions" />
     <MESSAGE value="Fixed two bugs in the parallel pools of the probabilistic outpu" />
@@ -551,6 +550,7 @@
     <MESSAGE value="Sources are classified according to Ri. This is to simulate them properly with DISGAS or TWODEE depending on Ri" />
     <MESSAGE value="Started the implementation of simulation splitting based on the source Ri" />
     <MESSAGE value="Implemented run splitting, to be fully tested" />
-    <option name="LAST_COMMIT_MESSAGE" value="Implemented run splitting, to be fully tested" />
+    <MESSAGE value="Fixed some bugs in the automatic scenario run splitting." />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixed some bugs in the automatic scenario run splitting." />
   </component>
 </project>

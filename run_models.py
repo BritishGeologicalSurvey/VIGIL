@@ -747,7 +747,6 @@ def pre_process(run_mode):
                 run_mode = 'new'
             else:
                 run_mode = 'restart'
-        path = os.path.join(root, "simulations", str(day))
         # Set DISGAS folder
         if disgas_on:
             disgas_daily = os.path.join(runs, str(day))
@@ -1107,6 +1106,7 @@ def run_diagno(max_np):
     prepare_diagno()
     n_elaborated_days = 0
     n_node = 0
+    max_height = 0
     node = ''
     while n_elaborated_days <= len(days):
         ps = []
@@ -1145,7 +1145,8 @@ def run_diagno(max_np):
                                 continue
                         if 10. not in heights:
                             heights.append(10.)
-                            heights = sorted(heights)
+                        heights = sorted(heights)
+                        max_height = max(heights)
                         for height in heights:
                             new_record_string += str(height) + ' '
                         new_record_string += ' CELLZB(1:NZ+1) (m)'
@@ -1247,6 +1248,7 @@ def run_diagno(max_np):
         p.wait()
     print("All weather data have been successfully processed with Diagno")
     os.chdir(root)
+    return max_height
 
 
 def read_diagno_outputs():
@@ -1341,17 +1343,37 @@ def read_diagno_outputs():
                 output_interval = output_interval_twodee
             else:
                 output_interval = output_interval_disgas
-        # FABIO: da qui! Vanno uniformate anche le altezze per l'output, questo serve per il merging. Credo sia meglio
-        # unire le altezze e inoltre va verificato che queste siano compatibili con l'output di diagno, es. rimuovere
-        # altezze che sono maggiori dell'altezza massima in diagno.inp ed emettere un Warning
         output_heights_disgas = []
         output_heights_twodee = []
+        output_heights_str = ''
         for record in disgas_input_records:
             if "Z_LAYERS_(M) " in record:
-                output_heights_disgas = float(record.split('=')[1])
+                output_heights_disgas_str = record.split('=')[1]
+                for height in output_heights_disgas_str.split(' '):
+                    try:
+                        if float(height) > max_height_diagno:
+                            continue
+                        output_heights_disgas.append(float(height))
+                    except ValueError:
+                        continue
+        for record in twodee_input_records:
+            if "HEIGHTS_(M)" in record:
+                output_heights_twodee_str = record.split('=')[1]
+                for height in output_heights_twodee_str.split(' '):
+                    try:
+                        if float(height) > max_height_diagno:
+                            continue
+                        output_heights_twodee.append(float(height))
+                    except ValueError:
+                        continue
+        output_heights = list(dict.fromkeys(sorted(output_heights_disgas + output_heights_twodee)))
+        for height in output_heights:
+            output_heights_str += str(height) + ' '
         with open(disgas_inp_new, "w", encoding="utf-8", errors="surrogateescape") as disgas_input_file:
             for record in disgas_input_records:
-                if "ROUGHNESS_FILE_PATH" in record:
+                if 'Z_LAYERS_(M)' in record:
+                    disgas_input_file.write("  Z_LAYERS_(M) = " + output_heights_str + " \n")
+                elif "ROUGHNESS_FILE_PATH" in record:
                     disgas_input_file.write("   ROUGHNESS_FILE_PATH   = " +
                                             os.path.join(disgas_folder, "roughness.grd") + " \n")
                 elif "RESTART_FILE_PATH" in record:
@@ -1382,6 +1404,8 @@ def read_diagno_outputs():
                     twodee_input_file.write("  Y_ORIGIN_(UTM_M) = " + str(yor_diagno) + "\n")
                 elif "OUTPUT_INTERVAL_(SEC)" in record:
                     twodee_input_file.write("  OUTPUT_INTERVAL_(SEC) = " + str(output_interval) + " \n")
+                elif "HEIGHTS_(M)" in record:
+                    twodee_input_file.write("     HEIGHTS_(M)          = " + output_heights_str + " \n")
                 elif "OUTPUT_DIRECTORY" in record:
                     twodee_input_file.write("   OUTPUT_DIRECTORY   = " + os.path.join(twodee_folder, 'outfiles') +
                                             " \n")
@@ -1511,7 +1535,7 @@ def read_diagno_outputs():
             try:
                 ri_source = (1 / wind_time_average_sources[i_source] ** 2) * ((g_prime_sources[i_source] *
                              q_average_sources[i_source]) / r_source) ** (2 / 3)
-            except ValueError:  # When gprime <0, in this case for the moment we set Ri = 0.01 (small number)
+            except ValueError:  # When gprime <0, for the moment we set Ri = 0.01 (small number)
                 ri_source = 0.01
             if ri_source > 1:
                 twodee_sources.append(ri_source)
@@ -1529,6 +1553,8 @@ def read_diagno_outputs():
                     runs_twodee.remove(run)
                     break
             prepare_temporary_simulations(day)
+        # FABIO: controllare questi if sotto. Inoltre fare in modo che, in modalità automatica, ci sia consistenza tra i
+        # run disgas e twodee (anche se non splittati) riguardo i livelli verticali, durata e intervallo di output
         elif len(index_sources_twodee) == 0 and len(index_sources_disgas) != 0:
             for run in runs_twodee:
                 if day in run:
@@ -1692,6 +1718,9 @@ def run_twodee(max_np):
 
 
 def merge_outputs():
+    # FABIO: here merge the outputs of the split simulations. Check for the consistency of the time steps (i.e. manage
+    # t=0 consistently) and save merged outputs in the outfile folder that is one level above the subfolders of disgas
+    # and twodee
     print('Ciao')
 
 
@@ -1793,7 +1822,7 @@ easting_sources, northing_sources, elevation_sources, dx_sources, dy_sources, du
     temperatures_sources, rho_tracking_specie, r_tracking_specie = pre_process(run_type)
 
 if diagno_on:
-    run_diagno(max_number_processes)
+    max_height_diagno = run_diagno(max_number_processes)
 
 if disgas_on and twodee_on:  # We are in automatic scenario detection mode, hence we need to read the meteorological
     # data at the source locations to calculate the Richardson number at the source and assign the right solver to each

@@ -168,13 +168,6 @@
       <option name="presentableId" value="Default" />
       <updated>1650985604184</updated>
     </task>
-    <task id="LOCAL-00013" summary="Completed the implementation of the persistence maps, need testing">
-      <created>1657036043937</created>
-      <option name="number" value="00013" />
-      <option name="presentableId" value="LOCAL-00013" />
-      <option name="project" value="LOCAL" />
-      <updated>1657036043937</updated>
-    </task>
     <task id="LOCAL-00014" summary="Improved the arguments in input and updated supporting documentation accordingly">
       <created>1657101169053</created>
       <option name="number" value="00014" />
@@ -511,7 +504,14 @@
       <option name="project" value="LOCAL" />
       <updated>1684943936586</updated>
     </task>
-    <option name="localTasksCounter" value="62" />
+    <task id="LOCAL-00062" summary="Fixed some bugs in the automatic scenario run splitting.">
+      <created>1685031093515</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1685031093515</updated>
+    </task>
+    <option name="localTasksCounter" value="63" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">

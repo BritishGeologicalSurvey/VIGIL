@@ -12,7 +12,6 @@ import argparse
 from multiprocessing import Pool, cpu_count
 import datetime
 import linecache
-from time import sleep
 
 
 def read_arguments():
@@ -2189,8 +2188,8 @@ if __name__ == '__main__':
     else:
         days_to_elaborate = days_to_plot
     for model in models_to_elaborate:
-        x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, simulation_time, output_levels, hour_start, minute_start = \
-            domain(model)
+        x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, simulation_time, output_levels, hour_start, \
+            minute_start = domain(model)
         species_properties = gas_properties()
         if tracking_points:
             stations = elaborate_tracking_points()

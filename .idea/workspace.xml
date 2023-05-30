@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Fixed some bugs in the automatic scenario run splitting.">
+    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Implemented merging of splitted runs' outputs. To be tested">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/post_process.py" beforeDir="false" afterPath="$PROJECT_DIR$/post_process.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/run_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/run_models.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -168,13 +167,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1650985604184</updated>
-    </task>
-    <task id="LOCAL-00015" summary="Fixed the most important warnings">
-      <created>1657122778411</created>
-      <option name="number" value="00015" />
-      <option name="presentableId" value="LOCAL-00015" />
-      <option name="project" value="LOCAL" />
-      <updated>1657122778411</updated>
     </task>
     <task id="LOCAL-00016" summary="Updated twodee.inp in example_3 because there was an input missing">
       <created>1657271104706</created>
@@ -512,7 +504,14 @@
       <option name="project" value="LOCAL" />
       <updated>1685031125480</updated>
     </task>
-    <option name="localTasksCounter" value="64" />
+    <task id="LOCAL-00064" summary="Implemented merging of splitted runs' outputs. To be tested">
+      <created>1685377983711</created>
+      <option name="number" value="00064" />
+      <option name="presentableId" value="LOCAL-00064" />
+      <option name="project" value="LOCAL" />
+      <updated>1685377983711</updated>
+    </task>
+    <option name="localTasksCounter" value="65" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -527,7 +526,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Improved plot styles and updated commands.txt in the examples" />
     <MESSAGE value="Improved file handling in ecdf and persistence functions" />
     <MESSAGE value="Fixed two bugs in the parallel pools of the probabilistic outpu" />
     <MESSAGE value="Fixed two bugs in the parallel pools of the probabilistic output" />
@@ -552,6 +550,7 @@
     <MESSAGE value="Started the implementation of simulation splitting based on the source Ri" />
     <MESSAGE value="Implemented run splitting, to be fully tested" />
     <MESSAGE value="Fixed some bugs in the automatic scenario run splitting." />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixed some bugs in the automatic scenario run splitting." />
+    <MESSAGE value="Implemented merging of splitted runs' outputs. To be tested" />
+    <option name="LAST_COMMIT_MESSAGE" value="Implemented merging of splitted runs' outputs. To be tested" />
   </component>
 </project>

@@ -1674,6 +1674,7 @@ def run_twodee(max_np):
 
 def converter(run_in):
     def convert_to_ppm(input_file, output_file):
+        import datetime
         first_records = []
         with open(input_file, 'r') as input_file_read:
             i_line = 1
@@ -1688,25 +1689,30 @@ def converter(run_in):
         file_time_step = os.path.split(output_file)[1]
         file_time_step = file_time_step.split("_")[2]
         file_time_step = file_time_step.split(".grd")[0]
-        file_time_h = file_time_step[-4:]
+        file_time_step = int(file_time_step[-4:])
+        # To be generalized if time step < 1 h or if duration > 1 day
+        file_validity = output_interval * file_time_step
+        if file_validity > 23:
+            file_validity = 23  # Because diagno outputs do not go beyond 23 hours
+        file_validity = datetime.timedelta(hours=file_validity)         
         surface_data = os.path.join(run_in, "surface_data.txt")
         with open(surface_data) as surface_data_file:
             for line in surface_data_file:
                 try:
                     records = line.split("\t")
-                except BaseException:
+                    if file_validity == datetime.timedelta(hours=int(records[0][0:2])):  # To be generalized if time step < 1h
+                        t2m = float(records[2])
+                        p2m = float(records[3]) / 100  # in hPa for this conversion
+                        break
+                except ValueError:
                     continue
-                if file_time_h == records[0]:
-                    t2m = float(records[2])
-                    p2m = float(records[3]) / 100  # in hPa for this conversion
-                    break
         conversion_factor = ((22.4 / m_tracking_specie) * (t2m / 273) * (1013 / p2m)) * 1000000
-        c_ppm = np.multiply(c_kgm3, conversion_factor)  # convert kg/m3 to ppm
+        c_ppm = c_kgm3 * conversion_factor  # convert kg/m3 to ppm
         with open(output_file, 'w') as converted_output_file:
             for record in first_records:
                 converted_output_file.write(record)
             converted_output_file.write(str(np.amin(c_ppm)) + "  " + str(np.amax(c_ppm)) + "\n")
-            np.savetxt(output_file, c_ppm, fmt="%.5e")
+            np.savetxt(converted_output_file, c_ppm, fmt="%.5e")
 
     outfiles_folder = os.path.join(run_in, 'outfiles')
     temp_folder = os.path.join(outfiles_folder, 'temp')
@@ -1724,7 +1730,7 @@ def converter(run_in):
             converted_files.append(os.path.join(outfiles_folder, file))
     for i in range(0, len(converted_files)):
         convert_to_ppm(files_to_convert[i], converted_files[i])
-    shutil.rmtree(temp_folder)
+    #shutil.rmtree(temp_folder)
 
 
 def merge_outputs():
@@ -1733,9 +1739,16 @@ def merge_outputs():
         outfiles_folder = os.path.join(run, 'outfiles')
         disgas_outfiles_folder = os.path.join(run, 'disgas', 'outfiles')
         twodee_outfiles_folder = os.path.join(run, 'twodee', 'outfiles')
-        for i_level in range(1, len(output_heights) + 1):
+        output_heights_v_str = output_heights.split(' ')
+        output_heights_v = []
+        for output_height in output_heights_v_str:
+            try:
+                output_heights_v.append(float(output_height))
+            except ValueError:
+                continue
+        for i_level in range(1, len(output_heights_v) + 1):
             level_disgas = str(i_level).zfill(3)
-            level_twodee = str(output_heights[i_level] * 100).zfill(4) + 'cm'
+            level_twodee = str(int(output_heights_v[i_level - 1] * 100)).zfill(4) + 'cm'
             for i_time in range(1, 25):
                 time_disgas = str(i_time).zfill(6)
                 time_twodee = str(i_time * output_interval * 3600).zfill(6)
@@ -1754,6 +1767,7 @@ def merge_outputs():
                             break
                         else:
                             i_line += 1
+                print(original_disgas_file, original_twodee_file)
                 c_disgas = np.loadtxt(original_disgas_file, skiprows=5)
                 c_twodee = np.loadtxt(original_twodee_file, skiprows=5)
                 c_merged = np.add(c_disgas, c_twodee)
@@ -1883,13 +1897,13 @@ elif len(runs_twodee) == 0:
     twodee_on = False
 
 if disgas_on:
-    run_disgas(max_number_processes)
+    #run_disgas(max_number_processes)
     for simulation in runs_disgas:
         converter(simulation)  # Convert disgas output in ppm to be consistent with twodee outputs in case of merging
         # and/or automatic scenario
 
-if twodee_on:
-    run_twodee(max_number_processes)
+#if twodee_on:
+#    run_twodee(max_number_processes)
 
 if disgas_on and twodee_on:  # Some runs may have been split, we need to check this and if this is the case, we need
     # to merge the simulations outputs

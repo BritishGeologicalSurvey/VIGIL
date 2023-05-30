@@ -894,65 +894,31 @@ def converter(input_file, processed_file, specie_input, model):
     Z = np.loadtxt(input_file, skiprows=5)
     Z[Z < 0] = 0
     if units == "ppm":
-        if model == "disgas":
-            file_time_step = os.path.split(processed_file)[1]
-            file_time_step = file_time_step.split("_")[2]
-            file_time_step = file_time_step.split(".grd")[0]
-            file_time_h = file_time_step[-4:]
-            file_name = input_file.split(os.sep)[-1]
-            file_folder = input_file.split(file_name)[0]
-            file_folder_daily = file_folder.split("outfiles")[0]
-            surface_data = os.path.join(file_folder_daily, "surface_data.txt")
-            with open(surface_data) as surface_data_file:
-                for line in surface_data_file:
-                    try:
-                        records = line.split("\t")
-                    except BaseException:
-                        continue
-                    if file_time_h == records[0]:
-                        t2m = float(records[2])
-                        p2m = float(records[3]) / 100  # in hPa for this conversion
-                        break
-            for specie in species_properties:
-                if specie["specie_name"] == specie_input:
-                    molar_weight = specie["molar_weight"]
-            conversion_factor = (
-                (22.4 / molar_weight) * (t2m / 273) * (1013 / p2m)
-            ) * 1000000
-            Z_converted = np.multiply(Z, conversion_factor)  # convert kg/m3 to ppm
-        else:
-            Z_converted = Z
+        Z_converted = Z
     else:
-        if model == "twodee":
-            file_time_step = os.path.split(processed_file)[1]
-            file_time_step = file_time_step.split("_")[2]
-            file_time_step = file_time_step.split(".grd")[0]
-            file_time_h = file_time_step[-4:]
-            file_name = input_file.split(os.sep)[-1]
-            file_folder = input_file.split(file_name)[0]
-            file_folder_daily = file_folder.split("outfiles")[
-                0
-            ]  # To be changed when folder structures will change
-            surface_data = os.path.join(file_folder_daily, "surface_data.txt")
-            with open(surface_data) as surface_data_file:
-                for line in surface_data_file:
-                    try:
-                        records = line.split("\t")
-                    except BaseException:
-                        continue
-                    if file_time_h == records[0]:
-                        t2m = float(records[2])
-                        p2m = float(records[3]) / 100  # in hPa for this conversion
-                        break
-            for specie in species_properties:
-                if specie["specie_name"] == specie_input:
-                    molar_weight = specie["molar_weight"]
-            conversion_factor = (
-                (molar_weight / 22.4) * (273 / t2m) * (p2m / 1013)
-            ) / 1000000
-            Z_converted = np.multiply(Z, conversion_factor)  # convert ppm to kg/m3
-        else:
-            Z_converted = Z
+        file_time_step = os.path.split(processed_file)[1]
+        file_time_step = file_time_step.split("_")[2]
+        file_time_step = file_time_step.split(".grd")[0]
+        file_time_h = file_time_step[-4:]
+        file_name = input_file.split(os.sep)[-1]
+        file_folder = input_file.split(file_name)[0]
+        file_folder_daily = file_folder.split("outfiles")[0]  # To be changed when folder structures will change
+        surface_data = os.path.join(file_folder_daily, "surface_data.txt")
+        with open(surface_data) as surface_data_file:
+            for line in surface_data_file:
+                try:
+                    records = line.split("\t")
+                except BaseException:
+                    continue
+                if file_time_h == records[0]:
+                    t2m = float(records[2])
+                    p2m = float(records[3]) / 100  # in hPa for this conversion
+                    break
+        for specie in species_properties:
+            if specie["specie_name"] == specie_input:
+                molar_weight = specie["molar_weight"]
+        conversion_factor = ((molar_weight / 22.4) * (273 / t2m) * (p2m / 1013)) / 1000000
+        Z_converted = Z * conversion_factor  # convert ppm to kg/m3
     try:
         np.loadtxt(processed_file, skiprows=5)
     except OSError:
@@ -991,10 +957,8 @@ def converter(input_file, processed_file, specie_input, model):
                             species_conversion_factor = molar_ratio * (molar_weight / molar_weight_tracking_specie)
                 Z_converted = np.where(Z_converted < 0, 0, Z_converted)
                 Z_converted += background_c
-                Z_converted = np.multiply(Z_converted, species_conversion_factor)
-                processed_file.write(
-                    str(np.amin(Z_converted)) + "  " + str(np.amax(Z_converted)) + "\n"
-                )
+                Z_converted = Z_converted * species_conversion_factor
+                processed_file.write(str(np.amin(Z_converted)) + "  " + str(np.amax(Z_converted)) + "\n")
                 np.savetxt(processed_file, Z_converted, fmt="%.2e")
 
 

@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Implemented merging of splitted runs' outputs. To be tested">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/post_process.py" beforeDir="false" afterPath="$PROJECT_DIR$/post_process.py" afterDir="false" />
-    </list>
+    <list default="true" id="bb4a80cf-2471-405d-ab76-41c8ce7ac334" name="Changes" comment="Fixed some bugs in the implementation of the splitted run. Still problems in merging the outputs" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -167,13 +164,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1650985604184</updated>
-    </task>
-    <task id="LOCAL-00016" summary="Updated twodee.inp in example_3 because there was an input missing">
-      <created>1657271104706</created>
-      <option name="number" value="00016" />
-      <option name="presentableId" value="LOCAL-00016" />
-      <option name="project" value="LOCAL" />
-      <updated>1657271104706</updated>
     </task>
     <task id="LOCAL-00017" summary="Fixed some bugs in the time-averaged outputs handling, but there is still work to do">
       <created>1657552146264</created>
@@ -511,7 +501,14 @@
       <option name="project" value="LOCAL" />
       <updated>1685377983711</updated>
     </task>
-    <option name="localTasksCounter" value="65" />
+    <task id="LOCAL-00065" summary="Fixed some bugs in the implementation of the splitted run. Still problems in merging the outputs">
+      <created>1685459441907</created>
+      <option name="number" value="00065" />
+      <option name="presentableId" value="LOCAL-00065" />
+      <option name="project" value="LOCAL" />
+      <updated>1685459441907</updated>
+    </task>
+    <option name="localTasksCounter" value="66" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -526,7 +523,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Improved file handling in ecdf and persistence functions" />
     <MESSAGE value="Fixed two bugs in the parallel pools of the probabilistic outpu" />
     <MESSAGE value="Fixed two bugs in the parallel pools of the probabilistic output" />
     <MESSAGE value="Revised and improved the parallelization of post_process.py" />
@@ -551,6 +547,7 @@
     <MESSAGE value="Implemented run splitting, to be fully tested" />
     <MESSAGE value="Fixed some bugs in the automatic scenario run splitting." />
     <MESSAGE value="Implemented merging of splitted runs' outputs. To be tested" />
-    <option name="LAST_COMMIT_MESSAGE" value="Implemented merging of splitted runs' outputs. To be tested" />
+    <MESSAGE value="Fixed some bugs in the implementation of the splitted run. Still problems in merging the outputs" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixed some bugs in the implementation of the splitted run. Still problems in merging the outputs" />
   </component>
 </project>

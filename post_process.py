@@ -575,6 +575,8 @@ def gas_properties():
         if len(exp_times) == 0:
             print('WARNING. Persistence calculation not possible for specie ' + specie)
             persistence_sp = False
+        else:
+            persistence_sp = True
         return molar_ratio, molar_weight, conc_thresholds, exp_times, bg_conc, persistence_sp
 
     gas_properties_file = os.path.join(root, "gas_properties.csv")
@@ -615,7 +617,7 @@ def gas_properties():
         gas_specie["concentration_thresholds"] = concentration_thresholds[i]
         gas_specie["exposure_times"] = exposure_times[i]
         gas_specie["background_concentration"] = background_concentrations[i]
-        gas_specie["peristence_calculation"] = persistence_calculation[i]
+        gas_specie["persistence_calculation"] = persistence_calculation[i]
         species_properties.append(gas_specie)
     if original_specie not in species:
         gas_specie = {}

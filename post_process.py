@@ -517,7 +517,7 @@ def gas_properties():
                     print('ERROR. Molar ratio ' + specie + '/' + original_specie + ' not found in gas_properties.csv')
                     exit()
         try:
-            y = np.sort(data['M_' + specie])
+            y = data['M_' + specie]
             molar_weight = list(y)[0]
             if molar_weight != molar_weight:
                 print('ERROR. Molar weight of ' + specie + ' not found in gas_properties.csv')
@@ -531,20 +531,20 @@ def gas_properties():
             conc_thresholds = [x for x in conc_thresholds_temp if x == x]
             if len(conc_thresholds) == 0:
                 print('WARNING. Concentration thresholds of ' + specie + ' not found in gas_properties.csv. Gas '
-                      'persistence calculation not possible')
+                                                                         'persistence calculation not possible')
         except KeyError:
             print('WARNING. Concentration thresholds of ' + specie + ' not found in gas_properties.csv. Gas '
-                  'persistence calculation not possible')
+                                                                     'persistence calculation not possible')
         try:
             y = data['ET_' + specie]
             exp_times_temp = list(y)
             exp_times = [x for x in exp_times_temp if x == x]
             if len(exp_times) == 0:
                 print('WARNING. Exposure times of ' + specie + ' not found in gas_properties.csv. Gas '
-                      'persistence calculation not possible for gas specie ' + specie)
+                                                               'persistence calculation not possible for gas specie ' + specie)
         except KeyError:
             print('WARNING. Exposure times of ' + specie + ' not found in gas_properties.csv. Gas '
-                  'persistence calculation not possible for gas specie ' + specie)
+                                                           'persistence calculation not possible for gas specie ' + specie)
         try:
             y = np.sort(data['BG_' + specie])
             bg_conc = list(y)[0]
@@ -573,9 +573,9 @@ def gas_properties():
             except ValueError:
                 break
         if len(exp_times) == 0:
-            persistence = False
-            print('WARNING. Persistence calculation not possible')
-        return molar_ratio, molar_weight, conc_thresholds, exp_times, bg_conc
+            print('WARNING. Persistence calculation not possible for specie ' + specie)
+            persistence_sp = False
+        return molar_ratio, molar_weight, conc_thresholds, exp_times, bg_conc, persistence_sp
 
     gas_properties_file = os.path.join(root, "gas_properties.csv")
     try:
@@ -589,16 +589,18 @@ def gas_properties():
     concentration_thresholds = []
     exposure_times = []
     background_concentrations = []
+    persistence_calculation = []
     for specie in species:
-        molar_ratio, molar_weight, concentration_thresholds_specie, exposure_times_specie, background_c = \
-            extract_gas_properties(specie)
+        molar_ratio, molar_weight, concentration_thresholds_specie, exposure_times_specie, background_c, \
+            persistence_specie = extract_gas_properties(specie)
         molar_ratios.append(molar_ratio)
         molar_weights.append(molar_weight)
         concentration_thresholds.append(concentration_thresholds_specie)
         exposure_times.append(exposure_times_specie)
         background_concentrations.append(background_c)
-    molar_ratio, molar_weight, concentration_thresholds_specie, exposure_times_specie, background_c = \
-        extract_gas_properties(original_specie)
+        persistence_calculation.append(persistence_specie)
+    molar_ratio, molar_weight, concentration_thresholds_specie, exposure_times_specie, background_c, \
+        persistence_tracking_specie = extract_gas_properties(original_specie)
     molar_ratios_tracking_specie = molar_ratio
     molar_weights_tracking_specie = molar_weight
     concentration_thresholds_tracking_specie = concentration_thresholds_specie
@@ -613,6 +615,7 @@ def gas_properties():
         gas_specie["concentration_thresholds"] = concentration_thresholds[i]
         gas_specie["exposure_times"] = exposure_times[i]
         gas_specie["background_concentration"] = background_concentrations[i]
+        gas_specie["peristence_calculation"] = persistence_calculation[i]
         species_properties.append(gas_specie)
     if original_specie not in species:
         gas_specie = {}
@@ -622,7 +625,10 @@ def gas_properties():
         gas_specie["concentration_thresholds"] = concentration_thresholds_tracking_specie
         gas_specie["exposure_times"] = exposure_times_tracking_specie
         gas_specie["background_concentration"] = background_concentration_tracking_specie
+        gas_specie["persistence_calculation"] = persistence_tracking_specie
         species_properties.append(gas_specie)
+    if not persistence_tracking_specie and True not in persistence_calculation:
+        persistence = False
     return species_properties
 
 
@@ -1086,20 +1092,21 @@ def elaborate_day(day_input):
         for specie in species:
             for specie_dict in species_properties:
                 if specie_dict["specie_name"] == specie:
-                    specie_folder = os.path.join(persistence_folder, specie_dict["specie_name"])
-                    try:
-                        os.mkdir(specie_folder)
-                    except FileExistsError:
-                        pass
-                    concentration_thresholds = specie_dict["concentration_thresholds"]
-                    exposure_times = specie_dict["exposure_times"]
-                    for j in range(0, len(concentration_thresholds)):
-                        threshold_folder = os.path.join(specie_folder, 'C_' + str(concentration_thresholds[j]) + '_t_'
-                                                        + str(exposure_times[j]) + 'H')
+                    if specie_dict["persistence_calculation"]:
+                        specie_folder = os.path.join(persistence_folder, specie_dict["specie_name"])
                         try:
-                            os.mkdir(threshold_folder)
+                            os.mkdir(specie_folder)
                         except FileExistsError:
                             pass
+                        concentration_thresholds = specie_dict["concentration_thresholds"]
+                        exposure_times = specie_dict["exposure_times"]
+                        for j in range(0, len(concentration_thresholds)):
+                            threshold_folder = os.path.join(specie_folder, 'C_' + str(concentration_thresholds[j])
+                                                            + '_t_' + str(exposure_times[j]) + 'H')
+                            try:
+                                os.mkdir(threshold_folder)
+                            except FileExistsError:
+                                pass
 
         indexes = []
         for specie in species:
@@ -2189,8 +2196,8 @@ if __name__ == '__main__':
     else:
         days_to_elaborate = days_to_plot
     for model in models_to_elaborate:
-        x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, simulation_time, output_levels, hour_start, minute_start = \
-            domain(model)
+        x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, simulation_time, output_levels, hour_start, \
+            minute_start = domain(model)
         species_properties = gas_properties()
         if tracking_points:
             stations = elaborate_tracking_points()

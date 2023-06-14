@@ -12,6 +12,7 @@ import argparse
 from multiprocessing import Pool, cpu_count
 import datetime
 import linecache
+from time import sleep
 
 
 def read_arguments():
@@ -71,7 +72,7 @@ def read_arguments():
         "-S", "--species", default='', help="List of gas species (e.g. CO2)"
     )
     parser.add_argument(
-        "-TS", "--tracking_specie", default='', help="The original emitted specie that is tracked in the simulation"
+        "-TS", "--tracking_specie", default=None, help="The original emitted specie that is tracked in the simulation"
     )
     parser.add_argument(
         "-N",
@@ -214,7 +215,7 @@ def read_arguments():
         if levels_in == '':
             print("ERROR. Please specify at least one level to plot")
             sys.exit()
-    if original_specie == '':
+    if original_specie == None:
         print('ERROR. Please specify the name of the tracked specie')
         sys.exit()
     if species_in == '':
@@ -516,7 +517,7 @@ def gas_properties():
                     print('ERROR. Molar ratio ' + specie + '/' + original_specie + ' not found in gas_properties.csv')
                     exit()
         try:
-            y = np.sort(data['M_' + specie])
+            y = data['M_' + specie]
             molar_weight = list(y)[0]
             if molar_weight != molar_weight:
                 print('ERROR. Molar weight of ' + specie + ' not found in gas_properties.csv')
@@ -530,20 +531,20 @@ def gas_properties():
             conc_thresholds = [x for x in conc_thresholds_temp if x == x]
             if len(conc_thresholds) == 0:
                 print('WARNING. Concentration thresholds of ' + specie + ' not found in gas_properties.csv. Gas '
-                      'persistence calculation not possible')
+                                                                         'persistence calculation not possible')
         except KeyError:
             print('WARNING. Concentration thresholds of ' + specie + ' not found in gas_properties.csv. Gas '
-                  'persistence calculation not possible')
+                                                                     'persistence calculation not possible')
         try:
             y = data['ET_' + specie]
             exp_times_temp = list(y)
             exp_times = [x for x in exp_times_temp if x == x]
             if len(exp_times) == 0:
                 print('WARNING. Exposure times of ' + specie + ' not found in gas_properties.csv. Gas '
-                      'persistence calculation not possible for gas specie ' + specie)
+                                                               'persistence calculation not possible for gas specie ' + specie)
         except KeyError:
             print('WARNING. Exposure times of ' + specie + ' not found in gas_properties.csv. Gas '
-                  'persistence calculation not possible for gas specie ' + specie)
+                                                           'persistence calculation not possible for gas specie ' + specie)
         try:
             y = np.sort(data['BG_' + specie])
             bg_conc = list(y)[0]
@@ -572,9 +573,11 @@ def gas_properties():
             except ValueError:
                 break
         if len(exp_times) == 0:
-            persistence = False
-            print('WARNING. Persistence calculation not possible')
-        return molar_ratio, molar_weight, conc_thresholds, exp_times, bg_conc
+            print('WARNING. Persistence calculation not possible for specie ' + specie)
+            persistence_sp = False
+        else:
+            persistence_sp = True
+        return molar_ratio, molar_weight, conc_thresholds, exp_times, bg_conc, persistence_sp
 
     gas_properties_file = os.path.join(root, "gas_properties.csv")
     try:
@@ -588,16 +591,18 @@ def gas_properties():
     concentration_thresholds = []
     exposure_times = []
     background_concentrations = []
+    persistence_calculation = []
     for specie in species:
-        molar_ratio, molar_weight, concentration_thresholds_specie, exposure_times_specie, background_c = \
-            extract_gas_properties(specie)
+        molar_ratio, molar_weight, concentration_thresholds_specie, exposure_times_specie, background_c, \
+            persistence_specie = extract_gas_properties(specie)
         molar_ratios.append(molar_ratio)
         molar_weights.append(molar_weight)
         concentration_thresholds.append(concentration_thresholds_specie)
         exposure_times.append(exposure_times_specie)
         background_concentrations.append(background_c)
-    molar_ratio, molar_weight, concentration_thresholds_specie, exposure_times_specie, background_c = \
-        extract_gas_properties(original_specie)
+        persistence_calculation.append(persistence_specie)
+    molar_ratio, molar_weight, concentration_thresholds_specie, exposure_times_specie, background_c, \
+        persistence_tracking_specie = extract_gas_properties(original_specie)
     molar_ratios_tracking_specie = molar_ratio
     molar_weights_tracking_specie = molar_weight
     concentration_thresholds_tracking_specie = concentration_thresholds_specie
@@ -612,6 +617,7 @@ def gas_properties():
         gas_specie["concentration_thresholds"] = concentration_thresholds[i]
         gas_specie["exposure_times"] = exposure_times[i]
         gas_specie["background_concentration"] = background_concentrations[i]
+        gas_specie["persistence_calculation"] = persistence_calculation[i]
         species_properties.append(gas_specie)
     if original_specie not in species:
         gas_specie = {}
@@ -621,7 +627,10 @@ def gas_properties():
         gas_specie["concentration_thresholds"] = concentration_thresholds_tracking_specie
         gas_specie["exposure_times"] = exposure_times_tracking_specie
         gas_specie["background_concentration"] = background_concentration_tracking_specie
+        gas_specie["persistence_calculation"] = persistence_tracking_specie
         species_properties.append(gas_specie)
+    if not persistence_tracking_specie and True not in persistence_calculation:
+        persistence = False
     return species_properties
 
 
@@ -894,31 +903,65 @@ def converter(input_file, processed_file, specie_input, model):
     Z = np.loadtxt(input_file, skiprows=5)
     Z[Z < 0] = 0
     if units == "ppm":
-        Z_converted = Z
+        if model == "disgas":
+            file_time_step = os.path.split(processed_file)[1]
+            file_time_step = file_time_step.split("_")[2]
+            file_time_step = file_time_step.split(".grd")[0]
+            file_time_h = file_time_step[-4:]
+            file_name = input_file.split(os.sep)[-1]
+            file_folder = input_file.split(file_name)[0]
+            file_folder_daily = file_folder.split("outfiles")[0]
+            surface_data = os.path.join(file_folder_daily, "surface_data.txt")
+            with open(surface_data) as surface_data_file:
+                for line in surface_data_file:
+                    try:
+                        records = line.split("\t")
+                    except BaseException:
+                        continue
+                    if file_time_h == records[0]:
+                        t2m = float(records[2])
+                        p2m = float(records[3]) / 100  # in hPa for this conversion
+                        break
+            for specie in species_properties:
+                if specie["specie_name"] == specie_input:
+                    molar_weight = specie["molar_weight"]
+            conversion_factor = (
+                (22.4 / molar_weight) * (t2m / 273) * (1013 / p2m)
+            ) * 1000000
+            Z_converted = np.multiply(Z, conversion_factor)  # convert kg/m3 to ppm
+        else:
+            Z_converted = Z
     else:
-        file_time_step = os.path.split(processed_file)[1]
-        file_time_step = file_time_step.split("_")[2]
-        file_time_step = file_time_step.split(".grd")[0]
-        file_time_h = file_time_step[-4:]
-        file_name = input_file.split(os.sep)[-1]
-        file_folder = input_file.split(file_name)[0]
-        file_folder_daily = file_folder.split("outfiles")[0]  # To be changed when folder structures will change
-        surface_data = os.path.join(file_folder_daily, "surface_data.txt")
-        with open(surface_data) as surface_data_file:
-            for line in surface_data_file:
-                try:
-                    records = line.split("\t")
-                except BaseException:
-                    continue
-                if file_time_h == records[0]:
-                    t2m = float(records[2])
-                    p2m = float(records[3]) / 100  # in hPa for this conversion
-                    break
-        for specie in species_properties:
-            if specie["specie_name"] == specie_input:
-                molar_weight = specie["molar_weight"]
-        conversion_factor = ((molar_weight / 22.4) * (273 / t2m) * (p2m / 1013)) / 1000000
-        Z_converted = Z * conversion_factor  # convert ppm to kg/m3
+        if model == "twodee":
+            file_time_step = os.path.split(processed_file)[1]
+            file_time_step = file_time_step.split("_")[2]
+            file_time_step = file_time_step.split(".grd")[0]
+            file_time_h = file_time_step[-4:]
+            file_name = input_file.split(os.sep)[-1]
+            file_folder = input_file.split(file_name)[0]
+            file_folder_daily = file_folder.split("outfiles")[
+                0
+            ]  # To be changed when folder structures will change
+            surface_data = os.path.join(file_folder_daily, "surface_data.txt")
+            with open(surface_data) as surface_data_file:
+                for line in surface_data_file:
+                    try:
+                        records = line.split("\t")
+                    except BaseException:
+                        continue
+                    if file_time_h == records[0]:
+                        t2m = float(records[2])
+                        p2m = float(records[3]) / 100  # in hPa for this conversion
+                        break
+            for specie in species_properties:
+                if specie["specie_name"] == specie_input:
+                    molar_weight = specie["molar_weight"]
+            conversion_factor = (
+                (molar_weight / 22.4) * (273 / t2m) * (p2m / 1013)
+            ) / 1000000
+            Z_converted = np.multiply(Z, conversion_factor)  # convert ppm to kg/m3
+        else:
+            Z_converted = Z
     try:
         np.loadtxt(processed_file, skiprows=5)
     except OSError:
@@ -957,8 +1000,10 @@ def converter(input_file, processed_file, specie_input, model):
                             species_conversion_factor = molar_ratio * (molar_weight / molar_weight_tracking_specie)
                 Z_converted = np.where(Z_converted < 0, 0, Z_converted)
                 Z_converted += background_c
-                Z_converted = Z_converted * species_conversion_factor
-                processed_file.write(str(np.amin(Z_converted)) + "  " + str(np.amax(Z_converted)) + "\n")
+                Z_converted = np.multiply(Z_converted, species_conversion_factor)
+                processed_file.write(
+                    str(np.amin(Z_converted)) + "  " + str(np.amax(Z_converted)) + "\n"
+                )
                 np.savetxt(processed_file, Z_converted, fmt="%.2e")
 
 
@@ -1049,20 +1094,21 @@ def elaborate_day(day_input):
         for specie in species:
             for specie_dict in species_properties:
                 if specie_dict["specie_name"] == specie:
-                    specie_folder = os.path.join(persistence_folder, specie_dict["specie_name"])
-                    try:
-                        os.mkdir(specie_folder)
-                    except FileExistsError:
-                        pass
-                    concentration_thresholds = specie_dict["concentration_thresholds"]
-                    exposure_times = specie_dict["exposure_times"]
-                    for j in range(0, len(concentration_thresholds)):
-                        threshold_folder = os.path.join(specie_folder, 'C_' + str(concentration_thresholds[j]) + '_t_'
-                                                        + str(exposure_times[j]) + 'H')
+                    if specie_dict["persistence_calculation"]:
+                        specie_folder = os.path.join(persistence_folder, specie_dict["specie_name"])
                         try:
-                            os.mkdir(threshold_folder)
+                            os.mkdir(specie_folder)
                         except FileExistsError:
                             pass
+                        concentration_thresholds = specie_dict["concentration_thresholds"]
+                        exposure_times = specie_dict["exposure_times"]
+                        for j in range(0, len(concentration_thresholds)):
+                            threshold_folder = os.path.join(specie_folder, 'C_' + str(concentration_thresholds[j])
+                                                            + '_t_' + str(exposure_times[j]) + 'H')
+                            try:
+                                os.mkdir(threshold_folder)
+                            except FileExistsError:
+                                pass
 
         indexes = []
         for specie in species:

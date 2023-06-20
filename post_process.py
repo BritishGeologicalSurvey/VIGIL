@@ -12,7 +12,6 @@ import argparse
 from multiprocessing import Pool, cpu_count
 import datetime
 import linecache
-from time import sleep
 
 
 def read_arguments():
@@ -345,149 +344,68 @@ def read_arguments():
 
 
 def folder_structure():
-    original_output_folder_name = "simulations"
-    post_processing = "post_processing"
-    processed_output_folder_name = original_output_folder_name + "_processed"
-    ecdf_folder = "output_ecdf"
-    persistence_folder_name = "output_persistence"
-    disgas_outputs_folder = os.path.join(root, post_processing, "disgas")
-    twodee_outputs_folder = os.path.join(root, post_processing, "twodee")
-    disgas_or_output_folder = os.path.join(root, original_output_folder_name, "disgas")
-    twodee_or_output_folder = os.path.join(root, original_output_folder_name, "twodee")
-    disgas_proc_output_folder = os.path.join(disgas_outputs_folder, processed_output_folder_name)
-    twodee_proc_output_folder = os.path.join(twodee_outputs_folder, processed_output_folder_name)
-    disgas_ecdf_folder = os.path.join(disgas_outputs_folder, ecdf_folder)
-    twodee_ecdf_folder = os.path.join(twodee_outputs_folder, ecdf_folder)
-    disgas_ecdf_tracking_points_folder = os.path.join(disgas_ecdf_folder, 'tracking_points')
-    twodee_ecdf_tracking_points_folder = os.path.join(twodee_ecdf_folder, 'tracking_points')
-    disgas_persistence_folder = os.path.join(disgas_outputs_folder, persistence_folder_name)
-    twodee_persistence_folder = os.path.join(twodee_outputs_folder, persistence_folder_name)
-    model_proc_output_folder = ''
-    ecdf_outputs_folder = ''
-    persistence_outputs_folder = ''
-    graphical_outputs_folder = ''
-    graphical_outputs_simulations_folder = ''
-    graphical_outputs_ecdf_folder = ''
-    graphical_outputs_ecdf_tracking_points_folder = ''
-    graphical_outputs_persistence_folder = ''
+    outputs_folder = os.path.join(root, "post_processing", "runs")
+    original_output_folder = os.path.join(root, "runs")
+    processed_output_folder = os.path.join(outputs_folder, "runs_processed")
+    ecdf_folder = os.path.join(outputs_folder, "output_ecdf")
+    ecdf_tracking_points_folder = os.path.join(ecdf_folder, 'tracking_points')
+    persistence_folder = os.path.join(outputs_folder, "output_persistence")
     try:
-        os.mkdir(post_processing)
+        os.mkdir("post_processing")
     except FileExistsError:
         print("Folder post_processing already exists")
-    if models == "disgas" or models == "all":
-        try:
-            os.mkdir(disgas_outputs_folder)
-        except FileExistsError:
-            print("Folder " + disgas_outputs_folder + " already exists")
-        try:
-            os.mkdir(disgas_proc_output_folder)
-        except FileExistsError:
-            print("Folder " + disgas_proc_output_folder + " already exists")
-        try:
-            os.mkdir(disgas_ecdf_folder)
-        except FileExistsError:
-            print("Folder " + disgas_ecdf_folder + " already exists")
-        try:
-            os.mkdir(disgas_ecdf_tracking_points_folder)
-        except FileExistsError:
-            print("Folder " + disgas_ecdf_tracking_points_folder + " already exists")
-        try:
-            os.mkdir(disgas_persistence_folder)
-        except FileExistsError:
-            print("Folder " + disgas_persistence_folder + " already exists")
-    if models == "twodee" or models == "all":
-        try:
-            os.mkdir(twodee_outputs_folder)
-        except FileExistsError:
-            print("Folder " + twodee_outputs_folder + " already exists")
-        try:
-            os.mkdir(twodee_proc_output_folder)
-        except FileExistsError:
-            print("Folder " + twodee_proc_output_folder + " already exists")
-        try:
-            os.mkdir(twodee_ecdf_folder)
-        except FileExistsError:
-            print("Folder " + twodee_ecdf_folder + " already exists")
-        try:
-            os.mkdir(twodee_ecdf_tracking_points_folder)
-        except FileExistsError:
-            print("Folder " + twodee_ecdf_tracking_points_folder + " already exists")
-        try:
-            os.mkdir(twodee_persistence_folder)
-        except FileExistsError:
-            print("Folder " + twodee_persistence_folder + " already exists")
-    twodee_input_file = os.path.join(root, "twodee.inp")
-    twodee_output_time_step = 0
-    if models == "all":
-        models_to_elaborate = ["disgas", "twodee"]
-    elif models == "disgas":
-        models_to_elaborate = ["disgas"]
-    else:
-        models_to_elaborate = ["twodee"]
-    for model in models_to_elaborate:
-        if model == "disgas":
-            model_outputs = disgas_outputs_folder
-            model_proc_output_folder = disgas_proc_output_folder
-            ecdf_outputs_folder = disgas_ecdf_folder
-            persistence_outputs_folder = disgas_persistence_folder
-        else:
-            model_outputs = twodee_outputs_folder
-            model_proc_output_folder = twodee_proc_output_folder
-            ecdf_outputs_folder = twodee_ecdf_folder
-            persistence_outputs_folder = twodee_persistence_folder
-            # Read the output time interval from the twodee input file
-            with open(twodee_input_file, "r") as twodee_file:
-                for line in twodee_file:
-                    if "OUTPUT_INTERVAL_(SEC)" in line:
-                        twodee_output_time_step = float(line.split("=")[1])
-            if twodee_output_time_step == 0:
-                print("Unable to read the Twodee output time step")
-                sys.exit()
-        graphical_outputs_folder = os.path.join(model_outputs, "graphical_outputs")
-        graphical_outputs_simulations_folder = os.path.join(graphical_outputs_folder, "simulations")
-        graphical_outputs_ecdf_folder = os.path.join(graphical_outputs_folder, "ecdf")
-        graphical_outputs_ecdf_tracking_points_folder = os.path.join(graphical_outputs_ecdf_folder, "tracking_points")
-        graphical_outputs_persistence_folder = os.path.join(graphical_outputs_folder, "persistence")
-        try:
-            os.mkdir(graphical_outputs_folder)
-        except FileExistsError:
-            print("Folder " + graphical_outputs_folder + " already exists")
-        try:
-            os.mkdir(graphical_outputs_simulations_folder)
-        except FileExistsError:
-            print("Folder " + graphical_outputs_simulations_folder + " already exists")
-        try:
-            os.mkdir(graphical_outputs_ecdf_folder)
-        except FileExistsError:
-            print("Folder " + graphical_outputs_ecdf_folder + " already exists")
-        try:
-            os.mkdir(graphical_outputs_ecdf_tracking_points_folder)
-        except FileExistsError:
-            print("Folder " + graphical_outputs_ecdf_tracking_points_folder + " already exists")
-        try:
-            os.mkdir(graphical_outputs_persistence_folder)
-        except FileExistsError:
-            print("Folder " + graphical_outputs_persistence_folder + " already exists")
-
+    try:
+        os.mkdir(outputs_folder)
+    except FileExistsError:
+        print("Folder " + outputs_folder + " already exists")
+    try:
+        os.mkdir(processed_output_folder)
+    except FileExistsError:
+        print("Folder " + processed_output_folder + " already exists")
+    try:
+        os.mkdir(ecdf_folder)
+    except FileExistsError:
+        print("Folder " + ecdf_folder + " already exists")
+    try:
+        os.mkdir(ecdf_tracking_points_folder)
+    except FileExistsError:
+        print("Folder " + ecdf_tracking_points_folder + " already exists")
+    try:
+        os.mkdir(persistence_folder)
+    except FileExistsError:
+        print("Folder " + persistence_folder + " already exists")
+    graphical_outputs_folder = os.path.join(outputs_folder, "graphical_outputs")
+    graphical_outputs_simulations_folder = os.path.join(graphical_outputs_folder, "simulations")
+    graphical_outputs_ecdf_folder = os.path.join(graphical_outputs_folder, "ecdf")
+    graphical_outputs_ecdf_tracking_points_folder = os.path.join(graphical_outputs_ecdf_folder, "tracking_points")
+    graphical_outputs_persistence_folder = os.path.join(graphical_outputs_folder, "persistence")
+    try:
+        os.mkdir(graphical_outputs_folder)
+    except FileExistsError:
+        print("Folder " + graphical_outputs_folder + " already exists")
+    try:
+        os.mkdir(graphical_outputs_simulations_folder)
+    except FileExistsError:
+        print("Folder " + graphical_outputs_simulations_folder + " already exists")
+    try:
+        os.mkdir(graphical_outputs_ecdf_folder)
+    except FileExistsError:
+        print("Folder " + graphical_outputs_ecdf_folder + " already exists")
+    try:
+        os.mkdir(graphical_outputs_ecdf_tracking_points_folder)
+    except FileExistsError:
+        print("Folder " + graphical_outputs_ecdf_tracking_points_folder + " already exists")
+    try:
+        os.mkdir(graphical_outputs_persistence_folder)
+    except FileExistsError:
+        print("Folder " + graphical_outputs_persistence_folder + " already exists")
     return (
-        disgas_outputs_folder,
-        disgas_or_output_folder,
-        disgas_proc_output_folder,
+        outputs_folder,
+        original_output_folder,
+        processed_output_folder,
         ecdf_folder,
-        disgas_ecdf_folder,
-        disgas_ecdf_tracking_points_folder,
-        disgas_persistence_folder,
-        twodee_outputs_folder,
-        twodee_or_output_folder,
-        twodee_proc_output_folder,
-        twodee_ecdf_folder,
-        twodee_ecdf_tracking_points_folder,
-        twodee_persistence_folder,
-        models_to_elaborate,
-        twodee_output_time_step,
-        model_proc_output_folder,
-        ecdf_outputs_folder,
-        persistence_outputs_folder,
+        ecdf_tracking_points_folder,
+        persistence_folder,
         graphical_outputs_folder,
         graphical_outputs_simulations_folder,
         graphical_outputs_ecdf_folder,
@@ -2153,29 +2071,17 @@ root = os.getcwd()
 
 
 (
-    disgas_outputs,
-    disgas_original_output_folder,
-    disgas_processed_output_folder,
-    ecdf_folder_name,
-    disgas_ecdf,
-    disgas_ecdf_tracking_points,
-    disgas_persistence,
-    twodee_outputs,
-    twodee_original_output_folder,
-    twodee_processed_output_folder,
-    twodee_ecdf,
-    twodee_ecdf_tracking_points,
-    twodee_persistence,
-    models_to_elaborate,
-    twodee_output_time_step,
-    model_processed_output_folder,
-    ecdf_outputs,
-    persistence_outputs,
-    graphical_outputs,
-    graphical_outputs_simulations,
-    graphical_outputs_ecdf,
-    graphical_outputs_ecdf_tracking_points,
-    graphical_outputs_persistence
+    outputs_folder,
+    original_output_folder,
+    processed_output_folder,
+    ecdf_folder,
+    ecdf_tracking_points_folder,
+    persistence_folder,
+    graphical_outputs_folder,
+    graphical_outputs_simulations_folder,
+    graphical_outputs_ecdf_folder,
+    graphical_outputs_ecdf_tracking_points_folder,
+    graphical_outputs_persistence_folder
 ) = folder_structure()
 
 if __name__ == '__main__':

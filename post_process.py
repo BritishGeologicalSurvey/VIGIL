@@ -344,73 +344,73 @@ def read_arguments():
 
 
 def folder_structure():
-    outputs_folder = os.path.join(root, "post_processing", "runs")
-    original_output_folder = os.path.join(root, "runs")
-    processed_output_folder = os.path.join(outputs_folder, "runs_processed")
-    ecdf_folder = os.path.join(outputs_folder, "output_ecdf")
-    ecdf_tracking_points_folder = os.path.join(ecdf_folder, 'tracking_points')
-    persistence_folder = os.path.join(outputs_folder, "output_persistence")
+    outputs_dir = os.path.join(root, "post_processing", "runs")
+    original_output_dir = os.path.join(root, "runs")
+    processed_output_dir = os.path.join(outputs_dir, "runs_processed")
+    ecdf_dir = os.path.join(outputs_dir, "output_ecdf")
+    ecdf_tracking_points_dir = os.path.join(ecdf_dir, 'tracking_points')
+    persistence_dir = os.path.join(outputs_dir, "output_persistence")
     try:
         os.mkdir("post_processing")
     except FileExistsError:
         print("Folder post_processing already exists")
     try:
-        os.mkdir(outputs_folder)
+        os.mkdir(outputs_dir)
     except FileExistsError:
-        print("Folder " + outputs_folder + " already exists")
+        print("Folder " + outputs_dir + " already exists")
     try:
-        os.mkdir(processed_output_folder)
+        os.mkdir(processed_output_dir)
     except FileExistsError:
-        print("Folder " + processed_output_folder + " already exists")
+        print("Folder " + processed_output_dir + " already exists")
     try:
         os.mkdir(ecdf_folder)
     except FileExistsError:
-        print("Folder " + ecdf_folder + " already exists")
+        print("Folder " + ecdf_dir + " already exists")
     try:
-        os.mkdir(ecdf_tracking_points_folder)
+        os.mkdir(ecdf_tracking_points_dir)
     except FileExistsError:
-        print("Folder " + ecdf_tracking_points_folder + " already exists")
+        print("Folder " + ecdf_tracking_points_dir + " already exists")
     try:
         os.mkdir(persistence_folder)
     except FileExistsError:
-        print("Folder " + persistence_folder + " already exists")
-    graphical_outputs_folder = os.path.join(outputs_folder, "graphical_outputs")
-    graphical_outputs_simulations_folder = os.path.join(graphical_outputs_folder, "simulations")
-    graphical_outputs_ecdf_folder = os.path.join(graphical_outputs_folder, "ecdf")
-    graphical_outputs_ecdf_tracking_points_folder = os.path.join(graphical_outputs_ecdf_folder, "tracking_points")
-    graphical_outputs_persistence_folder = os.path.join(graphical_outputs_folder, "persistence")
+        print("Folder " + persistence_dir + " already exists")
+    graphical_outputs_dir = os.path.join(outputs_dir, "graphical_outputs")
+    graphical_outputs_simulations_dir = os.path.join(graphical_outputs_dir, "simulations")
+    graphical_outputs_ecdf_dir = os.path.join(graphical_outputs_dir, "ecdf")
+    graphical_outputs_ecdf_tracking_points_dir = os.path.join(graphical_outputs_ecdf_dir, "tracking_points")
+    graphical_outputs_persistence_dir = os.path.join(graphical_outputs_dir, "persistence")
     try:
-        os.mkdir(graphical_outputs_folder)
+        os.mkdir(graphical_outputs_dir)
     except FileExistsError:
-        print("Folder " + graphical_outputs_folder + " already exists")
+        print("Folder " + graphical_outputs_dir + " already exists")
     try:
-        os.mkdir(graphical_outputs_simulations_folder)
+        os.mkdir(graphical_outputs_simulations_dir)
     except FileExistsError:
-        print("Folder " + graphical_outputs_simulations_folder + " already exists")
+        print("Folder " + graphical_outputs_simulations_dir + " already exists")
     try:
-        os.mkdir(graphical_outputs_ecdf_folder)
+        os.mkdir(graphical_outputs_ecdf_dir)
     except FileExistsError:
-        print("Folder " + graphical_outputs_ecdf_folder + " already exists")
+        print("Folder " + graphical_outputs_ecdf_dir + " already exists")
     try:
-        os.mkdir(graphical_outputs_ecdf_tracking_points_folder)
+        os.mkdir(graphical_outputs_ecdf_tracking_points_dir)
     except FileExistsError:
-        print("Folder " + graphical_outputs_ecdf_tracking_points_folder + " already exists")
+        print("Folder " + graphical_outputs_ecdf_tracking_points_dir + " already exists")
     try:
-        os.mkdir(graphical_outputs_persistence_folder)
+        os.mkdir(graphical_outputs_persistence_dir)
     except FileExistsError:
-        print("Folder " + graphical_outputs_persistence_folder + " already exists")
+        print("Folder " + graphical_outputs_persistence_dir + " already exists")
     return (
-        outputs_folder,
-        original_output_folder,
-        processed_output_folder,
-        ecdf_folder,
-        ecdf_tracking_points_folder,
-        persistence_folder,
-        graphical_outputs_folder,
-        graphical_outputs_simulations_folder,
-        graphical_outputs_ecdf_folder,
-        graphical_outputs_ecdf_tracking_points_folder,
-        graphical_outputs_persistence_folder
+        outputs_dir,
+        original_output_dir,
+        processed_output_dir,
+        ecdf_dir,
+        ecdf_tracking_points_dir,
+        persistence_dir,
+        graphical_outputs_dir,
+        graphical_outputs_simulations_dir,
+        graphical_outputs_ecdf_dir,
+        graphical_outputs_ecdf_tracking_points_dir,
+        graphical_outputs_persistence_dir
     )
 
 
@@ -552,9 +552,13 @@ def gas_properties():
     return species_properties
 
 
-def domain(model):
+def domain():
+    import glob
+    simulations_folder = os.path.join(os.getcwd(), 'simulations')
+    inp_files = glob.glob(simulations_folder + "/**/*.inp", recursive=True)
+    inp_file = inp_files[0]
     output_levels = []
-    if model == "disgas":
+    if "disgas" in inp_file:
         with open(file="disgas.inp") as input_file:
             for record in input_file:
                 try:
@@ -735,23 +739,17 @@ def probabilistic_tracking_points():
                        for k in range(0, len(stations))] for l in range (0, len(stations))]
     c_list = []
     for specie in species:
-        graphical_outputs_ecdf_tracking_points_specie = os.path.join(graphical_outputs_ecdf_tracking_points, specie)
+        graphical_outputs_ecdf_tracking_points_specie = os.path.join(graphical_outputs_ecdf_tracking_points_folder,
+                                                                     specie)
         try:
             os.mkdir(graphical_outputs_ecdf_tracking_points_specie)
         except FileExistsError:
             print('Folder ' + graphical_outputs_ecdf_tracking_points_specie + ' already exists')
-        if model == 'disgas':
-            disgas_ecdf_tracking_points_specie = os.path.join(disgas_ecdf_tracking_points, specie)
-            try:
-                os.mkdir(disgas_ecdf_tracking_points_specie)
-            except FileExistsError:
-                print('Folder ' + disgas_ecdf_tracking_points_specie + ' already exists')
-        else:
-            twodee_ecdf_tracking_points_specie = os.path.join(twodee_ecdf_tracking_points, specie)
-            try:
-                os.mkdir(twodee_ecdf_tracking_points_specie)
-            except FileExistsError:
-                print('Folder ' + twodee_ecdf_tracking_points_specie + ' already exists')
+        ecdf_tracking_points_specie = os.path.join(ecdf_tracking_points_folder, specie)
+        try:
+            os.mkdir(ecdf_tracking_points_specie)
+        except FileExistsError:
+            print('Folder ' + ecdf_tracking_points_specie + ' already exists')
     min_con_tp_specie = []
     max_con_tp_specie = []
     for l in range(0, len(species)):
@@ -773,12 +771,8 @@ def probabilistic_tracking_points():
     for l in range(0, len(species)):
         for k in range(0, len(stations)):
             station = stations[k]
-            if model == 'disgas':
-                ecdf_tracking_point_file = os.path.join(disgas_ecdf_tracking_points, species[l],
-                                                        'TP_' + str(station['station_id']) + '_ecdf.txt')
-            else:
-                ecdf_tracking_point_file = os.path.join(twodee_ecdf_tracking_points, species[l],
-                                                        'TP_' + str(station['station_id']) + '_ecdf.txt')
+            ecdf_tracking_point_file = os.path.join(ecdf_tracking_points_folder, species[l], 'TP_' +
+                                                    str(station['station_id']) + '_ecdf.txt')
             with open(ecdf_tracking_point_file, 'w') as output_file:
                 output_file.write(quantile_string + '\n')
                 for i in range(0, len(all_time_steps)):
@@ -791,7 +785,7 @@ def probabilistic_tracking_points():
                     for m in range(0, len(quantiles)): \
                             output_quantile_string += '\t' + "{0:.2e}".format(output_quantile[l][k][m][i])
                     output_file.write(output_quantile_string + '\n' )
-            plot_file_folder = os.path.join(graphical_outputs_ecdf_tracking_points, species[l])
+            plot_file_folder = os.path.join(graphical_outputs_ecdf_tracking_points_folder, species[l])
             plot_hazard_curves(ecdf_tracking_point_file, plot_file_folder, min_con_tp_specie[l], max_con_tp_specie[l])
 
 
@@ -990,7 +984,7 @@ def elaborate_day(day_input):
             concentration_threshold = index[1]
             exposure_time = index[2]
             file_level_s = index[3]
-            output_folder = os.path.join(model_processed_output_folder, day_input, specie_input)
+            output_folder = os.path.join(processed_output_folder, day_input, specie_input)
             day_output_files = os.listdir(output_folder)
             output_files_day = []
             overcome_matrix = np.zeros((ny, nx))
@@ -1003,12 +997,6 @@ def elaborate_day(day_input):
                                                    'persistence_' + file_level_s + '.grd')
             return pers_output, overcome_matrix
 
-        if model == "disgas":
-            persistence_folder = disgas_persistence
-            model_processed_output_folder = disgas_processed_output_folder
-        else:
-            persistence_folder = twodee_persistence
-            model_processed_output_folder = twodee_processed_output_folder
         for specie in species:
             for specie_dict in species_properties:
                 if specie_dict["specie_name"] == specie:
@@ -1175,20 +1163,8 @@ def elaborate_day(day_input):
                 k += 1
         return files_time_steps + files_time_averaging_steps, c_tp
 
-    if model == "disgas":
-        model_output_folder = os.path.join(
-            disgas_original_output_folder, day_input, "outfiles"
-        )
-        model_processed_output_folder_daily = os.path.join(
-            disgas_processed_output_folder, day_input
-        )
-    else:
-        model_output_folder = os.path.join(
-            twodee_original_output_folder, day_input, "outfiles"
-        )
-        model_processed_output_folder_daily = os.path.join(
-            twodee_processed_output_folder, day_input
-        )
+    model_output_folder = os.path.join(original_output_folder, day_input, "outfiles")
+    model_processed_output_folder_daily = os.path.join(processed_output_folder, day_input)
     try:
         os.mkdir(model_processed_output_folder_daily)
     except FileExistsError:
@@ -1473,7 +1449,7 @@ def prepare_quantile_calculation(exc_prob):
                 file_validity = tavg_interval_start_s + '-' + tavg_interval_end_s + '-tavg'
                 time_step_s = time_step
             file_name = "c_" + file_level_s + "_" + file_validity + ".grd"
-            output_folder = os.path.join(model_processed_output_folder, day, specie)
+            output_folder = os.path.join(processed_output_folder, day, specie)
             output_files.append(os.path.join(output_folder, file_name))
         ecdf_output_file = os.path.join(
             ecdf_folder,
@@ -1489,12 +1465,6 @@ def prepare_quantile_calculation(exc_prob):
 
     all_output_files = []
     all_ecdf_output_files = []
-    if model == "disgas":
-        ecdf_folder = disgas_ecdf
-        model_processed_output_folder = disgas_processed_output_folder
-    else:
-        ecdf_folder = twodee_ecdf
-        model_processed_output_folder = twodee_processed_output_folder
     for probability in exceedance_probabilities:
         prob_folder = os.path.join(ecdf_folder, str(probability))
         try:
@@ -1549,7 +1519,7 @@ def prepare_quantile_calculation(exc_prob):
     return all_output_files, all_ecdf_output_files
 
 
-def save_plots(model, min_con, max_con):
+def save_plots(min_con, max_con):
     import re
 
     def plot_file(input, output, dz_lines_res):
@@ -1718,15 +1688,7 @@ def save_plots(model, min_con, max_con):
     files_to_plot = []
     output_files = []
 
-    if model == "disgas":
-        model_outputs = disgas_outputs
-        model_processed_output_folder = disgas_processed_output_folder
-        ecdf_outputs = disgas_ecdf
-    else:
-        model_outputs = twodee_outputs
-        model_processed_output_folder = twodee_processed_output_folder
-        ecdf_outputs = twodee_ecdf
-    graphical_outputs = os.path.join(model_outputs, "graphical_outputs")
+    graphical_outputs = os.path.join(outputs_folder, "graphical_outputs")
     graphical_outputs_simulations = os.path.join(graphical_outputs, "simulations")
     graphical_outputs_ecdf = os.path.join(graphical_outputs, "ecdf")
     for day in days_to_plot:
@@ -1735,9 +1697,7 @@ def save_plots(model, min_con, max_con):
             os.mkdir(graphical_outputs_daily)
         except FileExistsError:
             print("Folder " + graphical_outputs_daily + " already exists")
-        model_processed_output_folder_daily = os.path.join(
-            model_processed_output_folder, day
-        )
+        model_processed_output_folder_daily = os.path.join(processed_output_folder, day)
         model_processed_output_folder_species = []
         for specie in species:
             model_processed_output_folder_species.append(
@@ -1870,13 +1830,9 @@ def save_plots(model, min_con, max_con):
                         + os.path.join(graphical_outputs_ecdf, str(probability), specie)
                         + " already exists"
                     )
-                files_list = os.listdir(
-                    os.path.join(ecdf_outputs, str(probability), specie)
-                )
+                files_list = os.listdir(os.path.join(ecdf_folder, str(probability), specie))
                 for file in files_list:
-                    file_path = os.path.join(
-                        ecdf_outputs, str(probability), specie, file
-                    )
+                    file_path = os.path.join(ecdf_folder, str(probability), specie, file)
                     file_name_splitted = file.split("_")
                     file_level = file_name_splitted[1]
                     file_time_step = file_name_splitted[2].split(".")[0]
@@ -1971,12 +1927,12 @@ def save_plots(model, min_con, max_con):
                 if specie_dict["specie_name"] == specie:
                     try:
                         os.mkdir(
-                            os.path.join(graphical_outputs_persistence, specie)
+                            os.path.join(graphical_outputs_persistence_folder, specie)
                         )
                     except FileExistsError:
                         print(
                             "Folder "
-                            + os.path.join(graphical_outputs_persistence, specie)
+                            + os.path.join(graphical_outputs_persistence_folder, specie)
                             + " already exists"
                         )
                     concentration_thresholds = specie_dict["concentration_thresholds"]
@@ -1984,25 +1940,25 @@ def save_plots(model, min_con, max_con):
                     for j in range(0, len(concentration_thresholds)):
                         try:
                             os.mkdir(
-                                os.path.join(graphical_outputs_persistence, specie, 'C_' +
+                                os.path.join(graphical_outputs_persistence_folder, specie, 'C_' +
                                              str(concentration_thresholds[j]) + '_t_' + str(exposure_times[j]) + 'H'))
                         except FileExistsError:
                             print(
                                 "Folder "
-                                + os.path.join(graphical_outputs_persistence, specie, 'C_' +
+                                + os.path.join(graphical_outputs_persistence_folder, specie, 'C_' +
                                                str(concentration_thresholds[j]) + '_t_' + str(exposure_times[j]) + 'H')
                                                + " already exists")
-                        files_list = os.listdir(os.path.join(persistence_outputs, specie, 'C_' +
+                        files_list = os.listdir(os.path.join(persistence_folder, specie, 'C_' +
                                                              str(concentration_thresholds[j]) + '_t_'
                                                         + str(exposure_times[j]) + 'H'))
                         for file in files_list:
                             file_path = os.path.join(
-                                persistence_outputs, specie, 'C_' + str(concentration_thresholds[j]) + '_t_'
+                                persistence_folder, specie, 'C_' + str(concentration_thresholds[j]) + '_t_'
                                                         + str(exposure_times[j]) + 'H', file)
                             files_to_plot.append(file_path)
                             persistence_plot_file_name = file.split(os.sep)[-1].split(".grd")[0]
                             persistence_plot_file_name += '.png'
-                            output_files.append(os.path.join(graphical_outputs_persistence, specie, 'C_' +
+                            output_files.append(os.path.join(graphical_outputs_persistence_folder, specie, 'C_' +
                                                              str(concentration_thresholds[j]) + '_t_' +
                                                              str(exposure_times[j]) + 'H',
                                                              persistence_plot_file_name))
@@ -2103,84 +2059,83 @@ if __name__ == '__main__':
         days_to_elaborate = days
     else:
         days_to_elaborate = days_to_plot
-    for model in models_to_elaborate:
-        x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, simulation_time, output_levels, hour_start, \
-            minute_start = domain(model)
-        species_properties = gas_properties()
+    x0, xf, y0, yf, nx, ny, nz, dx, dy, n_time_steps, dt, simulation_time, output_levels, hour_start, \
+        minute_start = domain()
+    species_properties = gas_properties()
+    if tracking_points:
+        stations = elaborate_tracking_points()
+        # Initialize array of concentration to be used for ECDFs in the tracking points
+        c = [[[[0 for i in range(0, n_time_steps + 10)] for j in range(0, len(days))]
+             for k in range(0, len(stations))] for l in range(0, len(species))]
+    n_completed_processes = 0
+    returned_values = []
+    while n_completed_processes <= len(days):
+        start = n_completed_processes
+        end = n_completed_processes + max_number_processes
+        if end > len(days):
+            end = len(days)
+        pool = Pool(max_number_processes)
+        returned_values_temp = pool.map(elaborate_day, days[start:end])
+        for returned_value_temp in returned_values_temp:
+            returned_values.append(returned_value_temp)
+        pool.close()
+        pool.join()
+        n_completed_processes = end
+        if n_completed_processes == len(days):
+            break
+    for returned_value in returned_values:
+        all_time_steps = returned_value[1]
+        processed_files_levels = returned_value[2]
+        tavg_intervals = returned_value[3]
+        persistence_matrices = returned_value[4]
+        day_overcome_calculation = returned_value[0]
+        persistence_calculation_parameters = returned_value[5]
+        overcome_outputs = returned_value[6]
+        c_tp = returned_value[7]
         if tracking_points:
-            stations = elaborate_tracking_points()
-            # Initialize array of concentration to be used for ECDFs in the tracking points
-            c = [[[[0 for i in range(0, n_time_steps + 10)] for j in range(0, len(days))]
-                 for k in range(0, len(stations))] for l in range(0, len(species))]
-        n_completed_processes = 0
-        returned_values = []
-        while n_completed_processes <= len(days):
-            start = n_completed_processes
-            end = n_completed_processes + max_number_processes
-            if end > len(days):
-                end = len(days)
-            pool = Pool(max_number_processes)
-            returned_values_temp = pool.map(elaborate_day, days[start:end])
-            for returned_value_temp in returned_values_temp:
-                returned_values.append(returned_value_temp)
-            pool.close()
-            pool.join()
-            n_completed_processes = end
-            if n_completed_processes == len(days):
-                break
-        for returned_value in returned_values:
-            all_time_steps = returned_value[1]
-            processed_files_levels = returned_value[2]
-            tavg_intervals = returned_value[3]
-            persistence_matrices = returned_value[4]
-            day_overcome_calculation = returned_value[0]
-            persistence_calculation_parameters = returned_value[5]
-            overcome_outputs = returned_value[6]
-            c_tp = returned_value[7]
-            if tracking_points:
-                j_tp = days.index(day_overcome_calculation)
-                for l_tp in range(len(c_tp)):
-                    for k_tp in range(len(c_tp[species[l_tp]])):
-                        for i_tp in range(len(c_tp[species[l_tp]][k_tp]['c_tp_time_steps'])):
-                            c[l_tp][k_tp][j_tp][i_tp] = c_tp[species[l_tp]][k_tp]['c_tp_time_steps'][i_tp]
-            if persistence:
-                weight_simulation = 1 / len(days)
-                overcome_matrices_all_days[day_overcome_calculation] = [persistence_calculation_parameters,
-                                                                        overcome_outputs]
+            j_tp = days.index(day_overcome_calculation)
+            for l_tp in range(len(c_tp)):
+                for k_tp in range(len(c_tp[species[l_tp]])):
+                    for i_tp in range(len(c_tp[species[l_tp]][k_tp]['c_tp_time_steps'])):
+                        c[l_tp][k_tp][j_tp][i_tp] = c_tp[species[l_tp]][k_tp]['c_tp_time_steps'][i_tp]
         if persistence:
-            calculate_persistence()
-            for persistence_output_file in persistence_matrices:
-                write_probabilistic_file(persistence_output_file, persistence_matrices[persistence_output_file])
-        if tracking_points:
-            probabilistic_tracking_points()
-        if calculate_ecdf:
-            jis = [(j, i) for j in range(ny) for i in range(nx)]
-            for probability in exceedance_probabilities:
-                all_output_files, all_ecdf_output_files = prepare_quantile_calculation(probability)
-                for ii in range(0, len(all_ecdf_output_files)):
-                    output_quantile = np.zeros((ny, nx))
-                    files_to_process = all_output_files[ii]
-                    n_completed_processes = 0
-                    while n_completed_processes <= len(jis):
-                        start = n_completed_processes
-                        end = n_completed_processes + max_number_processes
-                        if end > len(jis):
-                            end = len(jis)
-                        pool_ecdf = Pool(end - start)
-                        output_quantile_return = pool_ecdf.map(read_output_files_for_ecdf, jis[start:end])
-                        pool_ecdf.close()
-                        pool_ecdf.join()
-                        for i_output in range(len(output_quantile_return)):
-                            jj_ecdf = output_quantile_return[i_output][0]
-                            ii_ecdf = output_quantile_return[i_output][1]
-                            output_quantile[jj_ecdf, ii_ecdf] = output_quantile_return[i_output][2]
-                        n_completed_processes = end
-                        if n_completed_processes == len(jis):
-                            break
-                    try:
-                        os.remove(all_ecdf_output_files[ii])
-                    except FileNotFoundError:
-                        pass
-                    write_probabilistic_file(all_ecdf_output_files[ii], output_quantile)
-        if plot:
-            save_plots(model, min_con, max_con)
+            weight_simulation = 1 / len(days)
+            overcome_matrices_all_days[day_overcome_calculation] = [persistence_calculation_parameters,
+                                                                    overcome_outputs]
+    if persistence:
+        calculate_persistence()
+        for persistence_output_file in persistence_matrices:
+            write_probabilistic_file(persistence_output_file, persistence_matrices[persistence_output_file])
+    if tracking_points:
+        probabilistic_tracking_points()
+    if calculate_ecdf:
+        jis = [(j, i) for j in range(ny) for i in range(nx)]
+        for probability in exceedance_probabilities:
+            all_output_files, all_ecdf_output_files = prepare_quantile_calculation(probability)
+            for ii in range(0, len(all_ecdf_output_files)):
+                output_quantile = np.zeros((ny, nx))
+                files_to_process = all_output_files[ii]
+                n_completed_processes = 0
+                while n_completed_processes <= len(jis):
+                    start = n_completed_processes
+                    end = n_completed_processes + max_number_processes
+                    if end > len(jis):
+                        end = len(jis)
+                    pool_ecdf = Pool(end - start)
+                    output_quantile_return = pool_ecdf.map(read_output_files_for_ecdf, jis[start:end])
+                    pool_ecdf.close()
+                    pool_ecdf.join()
+                    for i_output in range(len(output_quantile_return)):
+                        jj_ecdf = output_quantile_return[i_output][0]
+                        ii_ecdf = output_quantile_return[i_output][1]
+                        output_quantile[jj_ecdf, ii_ecdf] = output_quantile_return[i_output][2]
+                    n_completed_processes = end
+                    if n_completed_processes == len(jis):
+                        break
+                try:
+                    os.remove(all_ecdf_output_files[ii])
+                except FileNotFoundError:
+                    pass
+                write_probabilistic_file(all_ecdf_output_files[ii], output_quantile)
+    if plot:
+        save_plots(min_con, max_con)

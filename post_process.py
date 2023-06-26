@@ -722,7 +722,6 @@ def elaborate_day(day_input):
             overcome_matrices.append(overcome_matrix)
         return indexes
 
-
     def extract_tracking_points(files_to_interpolate, j):
         def interpolate(x, y, z, levels_interpolation, files):
             from scipy import interpolate
@@ -877,7 +876,8 @@ def elaborate_day(day_input):
         files_list_path += files_list_path
         models += models
     time_steps_disgas = []
-    if model == 'disgas':
+    if model == 'disgas':  # FABIO: for example, this (and equivalent commands) can be replaced by if "disgas" in file.
+        # But what to do with the merged outputs, which do not have disgas or twodee in their paths?
         for file in files_list:
             file_name_splitted = file.split("_")
             file_time_step = file_name_splitted[2]

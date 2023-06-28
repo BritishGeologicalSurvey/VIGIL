@@ -993,7 +993,18 @@ def pre_process(run_mode):
                         + "\n"
                     )
             source_file.close()
-            # read and memorize twodee.inp file
+            # read and memorize twodee.inp file. First read and memorize the domain properties of diagno, since
+            # twodee's domain must coincide with it
+            with open(os.path.join(diagno_daily, "diagno.inp"), 'r') as diagno_input_data:
+                for line in diagno_input_data:
+                    if 'NX\n' in line:
+                        nx_diagno = int(line.split('NX')[0])
+                    elif 'NY\n' in line:
+                        ny_diagno = int(line.split('NY')[0])
+                    elif 'UTMXOR' in line:
+                        xor_diagno = float(line.split('UTMXOR')[0]) * 1000
+                    elif 'UTMYOR' in line:
+                        yor_diagno = float(line.split('UTMYOR')[0]) * 1000
             twodee_input_records = []
             with open(
                 twodee_original, "r", encoding="utf-8", errors="surrogateescape"
@@ -1027,17 +1038,17 @@ def pre_process(run_mode):
                         twodee_input_file.write("  SIMULATION_INTERVAL_(SEC) = " +
                                                 "{0:7.0f}".format(simulation_interval) + "\n")
                     elif 'NX' in record:
-                        twodee_input_file.write("  NX     = " + str(nx) + "\n")
+                        twodee_input_file.write("  NX     = " + str(nx_diagno) + "\n")
                     elif 'NY' in record:
-                        twodee_input_file.write("  NY     = " + str(ny) + "\n")
+                        twodee_input_file.write("  NY     = " + str(ny_diagno) + "\n")
                     elif 'DX_(M)' in record:
                         twodee_input_file.write("  DX_(M) = " + str(dx) + "\n")
                     elif 'DY_(M)' in record:
                         twodee_input_file.write("  DY_(M) = " + str(dy) + "\n")
                     elif 'X_ORIGIN_(UTM_M)' in record:
-                        twodee_input_file.write("  X_ORIGIN_(UTM_M) = " + str(bottom_left_easting) + "\n")
+                        twodee_input_file.write("  X_ORIGIN_(UTM_M) = " + str(xor_diagno) + "\n")
                     elif 'Y_ORIGIN_(UTM_M)' in record:
-                        twodee_input_file.write("  Y_ORIGIN_(UTM_M) = " + str(bottom_left_northing) + "\n")
+                        twodee_input_file.write("  Y_ORIGIN_(UTM_M) = " + str(yor_diagno) + "\n")
                     elif 'AMBIENT_GAS_DENSITY_20C_(KG/M3)' in record:
                         twodee_input_file.write('  AMBIENT_GAS_DENSITY_20C_(KG/M3) = 1.204\n')
                     elif 'DENSE_GAS_DENSITY_20C_(KG/M3)' in record:
@@ -1166,12 +1177,12 @@ def run_diagno(max_np):
                         if 'NX' in record:
                             if disgas_on:
                                 diagno_input_file.write(str(nx + 2) + '          NX\n')
-                            elif twodee_on:
+                            else:
                                 diagno_input_file.write(str(nx) + '          NX\n')
                         elif 'NY' in record:
                             if disgas_on:
                                 diagno_input_file.write(str(ny + 2) + '          NY\n')
-                            elif twodee_on:
+                            else:
                                 diagno_input_file.write(str(ny) + '          NY\n')
                         elif 'DXK' in record:
                             diagno_input_file.write("{0:7.3f}".format(dx / 1000) + '          DXK (km)\n')
@@ -1181,14 +1192,14 @@ def run_diagno(max_np):
                             if disgas_on:
                                 diagno_input_file.write("{0:7.3f}".format((bottom_left_easting - dx) / 1000) + '      '
                                                         'UTMXOR (km)\n')
-                            elif twodee_on:
+                            else:
                                 diagno_input_file.write("{0:7.3f}".format(bottom_left_easting / 1000) + '      '
                                                         'UTMXOR (km)\n')
                         elif 'UTMYOR' in record:
                             if disgas_on:
                                 diagno_input_file.write("{0:7.3f}".format((bottom_left_northing - dy) / 1000) + '      '
                                                         'UTMYOR  (km)\n')
-                            elif twodee_on:
+                            else:
                                 diagno_input_file.write("{0:7.3f}".format(bottom_left_northing / 1000) + '      '
                                                         'UTMYOR  (km)\n')
                         else:
@@ -1353,7 +1364,6 @@ def read_diagno_outputs():
                     disgas_input_file.write(record)
         with open(twodee_inp_new, "w", encoding="utf-8", errors="surrogateescape") as twodee_input_file:
             for record in twodee_input_records:
-                # in twodee.inp we need to match nx, ny, x_origin, y_origin with those of diagno
                 if "NX" in record:
                     twodee_input_file.write("  NX     = " + str(nx_diagno) + "\n")
                 elif "NY" in record:
@@ -1733,6 +1743,42 @@ def converter(run_in):
     #shutil.rmtree(temp_folder)
 
 
+def match_grid(run_in):
+    from scipy.interpolate import RegularGridInterpolator
+    x_disgas = np.linspace(bottom_left_easting + dx / 2, top_right_easting - dx / 2, nx)
+    y_disgas = np.linspace(bottom_left_northing + dy / 2, top_right_northing - dy / 2, ny)
+    x_grd_disgas, y_grd_disgas = np.meshgrid(x_disgas, y_disgas)
+    x_twodee = np.linspace(bottom_left_easting - dx, top_right_easting + dx, nx + 2)
+    y_twodee = np.linspace(bottom_left_northing - dy, top_right_northing + dy, ny + 2)
+    outfiles_folder = os.path.join(run_in, 'outfiles')
+    temp_folder = os.path.join(outfiles_folder, 'temp')
+    try:
+        os.mkdir(temp_folder)
+    except FileExistsError:
+        shutil.rmtree(temp_folder)
+        os.mkdir(temp_folder)
+    files_to_convert = []
+    converted_files = []
+    for file in os.listdir(outfiles_folder):
+        if 'c_' in file:
+            shutil.move(os.path.join(outfiles_folder, file), os.path.join(temp_folder, file))
+            files_to_convert.append(os.path.join(temp_folder, file))
+            converted_files.append(os.path.join(outfiles_folder, file))
+    for i in range(0, len(converted_files)):
+        twodee_output = np.transpose(np.loadtxt(files_to_convert[i], skiprows=5))
+        interp = RegularGridInterpolator((x_twodee, y_twodee), twodee_output)
+        twodee_new_grid = interp((x_grd_disgas, y_grd_disgas))
+        with open(converted_files[i], 'w') as twodee_interpolated_output:
+            twodee_interpolated_output.write('DSAA\n')
+            twodee_interpolated_output.write(str(nx) + '  ' + str(ny) + '\n')
+            twodee_interpolated_output.write(str(bottom_left_easting + dx / 2) + '  ' + str(top_right_easting - dx / 2)
+                                             + '\n')
+            twodee_interpolated_output.write(str(bottom_left_northing + dy / 2) + '  ' + str(top_right_northing - dy /
+                                             2) + '\n')
+            twodee_interpolated_output.write(str(np.min(twodee_new_grid)) + '   ' + str(np.max(twodee_new_grid)) + '\n')
+            np.savetxt(twodee_interpolated_output, twodee_new_grid, fmt='%.4e')
+
+
 def merge_outputs():
     # FABIO: test this
     for run in split_simulations:
@@ -1821,6 +1867,7 @@ topography = os.path.join(root, "topography.grd")
     output_heights,
 ) = read_arguments()
 
+
 if disgas_on == "off" and twodee_on == "off":
     print("Both DISGAS and TWODEE are turned off")
     sys.exit()
@@ -1897,13 +1944,17 @@ elif len(runs_twodee) == 0:
     twodee_on = False
 
 if disgas_on:
-    #run_disgas(max_number_processes)
+    run_disgas(max_number_processes)
     for simulation in runs_disgas:
         converter(simulation)  # Convert disgas output in ppm to be consistent with twodee outputs in case of merging
         # and/or automatic scenario
 
-#if twodee_on:
-#    run_twodee(max_number_processes)
+if twodee_on:
+    run_twodee(max_number_processes)
+    if disgas_on:
+        for simulation in runs_twodee:
+            match_grid(simulation)  # Interpolate twodee output onto disgas grid, this is needed for the following
+            # interpolation
 
 if disgas_on and twodee_on:  # Some runs may have been split, we need to check this and if this is the case, we need
     # to merge the simulations outputs

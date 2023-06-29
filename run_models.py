@@ -591,8 +591,8 @@ def pre_process(run_mode):
             i = 1
             for line_probability in probability_file:
                 if i == 2:
-                    nx = int(line_probability.split(" ")[0])
-                    ny = int(line_probability.split(" ")[1])
+                    nx_prob = int(line_probability.split(" ")[0])
+                    ny_prob = int(line_probability.split(" ")[1])
                     i += 1
                     continue
                 elif i == 3:
@@ -616,16 +616,16 @@ def pre_process(run_mode):
         dys = []
         durs = []
         k = 0
-        for i in range(0, nx):
-            for j in range(0, ny):
+        for i in range(0, nx_prob):
+            for j_prob in range(0, ny_prob):
                 location_cum_indexes.append(k)
-                location_indexes.append([i, j])
+                location_indexes.append([i, j_prob])
                 k += 1
-        x = np.linspace(xmin, xmax, nx)
-        y = np.linspace(ymin, ymax, ny)
-        for i in range(0, nx):
-            for j in range(0, ny):
-                sampled_probabilities.append(probabilities_input[i, j])
+        x = np.linspace(xmin, xmax, nx_prob)
+        y = np.linspace(ymin, ymax, ny_prob)
+        for i in range(0, nx_prob):
+            for j_prob in range(0, ny_prob):
+                sampled_probabilities.append(probabilities_input[i, j_prob])
         selected_locations = choices(location_cum_indexes, sampled_probabilities, k=n_sources_inp)
         source_size = source_size_min_inp
         while source_size <= source_size_max_inp:
@@ -722,8 +722,8 @@ def pre_process(run_mode):
     elevations = random_elevations
     probabilities = random_probabilities
     fluxes_input = random_fluxes
-    dx_sources = random_dx
-    dy_sources = random_dy
+    dx_sources_twodee = random_dx
+    dy_sources_twodee = random_dy
     dur = random_dur
     source_temperatures = random_temperatures
     n_sources = 0
@@ -744,12 +744,12 @@ def pre_process(run_mode):
                     source_temperatures.append(float(records[5]))
                     if twodee_on:
                         try:
-                            dx_sources.append(float(records[6]))
-                            dy_sources.append(float(records[7]))
+                            dx_sources_twodee.append(float(records[6]))
+                            dy_sources_twodee.append(float(records[7]))
                             dur.append(float(records[8]))
                         except IndexError:
-                            dx_sources.append(1)
-                            dy_sources.append(1)
+                            dx_sources_twodee.append(1)
+                            dy_sources_twodee.append(1)
                             dur.append(86400)
                     n_sources += 1
                 except ValueError:
@@ -766,8 +766,8 @@ def pre_process(run_mode):
             fluxes_input.append(source_emission)
             source_temperatures.append(gas_temperature)  # FABIO: if problems with reading sources_input.txt, assign
             # the same temperauture to all sources
-            dx_sources.append(source_dx)
-            dy_sources.append(source_dy)
+            dx_sources_twodee.append(source_dx)
+            dy_sources_twodee.append(source_dy)
             dur.append(source_dur)
         n_sources = len(easting)
 
@@ -985,9 +985,9 @@ def pre_process(run_mode):
                         + " "
                         + "{0:7.3f}".format(gas_fluxes[j])
                         + " "
-                        + "{0:7.2f}".format(dx_sources[j])
+                        + "{0:7.2f}".format(dx_sources_twodee[j])
                         + " "
-                        + "{0:7.2f}".format(dy_sources[j])
+                        + "{0:7.2f}".format(dy_sources_twodee[j])
                         + " KG_SEC 0 "
                         + "{0:7.3f}".format(dur[j])
                         + "\n"
@@ -1091,8 +1091,8 @@ def pre_process(run_mode):
                     else:
                         twodee_input_file.write(record)
             shutil.copy(twodee_input, twodee_original)
-    return easting, northing, elevations, dx_sources, dy_sources, dur, gas_fluxes, source_temperatures, gas_density, \
-        gas_constant, gas_molar_weight
+    return easting, northing, elevations, dx_sources_twodee, dy_sources_twodee, dur, gas_fluxes, source_temperatures, \
+        gas_density, gas_constant, gas_molar_weight
 
 
 def run_diagno(max_np):
@@ -1740,7 +1740,7 @@ def converter(run_in):
             converted_files.append(os.path.join(outfiles_folder, file))
     for i in range(0, len(converted_files)):
         convert_to_ppm(files_to_convert[i], converted_files[i])
-    #shutil.rmtree(temp_folder)
+    shutil.rmtree(temp_folder)
 
 
 def match_grid(run_in):
@@ -1777,6 +1777,7 @@ def match_grid(run_in):
                                              2) + '\n')
             twodee_interpolated_output.write(str(np.min(twodee_new_grid)) + '   ' + str(np.max(twodee_new_grid)) + '\n')
             np.savetxt(twodee_interpolated_output, twodee_new_grid, fmt='%.4e')
+    shutil.rmtree(temp_folder)
 
 
 def merge_outputs():
@@ -1813,7 +1814,6 @@ def merge_outputs():
                             break
                         else:
                             i_line += 1
-                print(original_disgas_file, original_twodee_file)
                 c_disgas = np.loadtxt(original_disgas_file, skiprows=5)
                 c_twodee = np.loadtxt(original_twodee_file, skiprows=5)
                 c_merged = np.add(c_disgas, c_twodee)
@@ -1823,8 +1823,8 @@ def merge_outputs():
                     new_merged_output_file.write(str(np.amin(c_merged)) + "  " + str(np.amax(c_merged)) + "\n")
                     np.savetxt(new_merged_output_file, c_merged, fmt="%.5e")
         # FABIO: clean original folders, to think about it
-        #shutil.rmtree(disgas_outfiles_folder)
-        #shutil.rmtree(twodee_outfiles_folder)
+        # shutil.rmtree(disgas_outfiles_folder)
+        # shutil.rmtree(twodee_outfiles_folder)
 
 
 root = os.getcwd()

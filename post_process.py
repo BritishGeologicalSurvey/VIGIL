@@ -32,8 +32,8 @@ def read_arguments():
                                                                "Type all to plot all the time steps",)
     parser.add_argument("-L", "--levels", default='', help="List of vertical levels (integer >= 1) to plot. Type all "
                                                            "to plot all the levels",)
-    parser.add_argument("-D", "--days_plot",default='',help="List of days to plot (YYYYMMDD). "
-                                                            "Type all to plot all the days",)
+    parser.add_argument("-D", "--days_plot", default='', help="List of days to plot (YYYYMMDD). "
+                                                              "Type all to plot all the days",)
     parser.add_argument("-C", "--convert", default="False", help="If True, convert output concentration into other "
                                                                  "species listed with the command -S (--species)",)
     parser.add_argument("-S", "--species", default='', help="List of gas species (e.g. CO2)")
@@ -56,8 +56,7 @@ def read_arguments():
                         "resolution (in m a.s.l.). Used only if -PT True",)
     parser.add_argument("-PR", "--plot_resolution", default=600, help="Specify plot resolution in dpi")
     parser.add_argument("-TP", "--tracking_points", default="False", help="Extrapolate gas concentration at locations "
-                        "specified in the file tracking_points.txt"
-    )
+                        "specified in the file tracking_points.txt")
     args = parser.parse_args()
     plot_in = args.plot
     calculate_ecdf_in = args.calculate_ecdf
@@ -90,7 +89,7 @@ def read_arguments():
     days_to_plot_in = []
     try:
         max_number_processes_in = int(os.environ["SLURM_NTASKS"])
-    except (ValueError, KeyError) as e:
+    except (ValueError, KeyError):
         try:
             max_number_processes_in = int(nproc)
         except ValueError:
@@ -676,14 +675,13 @@ def elaborate_day(day_input):
                     processed_file.write(str(x0) + "  " + str(xf) + "\n")
                     processed_file.write(str(y0) + "  " + str(yf) + "\n")
                 if not convert:
-                    processed_file.write(
-                        str(np.amin(conc_converted)) + "  " + str(np.amax(conc_converted)) + "\n"
-                    )
+                    processed_file.write(str(np.amin(conc_converted)) + "  " + str(np.amax(conc_converted)) + "\n")
                     np.savetxt(processed_file, conc_converted, fmt="%.2e")
                 else:
                     for specie_property in species_properties:
                         if specie_property["specie_name"] == specie_input:
                             molar_ratio = specie_property["molar_ratio"]
+                            molar_weight = specie["molar_weight"]
                             try:
                                 background_c = specie_property["background_concentration"]
                             except UnboundLocalError:
@@ -695,14 +693,11 @@ def elaborate_day(day_input):
                             if units == 'ppm':
                                 species_conversion_factor = molar_ratio
                             elif units == 'kg/m3':
-                                for specie in species_properties:
-                                    if specie["specie_name"] == specie_input:
-                                        molar_weight = specie["molar_weight"]
-                                    if specie["specie_name"] == original_specie:
-                                        molar_weight_tracking_specie = specie["molar_weight"]
-                                background_c = background_c * ((molar_weight / 22.4) * (273 / t2m) *
-                                                               (p2m / 1013)) / 1000000
-                                species_conversion_factor = molar_ratio * (molar_weight / molar_weight_tracking_specie)
+                                background_c = background_c * ((molar_weight / 22.4) * (273 / t2m) * (p2m / 1013)) / \
+                                               1000000
+                        if specie["specie_name"] == original_specie:
+                            molar_weight_tracking_specie = specie["molar_weight"]
+                            species_conversion_factor = molar_ratio * (molar_weight / molar_weight_tracking_specie)
                     conc_converted = np.where(conc_converted < 0, 0, conc_converted)
                     conc_converted += background_c
                     conc_converted = np.multiply(conc_converted, species_conversion_factor)
@@ -1393,12 +1388,11 @@ def save_plots(min_con_in, max_con_in):
         from matplotlib import pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable, axes_size
 
-        def myround(x, prec=2, base=100):
-            return round(base * round(float(x) / base), prec)
+        def myround(z, prec=2, base=100):
+            return round(base * round(float(z) / base), prec)
 
         def resize_topography(bottom_left_easting, top_right_easting, bottom_left_northing, top_right_northing,
                               topography):
-            import numpy as np
             info_records = []
             with open(topography) as original_topography:
                 lines_to_save = []
@@ -1412,8 +1406,8 @@ def save_plots(min_con_in, max_con_in):
             xf_or_top = float(info_records[2][1])
             y0_or_top = float(info_records[3][0])
             yf_or_top = float(info_records[3][1])
-            dx = (xf_or_top - x0_or_top) / (nx_or_top - 1)
-            dy = (yf_or_top - y0_or_top) / (ny_or_top - 1)
+            dx_top = (xf_or_top - x0_or_top) / (nx_or_top - 1)
+            dy_top = (yf_or_top - y0_or_top) / (ny_or_top - 1)
             i_bottom_left = 0
             j_bottom_left = 0
             i_top_right = 0
@@ -1434,24 +1428,24 @@ def save_plots(min_con_in, max_con_in):
             while x <= bottom_left_easting:
                 i_bottom_left += 1
                 i_top_right += 1
-                x += dx
+                x += dx_top
             while x <= top_right_easting:
                 i_top_right += 1
-                x += dx
+                x += dx_top
             while y <= bottom_left_northing:
                 j_bottom_left += 1
                 j_top_right += 1
-                y += dy
+                y += dy_top
             while y <= top_right_northing:
                 j_top_right += 1
-                y += dy
-            Z_top = np.loadtxt("topography.grd", skiprows=5)
-            Z_resized = Z_top[j_bottom_left:j_top_right, i_bottom_left:i_top_right]
+                y += dy_top
+            z_topography = np.loadtxt("topography.grd", skiprows=5)
+            z_resized = z_topography[j_bottom_left:j_top_right, i_bottom_left:i_top_right]
             nx_resized = i_top_right - i_bottom_left
             ny_resized = j_top_right - j_bottom_left
-            z_min = np.amin(Z_resized)
-            z_max = np.amax(Z_resized)
-            return nx_resized, ny_resized, z_min, z_max, Z_resized
+            z_min = np.amin(z_resized)
+            z_max = np.amax(z_resized)
+            return nx_resized, ny_resized, z_min, z_max, z_resized
 
         try:
             os.remove(output_file)

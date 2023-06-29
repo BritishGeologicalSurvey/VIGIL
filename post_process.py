@@ -17,117 +17,46 @@ import linecache
 def read_arguments():
     parser = argparse.ArgumentParser(description="Input data",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-        "-P",
-        "--plot",
-        default="False",
-        help="Produce plots of the solutions and probabilistic output (if activated). True/False",)
-    parser.add_argument(
-        "-ECDF",
-        "--calculate_ecdf",
-        default="False",
-        help="Calculate the Empirical Cumulative Density Function of the solution and extrapolate solutions at "
-             "user-defined exceedance probabilities. True/False",
-    )
-    parser.add_argument(
-        "-PER",
-        "--persistence",
-        default="False",
-        help="Calculate the persistence of the gas specie, i.e. the probability to be exposed to a gas species"
-             " above specified concentration thresholds for times longer than the specified exposure times for those"
-             " thresholds.\n" + "Concentration thresholds and exposure times should be provided in "
-                                "gas_properties.csv.\n" + " True/False")
-    parser.add_argument(
-        "-EX",
-        "--ex_prob",
-        default='',
-        help="List of exceedance probabilities to be used for graphical output",
-    )
-    parser.add_argument(
-        "-T",
-        "--time_steps",
-        default='',
-        help="List of time steps to plot (integer >= 0). Type all to plot all the time steps",
-    )
-    parser.add_argument(
-        "-L",
-        "--levels",
-        default='',
-        help="List of vertical levels (integer >= 1) to plot. Type all to plot all the levels",
-    )
-    parser.add_argument(
-        "-D",
-        "--days_plot",
-        default='',
-        help="List of days to plot (YYYYMMDD). Type all to plot all the days",
-    )
-    parser.add_argument(
-        "-C",
-        "--convert",
-        default="False",
-        help="If True, convert output concentration into other species listed with the command -S (--species)",
-    )
-    parser.add_argument(
-        "-S", "--species", default='', help="List of gas species (e.g. CO2)"
-    )
-    parser.add_argument(
-        "-TS", "--tracking_specie", default=None, help="The original emitted specie that is tracked in the simulation"
-    )
-    parser.add_argument(
-        "-N",
-        "--nproc",
-        default=1,
-        help="Maximum number of allowed simultaneous processes",
-    )
-    parser.add_argument(
-        "-U",
-        "--units",
-        default=None,
-        help="Gas concentration units. Possible options are: ppm, kg/m3",
-    )
-    parser.add_argument(
-        "-PL",
-        "--plot_limits",
-        default='',
-        help="Minimum and maximum value of concentration to display. If unspecified, they are obtained from all "
-             "the outputs",
-    )
-    parser.add_argument("-PI",
-        "--plot_isolines",
-        default='',
-        help="List of gas concentrations values to be used to draw isolines. Optional"
-    )
-    parser.add_argument(
-        "-TA",
-        "--time_av",
-        default=None,
-        help="Generate time-averaged outputs. Specify the time-averaging interval (in hours), or 0 for averaging "
-             "over the whole duration",
-    )
-    parser.add_argument(
-        "-OF",
-        "--output_format",
-        default="GRD",
-        help="Select format of the processed output files. Valid options are: GRD",
-    )
-    parser.add_argument(
-        "-PT",
-        "--plot_topography",
-        default="False",
-        help="Plot topography layer (True or False). Warning, it can be time-consuming!",
-    )
-    parser.add_argument(
-        "-TI",
-        "--topography_isolines",
-        default=100,
-        help="Topography height contour lines spatial resolution (in m a.s.l.). Used only if -PT True",
-    )
-    parser.add_argument(
-        "-PR", "--plot_resolution", default=600, help="Specify plot resolution in dpi"
-    )
-    parser.add_argument(
-        "-TP", "--tracking_points", default="False", help="Extrapolate gas concentration at locations specified in the "
-                                                          "file tracking_points.txt"
+    parser.add_argument("-P", "--plot", default="False",
+                        help="Produce plots of the solutions and probabilistic output (if activated). True/False",)
+    parser.add_argument("-ECDF", "--calculate_ecdf", default="False",
+                        help="Calculate the Empirical Cumulative Density Function of the solution and extrapolate "
+                             "solutions at user-defined exceedance probabilities. True/False",)
+    parser.add_argument("-PER", "--persistence", default="False", help="Calculate the persistence of the gas specie, "
+                        "i.e. the probability to be exposed to a gas species above specified concentration thresholds "
+                        "for times longer than the specified exposure times for those thresholds.\n Concentration "
+                        "thresholds and exposure times should be provided in gas_properties.csv.\n" + " True/False")
+    parser.add_argument("-EX", "--ex_prob", default='', help="List of exceedance probabilities to be used for "
+                                                             "graphical output",)
+    parser.add_argument("-T", "--time_steps", default='', help="List of time steps to plot (integer >= 0). "
+                                                               "Type all to plot all the time steps",)
+    parser.add_argument("-L", "--levels", default='', help="List of vertical levels (integer >= 1) to plot. Type all "
+                                                           "to plot all the levels",)
+    parser.add_argument("-D", "--days_plot",default='',help="List of days to plot (YYYYMMDD). "
+                                                            "Type all to plot all the days",)
+    parser.add_argument("-C", "--convert", default="False", help="If True, convert output concentration into other "
+                                                                 "species listed with the command -S (--species)",)
+    parser.add_argument("-S", "--species", default='', help="List of gas species (e.g. CO2)")
+    parser.add_argument("-TS", "--tracking_specie", default=None, help="The original emitted specie that is tracked "
+                                                                       "in the simulation")
+    parser.add_argument("-N", "--nproc", default=1, help="Maximum number of allowed simultaneous processes",)
+    parser.add_argument("-U", "--units", default=None, help="Gas concentration units. "
+                                                            "Possible options are: ppm, kg/m3",)
+    parser.add_argument("-PL", "--plot_limits", default='', help="Minimum and maximum value of concentration to "
+                        "display. If unspecified, they are obtained from all the outputs",)
+    parser.add_argument("-PI", "--plot_isolines", default='', help="List of gas concentrations values to be used to "
+                                                                   "draw isolines. Optional")
+    parser.add_argument("-TA", "--time_av", default=None, help="Generate time-averaged outputs. Specify the "
+                        "time-averaging interval (in hours), or 0 for averaging over the whole duration",)
+    parser.add_argument("-OF", "--output_format", default="GRD", help="Select format of the processed output files. "
+                                                                      "Valid options are: GRD",)
+    parser.add_argument("-PT", "--plot_topography", default="False", help="Plot topography layer (True or False). "
+                                                                          "Warning, it can be time-consuming!",)
+    parser.add_argument("-TI", "--topography_isolines", default=100, help="Topography height contour lines spatial "
+                        "resolution (in m a.s.l.). Used only if -PT True",)
+    parser.add_argument("-PR", "--plot_resolution", default=600, help="Specify plot resolution in dpi")
+    parser.add_argument("-TP", "--tracking_points", default="False", help="Extrapolate gas concentration at locations "
+                        "specified in the file tracking_points.txt"
     )
     args = parser.parse_args()
     plot_in = args.plot
@@ -265,7 +194,8 @@ def read_arguments():
                 try:
                     plot_isolines_in.append(float(isoline))
                 except ValueError:
-                    print("WARNING. Wrong entry for -PI --plot_isolines. Continuing discarding concentration contour lines")
+                    print("WARNING. Wrong entry for -PI --plot_isolines. Continuing discarding concentration contour "
+                          "lines")
                     plot_isolines_in = []
                     break
     if output_format_in.lower() != "grd":
@@ -1313,61 +1243,57 @@ def probabilistic_tracking_points():
 
 def prepare_quantile_calculation(exc_prob):
     def prepare_files(index):
-        specie = index[1]
+        specie_exc_prob = index[1]
         file_level_s = index[2]
-        time_step = index[3]
+        time_step_exc_prob = index[3]
         ex_prob = index[0]
         output_files = []
-        for day in days:
+        time_step_s = ''
+        for day_exc_prob in days:
             try:
-                file_time_step = int(time_step)
+                file_time_step = int(time_step_exc_prob)
                 file_time_step = file_time_step * dt
-                time_start = datetime.datetime.strptime(
-                    day + str(hour_start).zfill(2) + str(minute_start).zfill(2),
-                    '%Y%m%d%H%M')
+                time_start = datetime.datetime.strptime(day_exc_prob + str(hour_start).zfill(2) + str(minute_start).zfill(2),
+                                                        '%Y%m%d%H%M')
                 time_validity = time_start + datetime.timedelta(seconds=file_time_step)
                 file_validity = datetime.datetime.strftime(time_validity, '%Y%m%d%H%M')
-                time_step_s = "{:06d}".format(int(time_step))
+                time_step_s = "{:06d}".format(int(time_step_exc_prob))
             except ValueError:
-                tavg_interval_start_s = day + time_step.split('-')[0]
-                tavg_interval_end_s = day + time_step.split('-')[1]
+                tavg_interval_start_s = day_exc_prob + time_step_exc_prob.split('-')[0]
+                tavg_interval_end_s = day_exc_prob + time_step_exc_prob.split('-')[1]
                 tavg_interval_start = datetime.datetime.strptime(tavg_interval_start_s, '%Y%m%d%H%M')
                 try:
                     tavg_interval_end = datetime.datetime.strptime(tavg_interval_end_s, '%Y%m%d%H%M')
-                except ValueError: #in case time_step.split('-')[1] = 2400
-                    if(int(time_step.split('-')[0][0:2]) + int(time_step.split('-')[1][0:2])) > 24:
-                        tavg_interval_end = tavg_interval_start + datetime.timedelta(hours=int(time_step.split('-')[1][0:2]) - int(time_step.split('-')[0][0:2]))
+                except ValueError:  # in case time_step.split('-')[1] = 2400
+                    if(int(time_step_exc_prob.split('-')[0][0:2]) + int(time_step_exc_prob.split('-')[1][0:2])) > 24:
+                        tavg_interval_end = tavg_interval_start + \
+                                            datetime.timedelta(hours=int(time_step_exc_prob.split('-')[1][0:2]) -
+                                                               int(time_step_exc_prob.split('-')[0][0:2]))
                     else:
-                        tavg_interval_end = tavg_interval_start + datetime.timedelta(hours=int(time_step.split('-')[0][0:2]) + int(time_step.split('-')[1][0:2]))
+                        tavg_interval_end = tavg_interval_start + \
+                                            datetime.timedelta(hours=int(time_step_exc_prob.split('-')[0][0:2]) +
+                                                               int(time_step_exc_prob.split('-')[1][0:2]))
                 if tavg_interval_end < tavg_interval_start:
                     tavg_interval_end = tavg_interval_start + \
-                            datetime.timedelta(hours=int(time_step.split('-')[0][0:2]) +
-                                int(time_step.split('-')[1][0:2]))
+                                        datetime.timedelta(hours=int(time_step_exc_prob.split('-')[0][0:2]) +
+                                                           int(time_step_exc_prob.split('-')[1][0:2]))
                 tavg_interval_end_s = datetime.datetime.strftime(tavg_interval_end, '%Y%m%d%H%M')
                 day_interval = datetime.datetime.strftime(tavg_interval_start, '%Y%m%d')
-                if day != day_interval:
+                if day_exc_prob != day_interval:
                     continue
                 file_validity = tavg_interval_start_s + '-' + tavg_interval_end_s + '-tavg'
-                time_step_s = time_step
+                time_step_s = time_step_exc_prob
             file_name = "c_" + file_level_s + "_" + file_validity + ".grd"
-            output_folder = os.path.join(processed_output_folder, day, specie)
+            output_folder = os.path.join(processed_output_folder, day_exc_prob, specie_exc_prob)
             output_files.append(os.path.join(output_folder, file_name))
-        ecdf_output_file = os.path.join(
-            ecdf_folder,
-            str(ex_prob),
-            specie,
-            "c_"
-            + file_level_s
-            + "_"
-            + time_step_s
-            + ".grd",
-        )
+        ecdf_output_file = os.path.join(ecdf_folder, str(ex_prob), specie_exc_prob, "c_" + file_level_s + "_" +
+                                        time_step_s + ".grd",)
         return output_files, ecdf_output_file
 
-    all_output_files = []
-    all_ecdf_output_files = []
-    for probability in exceedance_probabilities:
-        prob_folder = os.path.join(ecdf_folder, str(probability))
+    all_output_files_exc_prob = []
+    all_ecdf_output_files_exc_prob = []
+    for exceedance_probability in exceedance_probabilities:
+        prob_folder = os.path.join(ecdf_folder, str(exceedance_probability))
         try:
             os.mkdir(prob_folder)
         except FileExistsError:
@@ -1391,9 +1317,7 @@ def prepare_quantile_calculation(exc_prob):
                         indexes.append([exc_prob, specie, processed_files_levels[i], time_step])
                 if len(tavg_intervals) > 0:
                     for k in range(0, len(tavg_intervals)):
-                        indexes_tavg.append(
-                            [exc_prob, specie, processed_files_levels[i], tavg_intervals[k]]
-                        )
+                        indexes_tavg.append([exc_prob, specie, processed_files_levels[i], tavg_intervals[k]])
         else:
             all_levels = np.array(processed_files_levels)
             levels_indexes = [int(x) - 1 for x in levels]
@@ -1409,15 +1333,15 @@ def prepare_quantile_calculation(exc_prob):
                         indexes_tavg.append([exc_prob, specie, level, tavg_intervals[k]])
     for i_indexes in range(0, len(indexes)):
         a, b = prepare_files(indexes[i_indexes])
-        all_output_files.append(a)
-        all_ecdf_output_files.append(b)
+        all_output_files_exc_prob.append(a)
+        all_ecdf_output_files_exc_prob.append(b)
     if len(tavg_intervals) > 0:
         for i_indexes in range(0, len(indexes_tavg)):
             a, b = prepare_files(indexes_tavg[i_indexes])
-            all_output_files.append(a)
-            all_ecdf_output_files.append(b)
+            all_output_files_exc_prob.append(a)
+            all_ecdf_output_files_exc_prob.append(b)
 
-    return all_output_files, all_ecdf_output_files
+    return all_output_files_exc_prob, all_ecdf_output_files_exc_prob
 
 
 def read_output_files_for_ecdf(ji):
@@ -1433,8 +1357,8 @@ def read_output_files_for_ecdf(ji):
 
     j_ecdf = ji[0]
     i_ecdf = ji[1]
-    #pool_file_read = ThreadingPool(len(files_to_process))
-    #c_list_ecdf = pool_file_read.map(read_file, files_to_process)
+    # pool_file_read = ThreadingPool(len(files_to_process))
+    # c_list_ecdf = pool_file_read.map(read_file, files_to_process)
     c_list_ecdf = []
     for file_to_read in files_to_process:
         c_list_ecdf.append(read_file(file_to_read))
@@ -1459,10 +1383,10 @@ def write_probabilistic_file(file_input, output_to_write):
         np.savetxt(processed_file, output_to_write, fmt="%.2e")
 
 
-def save_plots(min_con, max_con):
+def save_plots(min_con_in, max_con_in):
     import re
 
-    def plot_file(input, output, dz_lines_res):
+    def plot_file(input_file, output_file, dz_lines_res_in):
         import matplotlib
 
         matplotlib.use("Agg")
@@ -1530,61 +1454,56 @@ def save_plots(min_con, max_con):
             return nx_resized, ny_resized, z_min, z_max, Z_resized
 
         try:
-            os.remove(output)
+            os.remove(output_file)
         except FileNotFoundError:
             pass
-        if plot_topography_layer:
-            nx_top, ny_top, min_z, max_z, Z_top = resize_topography(x0, xf, y0, yf, "topography.grd")
-            X_top = np.linspace(x0, xf, num=nx_top)
-            Y_top = np.linspace(y0, yf, num=ny_top)
-            n_levels = 100
-            dz = (max_z - min_z) / n_levels
-            if dz_lines_res >= max_z:
-                dz_lines_res = max_z
-            n_levels_lines = int((max_z - min_z) / dz_lines_res)
-            dz_lines = myround((max_z - min_z) / (n_levels_lines), base=dz_lines_res)
-            levels_top = np.arange(min_z + 0.0000001, max_z, dz)
-            levels_top_lines = np.arange(myround(min_z, base=dz_lines_res), myround(max_z, base=dz_lines_res), dz_lines)
-        SUB = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
-        if 'persistence' in input.split(os.sep)[-1]:
-            specie_name = input.split(os.sep)[-3]
-            thresholds = input.split(os.sep)[-2]
-            c_threshold = thresholds.split('_t_')[0]
-            c_threshold = c_threshold.split('C_')[1]
-            exposure_time = thresholds.split('_t_')[1]
-            exposure_time = exposure_time.split('H')[0]
+        sub = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
+        if 'persistence' in input_file.split(os.sep)[-1]:
+            specie_name = input_file.split(os.sep)[-3]
         else:
-            specie_name = input.split(os.sep)[-2]
-        specie_name = specie_name.translate(SUB)
-        with open(input) as input_file:
+            specie_name = input_file.split(os.sep)[-2]
+        specie_name = specie_name.translate(sub)
+        with open(input_file) as input_file_to_plot:
             if output_format == "grd":
-                Z = np.loadtxt(input, skiprows=5)
-            X = np.linspace(x0, xf, num=nx)
-            Y = np.linspace(y0, yf, num=ny)
+                conc_inp = np.loadtxt(input_file_to_plot, skiprows=5)
+            x = np.linspace(x0, xf, num=nx)
+            y = np.linspace(y0, yf, num=ny)
             n_levels = 10
             dc = (max_con - min_con) / n_levels
-            levels = np.arange(min_con + 0.0000001, max_con, dc)
-            if 'persistence' in input:
+            conc_levels = np.arange(min_con + 0.0000001, max_con, dc)
+            if 'persistence' in input_file:
                 n_levels = 100
                 dp = 1. / n_levels
-                levels = np.arange(0.00000000001, 1, dp)
+                prob_levels = np.arange(0.00000000001, 1, dp)
                 if output_format == "grd":
-                    Z = np.loadtxt(input, skiprows=5)
+                    prob = np.loadtxt(input_file, skiprows=5)
         fig, ax = plt.subplots(figsize=(6, 5), dpi=plot_resolution)
         if plot_topography_layer:
-            top = ax.contourf(X_top, Y_top, Z_top, levels_top, cmap="Greys", extend="max")
+            nx_top, ny_top, min_z, max_z, z_top = resize_topography(x0, xf, y0, yf, "topography.grd")
+            x_top = np.linspace(x0, xf, num=nx_top)
+            y_top = np.linspace(y0, yf, num=ny_top)
+            n_levels = 100
+            dz = (max_z - min_z) / n_levels
+            if dz_lines_res_in >= max_z:
+                dz_lines_res_in = max_z
+            n_levels_lines = int((max_z - min_z) / dz_lines_res_in)
+            dz_lines = myround((max_z - min_z) / n_levels_lines, base=dz_lines_res_in)
+            levels_top = np.arange(min_z + 0.0000001, max_z, dz)
+            levels_top_lines = np.arange(myround(min_z, base=dz_lines_res_in),
+                                         myround(max_z, base=dz_lines_res_in), dz_lines)
+            top = ax.contourf(x_top, y_top, z_top, levels_top, cmap="Greys", extend="max")
             top_lines = ax.contour(top, levels=levels_top_lines, colors='black', linewidths=0.05)
             top_cbar = fig.colorbar(top, orientation="horizontal", format="%.1f", shrink=0.75)
             ax.clabel(top_lines, inline=True, fontsize=2, fmt='%1.0f')
             top_cbar.ax.tick_params(labelsize=6)
             top_cbar.set_label("m a.s.l.")
-        if 'persistence' in input.split(os.sep)[-1]:
+        if 'persistence' in input_file.split(os.sep)[-1]:
             cmap = plt.get_cmap('viridis', 10)
-            field = plt.contourf(X, Y, Z, levels, cmap=cmap, alpha=0.9, extend="max")
+            field = plt.contourf(x, y, prob, prob_levels, cmap=cmap, alpha=0.9, extend="max")
         else:
-            field = plt.contourf(X, Y, Z, levels, cmap="Reds", alpha=0.9, extend="max")
+            field = plt.contourf(x, y, conc_inp, conc_levels, cmap="Reds", alpha=0.9, extend="max")
         if len(plot_isolines) != 0:
-            specie_isolines = ax.contour(X, Y, Z, levels=plot_isolines, colors='black', linewidths=0.2)
+            specie_isolines = ax.contour(x, y, conc_inp, levels=plot_isolines, colors='black', linewidths=0.2)
             ax.clabel(specie_isolines, inline=True, fontsize=4, fmt='%1.1f')
         aspect = 20
         pad_fraction = 0.5
@@ -1592,7 +1511,12 @@ def save_plots(min_con, max_con):
         width = axes_size.AxesY(ax, aspect=1.0 / aspect)
         pad = axes_size.Fraction(pad_fraction, width)
         cax_c = divider.append_axes("right", size=width, pad=pad)
-        if 'persistence' in input.split(os.sep)[-1]:
+        if 'persistence' in input_file.split(os.sep)[-1]:
+            thresholds = input_file.split(os.sep)[-2]
+            c_threshold = thresholds.split('_t_')[0]
+            c_threshold = c_threshold.split('C_')[1]
+            exposure_time = thresholds.split('_t_')[1]
+            exposure_time = exposure_time.split('H')[0]
             cbar = fig.colorbar(field, cax=cax_c, orientation="vertical", format="%.1f")
             cbar.ax.tick_params(labelsize=8)
             cbar.set_label("Probability")
@@ -1620,10 +1544,9 @@ def save_plots(min_con, max_con):
         ax.set_ylabel("Y_UTM [m]")
         image_buffer = StringIO()
         plt.tight_layout()
-        plt.savefig(output)
+        plt.savefig(output_file)
         image_buffer.close()
         plt.close(fig)
-        input_file.close()
 
     files_to_plot = []
     output_files = []
@@ -1631,27 +1554,21 @@ def save_plots(min_con, max_con):
     graphical_outputs = os.path.join(outputs_folder, "graphical_outputs")
     graphical_outputs_simulations = os.path.join(graphical_outputs, "simulations")
     graphical_outputs_ecdf = os.path.join(graphical_outputs, "ecdf")
-    for day in days_to_plot:
-        graphical_outputs_daily = os.path.join(graphical_outputs_simulations, day)
+    for day_to_plot in days_to_plot:
+        graphical_outputs_daily = os.path.join(graphical_outputs_simulations, day_to_plot)
         try:
             os.mkdir(graphical_outputs_daily)
         except FileExistsError:
             print("Folder " + graphical_outputs_daily + " already exists")
-        model_processed_output_folder_daily = os.path.join(processed_output_folder, day)
+        model_processed_output_folder_daily = os.path.join(processed_output_folder, day_to_plot)
         model_processed_output_folder_species = []
         for specie in species:
-            model_processed_output_folder_species.append(
-                os.path.join(model_processed_output_folder_daily, specie)
-            )
+            model_processed_output_folder_species.append(os.path.join(model_processed_output_folder_daily, specie))
         for specie in species:
             try:
                 os.mkdir(os.path.join(graphical_outputs_daily, specie))
             except FileExistsError:
-                print(
-                    "Folder "
-                    + os.path.join(graphical_outputs_daily, specie)
-                    + " already exists"
-                )
+                print("Folder " + os.path.join(graphical_outputs_daily, specie) + " already exists")
         files_list_path = []
         files_list = []
         for folder in model_processed_output_folder_species:
@@ -1673,106 +1590,64 @@ def save_plots(min_con, max_con):
                 file_time_step_datetime = datetime.datetime.strptime(file_time_step, '%Y%m%d%H%M')
             except ValueError:
                 file_time_step_datetime = datetime.datetime.strptime('999912310000', '%Y%m%d%H%M')
-            simulation_start = datetime.datetime.strptime(day + "{:02d}".format(hour_start), '%Y%m%d%H%M')
+            simulation_start = datetime.datetime.strptime(day_to_plot + "{:02d}".format(hour_start), '%Y%m%d%H%M')
             output_file_name = files_list[i].split(".grd")[0]
             output_file_name += ".png"
             if levels[0] == "all":
                 if time_steps[0] == "all":
                     files_to_plot.append(file)
-                    output_files.append(
-                        os.path.join(
-                            graphical_outputs_daily, file_specie, output_file_name
-                        )
-                    )
+                    output_files.append(os.path.join(graphical_outputs_daily, file_specie, output_file_name))
                 else:
                     for time_step in time_steps:
                         time_step_seconds = hour_start + dt * int(time_step)
                         time_step_datetime = simulation_start + datetime.timedelta(seconds=time_step_seconds)
                         if time_step_datetime == file_time_step_datetime:
                             files_to_plot.append(file)
-                            output_files.append(
-                                os.path.join(
-                                    graphical_outputs_daily,
-                                    file_specie,
-                                    output_file_name,
-                                )
-                            )
+                            output_files.append(os.path.join(graphical_outputs_daily, file_specie, output_file_name,))
                 if "tavg" in file_time_step:
                     files_to_plot.append(file)
                     tavg_output_file_name = file.split(os.sep)[-1].split(".grd")[0]
                     tavg_output_file_name = tavg_output_file_name + ".png"
-                    output_files.append(
-                        os.path.join(
-                            graphical_outputs_daily,
-                            file_specie,
-                            tavg_output_file_name,
-                        )
-                    )
+                    output_files.append(os.path.join(graphical_outputs_daily, file_specie, tavg_output_file_name,))
             else:
                 if time_steps[0] == "all":
                     for level in levels:
                         if file_level == processed_files_levels[int(level) - 1]:
                             files_to_plot.append(file)
-                            output_files.append(
-                                os.path.join(
-                                    graphical_outputs_daily,
-                                    file_specie,
-                                    output_file_name,
-                                )
-                            )
+                            output_files.append(os.path.join(graphical_outputs_daily, file_specie, output_file_name,))
                 else:
                     for level in levels:
                         for time_step in time_steps:
                             time_step_seconds = hour_start + dt * int(time_step)
                             time_step_datetime = simulation_start + datetime.timedelta(seconds=time_step_seconds)
                             if time_step_datetime == file_time_step_datetime \
-                                and file_level == processed_files_levels[int(level) - 1]:
+                                    and file_level == processed_files_levels[int(level) - 1]:
                                 files_to_plot.append(file)
-                                output_files.append(
-                                    os.path.join(
-                                        graphical_outputs_daily,
-                                        file_specie,
-                                        output_file_name,
-                                    )
-                                )
+                                output_files.append(os.path.join(graphical_outputs_daily, file_specie,
+                                                                 output_file_name,))
                 for level in levels:
                     if "tavg" in file_time_step and file_level == processed_files_levels[int(level) - 1]:
                         files_to_plot.append(file)
                         tavg_output_file_name = file.split(os.sep)[-1].split(".grd")[0]
                         tavg_output_file_name = tavg_output_file_name + ".png"
-                        output_files.append(
-                            os.path.join(
-                                graphical_outputs_daily,
-                                file_specie,
-                                tavg_output_file_name,
-                            )
-                        )
+                        output_files.append(os.path.join(graphical_outputs_daily, file_specie, tavg_output_file_name,))
             i += 1
 
     if calculate_ecdf:
-        for probability in exceedance_probabilities:
+        for exceedance_probability in exceedance_probabilities:
             try:
-                os.mkdir(os.path.join(graphical_outputs_ecdf, str(probability)))
+                os.mkdir(os.path.join(graphical_outputs_ecdf, str(exceedance_probability)))
             except FileExistsError:
-                print(
-                    "Folder "
-                    + os.path.join(graphical_outputs_ecdf, str(probability))
-                    + " already exists"
-                )
+                print("Folder " + os.path.join(graphical_outputs_ecdf, str(exceedance_probability)) + " already exists")
             for specie in species:
                 try:
-                    os.mkdir(
-                        os.path.join(graphical_outputs_ecdf, str(probability), specie)
-                    )
+                    os.mkdir(os.path.join(graphical_outputs_ecdf, str(exceedance_probability), specie))
                 except FileExistsError:
-                    print(
-                        "Folder "
-                        + os.path.join(graphical_outputs_ecdf, str(probability), specie)
-                        + " already exists"
-                    )
-                files_list = os.listdir(os.path.join(ecdf_folder, str(probability), specie))
+                    print("Folder " + os.path.join(graphical_outputs_ecdf, str(exceedance_probability), specie) +
+                          " already exists")
+                files_list = os.listdir(os.path.join(ecdf_folder, str(exceedance_probability), specie))
                 for file in files_list:
-                    file_path = os.path.join(ecdf_folder, str(probability), specie, file)
+                    file_path = os.path.join(ecdf_folder, str(exceedance_probability), specie, file)
                     file_name_splitted = file.split("_")
                     file_level = file_name_splitted[1]
                     file_time_step = file_name_splitted[2].split(".")[0]
@@ -1781,120 +1656,67 @@ def save_plots(min_con, max_con):
                     if levels[0] == "all":
                         if time_steps[0] == "all":
                             files_to_plot.append(file_path)
-                            output_files.append(
-                                os.path.join(
-                                    graphical_outputs_ecdf,
-                                    str(probability),
-                                    specie,
-                                    output_file_name,
-                                )
-                            )
+                            output_files.append(os.path.join(graphical_outputs_ecdf, str(exceedance_probability),
+                                                             specie, output_file_name,))
                         else:
                             for time_step in time_steps:
                                 if file_time_step == "{:06d}".format(int(time_step)):
                                     files_to_plot.append(file_path)
-                                    output_files.append(
-                                        os.path.join(
-                                            graphical_outputs_ecdf,
-                                            str(probability),
-                                            specie,
-                                            output_file_name,
-                                        )
-                                    )
+                                    output_files.append(os.path.join(graphical_outputs_ecdf,
+                                                        str(exceedance_probability), specie,output_file_name,))
                         if "tavg" in file_time_step:
                             files_to_plot.append(file_path)
                             tavg_output_file_name = file.split(os.sep)[-1].split(".grd")[0]
                             tavg_output_file_name = tavg_output_file_name + ".png"
-                            output_files.append(
-                                os.path.join(
-                                    graphical_outputs_ecdf,
-                                    str(probability),
-                                    specie,
-                                    tavg_output_file_name,
-                                )
-                            )
+                            output_files.append(os.path.join(graphical_outputs_ecdf, str(exceedance_probability),
+                                                specie, tavg_output_file_name,))
                     else:
                         if time_steps[0] == "all":
                             for level in levels:
                                 if file_level == processed_files_levels[int(level) - 1]:
                                     files_to_plot.append(file_path)
-                                    output_files.append(
-                                        os.path.join(
-                                            graphical_outputs_ecdf,
-                                            str(probability),
-                                            specie,
-                                            output_file_name,
-                                        )
-                                    )
+                                    output_files.append(os.path.join(graphical_outputs_ecdf,
+                                                        str(exceedance_probability), specie, output_file_name,))
                         else:
                             for level in levels:
                                 for time_step in time_steps:
-                                    if file_time_step == "{:06d}".format(
-                                        int(time_step)
-                                    ) and file_level == processed_files_levels[int(level) - 1]:
+                                    if file_time_step == "{:06d}".format(int(time_step)) and \
+                                            file_level == processed_files_levels[int(level) - 1]:
                                         files_to_plot.append(file_path)
-                                        output_files.append(
-                                            os.path.join(
-                                                graphical_outputs_ecdf,
-                                                str(probability),
-                                                specie,
-                                                output_file_name,
-                                            )
-                                        )
+                                        output_files.append(os.path.join(graphical_outputs_ecdf,
+                                                            str(exceedance_probability), specie, output_file_name,))
                             for level in levels:
-                                if (
-                                    "tavg" in file_time_step
-                                    and file_level == processed_files_levels[int(level) - 1]
-                                ):
+                                if "tavg" in file_time_step and file_level == processed_files_levels[int(level) - 1]:
                                     files_to_plot.append(file_path)
-                                    tavg_output_file_name = file.split(os.sep)[
-                                        -1
-                                    ].split(".grd")[0]
-                                    tavg_output_file_name = (
-                                        tavg_output_file_name + ".png"
-                                    )
-                                    output_files.append(
-                                        os.path.join(
-                                            graphical_outputs_ecdf,
-                                            str(probability),
-                                            specie,
-                                            tavg_output_file_name,
-                                        )
-                                    )
+                                    tavg_output_file_name = file.split(os.sep)[-1].split(".grd")[0]
+                                    tavg_output_file_name = tavg_output_file_name + ".png"
+                                    output_files.append(os.path.join(graphical_outputs_ecdf,
+                                                        str(exceedance_probability), specie, tavg_output_file_name,))
     if persistence:
         for specie in species:
             for specie_dict in species_properties:
                 if specie_dict["specie_name"] == specie:
                     try:
-                        os.mkdir(
-                            os.path.join(graphical_outputs_persistence_folder, specie)
-                        )
+                        os.mkdir(os.path.join(graphical_outputs_persistence_folder, specie))
                     except FileExistsError:
-                        print(
-                            "Folder "
-                            + os.path.join(graphical_outputs_persistence_folder, specie)
-                            + " already exists"
-                        )
+                        print("Folder " + os.path.join(graphical_outputs_persistence_folder, specie) +
+                              " already exists")
                     concentration_thresholds = specie_dict["concentration_thresholds"]
                     exposure_times = specie_dict["exposure_times"]
                     for j in range(0, len(concentration_thresholds)):
                         try:
-                            os.mkdir(
-                                os.path.join(graphical_outputs_persistence_folder, specie, 'C_' +
-                                             str(concentration_thresholds[j]) + '_t_' + str(exposure_times[j]) + 'H'))
+                            os.mkdir(os.path.join(graphical_outputs_persistence_folder, specie, 'C_' +
+                                     str(concentration_thresholds[j]) + '_t_' + str(exposure_times[j]) + 'H'))
                         except FileExistsError:
-                            print(
-                                "Folder "
-                                + os.path.join(graphical_outputs_persistence_folder, specie, 'C_' +
-                                               str(concentration_thresholds[j]) + '_t_' + str(exposure_times[j]) + 'H')
-                                               + " already exists")
+                            print("Folder " + os.path.join(graphical_outputs_persistence_folder, specie, 'C_' +
+                                  str(concentration_thresholds[j]) + '_t_' + str(exposure_times[j]) + 'H') +
+                                  " already exists")
                         files_list = os.listdir(os.path.join(persistence_folder, specie, 'C_' +
-                                                             str(concentration_thresholds[j]) + '_t_'
-                                                        + str(exposure_times[j]) + 'H'))
+                                                str(concentration_thresholds[j]) + '_t_' +
+                                                str(exposure_times[j]) + 'H'))
                         for file in files_list:
-                            file_path = os.path.join(
-                                persistence_folder, specie, 'C_' + str(concentration_thresholds[j]) + '_t_'
-                                                        + str(exposure_times[j]) + 'H', file)
+                            file_path = os.path.join(persistence_folder, specie, 'C_' + str(concentration_thresholds[j])
+                                                     + '_t_' + str(exposure_times[j]) + 'H', file)
                             files_to_plot.append(file_path)
                             persistence_plot_file_name = file.split(os.sep)[-1].split(".grd")[0]
                             persistence_plot_file_name += '.png'
@@ -1905,25 +1727,25 @@ def save_plots(min_con, max_con):
     if len(files_to_plot) == 0:
         print("No files to plot")
     else:
-        if min_con == -1.0 and max_con == -1.0:
+        if min_con_in == -1.0 and max_con_in == -1.0:
             for specie in species:
                 files_to_plot_specie = []
                 output_files_specie = []
-                max_con = 0
-                min_con = 1000000000000000
+                max_con_in = 0
+                min_con_in = 1000000000000000
                 i = 0
                 for file_to_plot in files_to_plot:
                     if specie in file_to_plot:
                         files_to_plot_specie.append(file_to_plot)
                         output_files_specie.append(output_files[i])
                         if 'persistence' not in file_to_plot:
-                            ZZ = np.loadtxt(file_to_plot, skiprows=5)
-                            max_c = np.amax(ZZ)
-                            min_c = np.amin(ZZ)
-                            if max_c > max_con:
-                                max_con = max_c
-                            if min_c < min_con:
-                                min_con = min_c
+                            conc = np.loadtxt(file_to_plot, skiprows=5)
+                            max_c = np.amax(conc)
+                            min_c = np.amin(conc)
+                            if max_c > max_con_in:
+                                max_con_in = max_c
+                            if min_c < min_con_in:
+                                min_con_in = min_c
                     i += 1
                 i = 0
                 for file_to_plot in files_to_plot_specie:
@@ -1936,17 +1758,6 @@ def save_plots(min_con, max_con):
                 print("plotting " + file_to_plot)
                 plot_file(file_to_plot, output_files[i], dz_lines_res)
                 i += 1
-
-
-def sort_levels(input_array):
-    output_array = []
-    for level in input_array:
-        level_float = float(level.split('mabg')[0])
-        output_array.append(level_float)
-    output_array = sorted(output_array)
-    for i in range (0, len(output_array)):
-        output_array[i] = "{0:.3f}".format(output_array[i]) + 'mabg'
-    return output_array
 
 
 root = os.getcwd()
@@ -2058,7 +1869,6 @@ if __name__ == '__main__':
             write_probabilistic_file(persistence_output_file, persistence_matrices[persistence_output_file])
     if tracking_points:
         probabilistic_tracking_points()
-    # FABIO: da qui
     if calculate_ecdf:
         jis = [(j, i) for j in range(ny) for i in range(nx)]
         for probability in exceedance_probabilities:

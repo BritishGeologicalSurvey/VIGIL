@@ -802,7 +802,7 @@ def elaborate_day(day_input):
             overcome_matrices.append(overcome_matrix)
         return indexes
 
-    def extract_tracking_points(files_to_interpolate, j):
+    def extract_tracking_points(files_to_interpolate):
         def interpolate(x, y, z, levels_interpolation, files):
             from scipy import interpolate
             x_array = np.linspace(x0, xf, nx, endpoint=True)
@@ -1103,7 +1103,7 @@ def elaborate_day(day_input):
     if persistence:
         indexes_persistence = prepare_persistence_calculation()
     if tracking_points:
-        all_time_steps_tp, c_tp_time_steps = extract_tracking_points(processed_files, days.index(day_input))
+        all_time_steps_tp, c_tp_time_steps = extract_tracking_points(processed_files)
     return day_input, all_time_steps_tp, processed_files_levels_elaborated, tavg_intervals, persistence_matrices, \
         indexes_persistence, overcome_matrices, c_tp
 
@@ -1230,7 +1230,7 @@ def probabilistic_tracking_points():
                         output_quantile_string = 'time_step_' + str(i + 1)
                     for m in range(0, len(quantiles)):
                         output_quantile_string += '\t' + "{0:.2e}".format(output_quantile_tp[l_sp][k][m][i])
-                    output_file.write(output_quantile_string + '\n' )
+                    output_file.write(output_quantile_string + '\n')
             plot_file_folder = os.path.join(graphical_outputs_ecdf_tracking_points_folder, species[l_sp])
             plot_hazard_curves(ecdf_tracking_point_file, plot_file_folder, min_con_tp_specie[l_sp],
                                max_con_tp_specie[l_sp])
@@ -1248,8 +1248,8 @@ def prepare_quantile_calculation(exc_prob):
             try:
                 file_time_step = int(time_step_exc_prob)
                 file_time_step = file_time_step * dt
-                time_start = datetime.datetime.strptime(day_exc_prob + str(hour_start).zfill(2) + str(minute_start).zfill(2),
-                                                        '%Y%m%d%H%M')
+                time_start = datetime.datetime.strptime(day_exc_prob + str(hour_start).zfill(2) +
+                                                        str(minute_start).zfill(2), '%Y%m%d%H%M')
                 time_validity = time_start + datetime.timedelta(seconds=file_time_step)
                 file_validity = datetime.datetime.strftime(time_validity, '%Y%m%d%H%M')
                 time_step_s = "{:06d}".format(int(time_step_exc_prob))
@@ -1412,8 +1412,8 @@ def save_plots(min_con_in, max_con_in):
             j_bottom_left = 0
             i_top_right = 0
             j_top_right = 0
-            x = x0_or_top
-            y = y0_or_top
+            x_top_resized = x0_or_top
+            y_top_resized = y0_or_top
             if bottom_left_easting < x0_or_top or bottom_left_northing < y0_or_top or top_right_easting > xf_or_top or \
                     top_right_northing > yf_or_top:
                 print('ERROR. Specified domain is not consistent with the topography.grd file')
@@ -1428,17 +1428,17 @@ def save_plots(min_con_in, max_con_in):
             while x <= bottom_left_easting:
                 i_bottom_left += 1
                 i_top_right += 1
-                x += dx_top
-            while x <= top_right_easting:
+                x_top_resized += dx_top
+            while x_top_resized <= top_right_easting:
                 i_top_right += 1
-                x += dx_top
-            while y <= bottom_left_northing:
+                x_top_resized += dx_top
+            while y_top_resized <= bottom_left_northing:
                 j_bottom_left += 1
                 j_top_right += 1
-                y += dy_top
-            while y <= top_right_northing:
+                y_top_resized += dy_top
+            while y_top_resized <= top_right_northing:
                 j_top_right += 1
-                y += dy_top
+                y_top_resized += dy_top
             z_topography = np.loadtxt("topography.grd", skiprows=5)
             z_resized = z_topography[j_bottom_left:j_top_right, i_bottom_left:i_top_right]
             nx_resized = i_top_right - i_bottom_left
@@ -1657,7 +1657,7 @@ def save_plots(min_con_in, max_con_in):
                                 if file_time_step == "{:06d}".format(int(time_step)):
                                     files_to_plot.append(file_path)
                                     output_files.append(os.path.join(graphical_outputs_ecdf,
-                                                        str(exceedance_probability), specie,output_file_name,))
+                                                        str(exceedance_probability), specie, output_file_name,))
                         if "tavg" in file_time_step:
                             files_to_plot.append(file_path)
                             tavg_output_file_name = file.split(os.sep)[-1].split(".grd")[0]

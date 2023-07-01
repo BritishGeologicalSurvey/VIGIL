@@ -102,7 +102,7 @@ def read_arguments():
             sys.exit()
         else:
             for day_to_plot in days_plot:
-                if day == 'all':
+                if day_to_plot == 'all':
                     days_to_plot_in.append(day_to_plot)
                 else:
                     try:
@@ -259,7 +259,7 @@ def read_arguments():
 
 def folder_structure():
     outputs_dir = os.path.join(root, "post_processing", "runs")
-    original_output_dir = os.path.join(root, "runs")
+    original_output_dir = os.path.join(root, "simulations", "runs")
     processed_output_dir = os.path.join(outputs_dir, "runs_processed")
     ecdf_dir = os.path.join(outputs_dir, "output_ecdf")
     ecdf_tracking_points_dir = os.path.join(ecdf_dir, 'tracking_points')
@@ -277,7 +277,7 @@ def folder_structure():
     except FileExistsError:
         print("Folder " + processed_output_dir + " already exists")
     try:
-        os.mkdir(ecdf_folder)
+        os.mkdir(ecdf_dir)
     except FileExistsError:
         print("Folder " + ecdf_dir + " already exists")
     try:
@@ -285,7 +285,7 @@ def folder_structure():
     except FileExistsError:
         print("Folder " + ecdf_tracking_points_dir + " already exists")
     try:
-        os.mkdir(persistence_folder)
+        os.mkdir(persistence_dir)
     except FileExistsError:
         print("Folder " + persistence_dir + " already exists")
     graphical_outputs_dir = os.path.join(outputs_dir, "graphical_outputs")
@@ -415,8 +415,8 @@ def domain():
                     output_levels_inp = sorted(output_levels_inp)
             except (IndexError, ValueError):
                 continue
-    yf_inp = y0 + (ny - 1) * dy_inp
-    xf_inp = x0 + (nx - 1) * dx_inp
+    yf_inp = y0_inp + (ny_inp - 1) * dy_inp
+    xf_inp = x0_inp + (nx_inp - 1) * dx_inp
     n_time_steps_inp = int(tot_time_inp / dt_inp)
     nz_inp = len(output_levels_inp)
     return x0_inp, xf_inp, y0_inp, yf_inp, nx_inp, ny_inp, nz_inp, dx_inp, dy_inp, n_time_steps_inp, dt_inp, \

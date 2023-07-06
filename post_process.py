@@ -509,7 +509,7 @@ def gas_properties():
 
     gas_properties_file = os.path.join(root, "gas_properties.csv")
     try:
-        with open(gas_properties_file, "r") as test_file:
+        with open(gas_properties_file, "r"):
             print('File ' + gas_properties_file + ' found!')
     except FileNotFoundError:
         print("File " + gas_properties_file + " not present")
@@ -926,9 +926,16 @@ def elaborate_day(day_input):
 
     run_folder = os.path.join(original_output_folder, day_input)
     run_folder_subfolders = os.listdir(run_folder)
-    model = 'disgas'
     if 'twodee' in run_folder_subfolders:
-        if 'disgas' not in run_folder_subfolders:
+        if 'disgas' in run_folder_subfolders:
+            model = 'merged'
+        else:
+            model = 'disgas'
+    else:
+        model = 'disgas'
+        if 'twodee' in run_folder_subfolders:
+            model = 'merged'
+        else:
             model = 'twodee'
     model_output_folder = os.path.join(run_folder, "outfiles")
     model_processed_output_folder_daily = os.path.join(processed_output_folder, day_input)

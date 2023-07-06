@@ -728,11 +728,9 @@ def pre_process(run_mode):
     source_temperatures = random_temperatures
     n_sources = 0
     try:
-        with open(
-            "sources_input.txt", "r", encoding="utf-8", errors="surrogateescape"  # FABIO: temperatures must be
-                # specified in sources_input.txt, check how this fits with the gas temperature specified in
-                # gas_properties.csv
-        ) as locations_file:
+        with open("sources_input.txt", "r", encoding="utf-8", errors="surrogateescape") as locations_file:
+            # FABIO: temperatures must be specified in sources_input.txt, check how this fits with the gas temperature
+            # specified in gas_properties.csv
             for line in locations_file:
                 try:
                     records = line.split("\t")
@@ -779,8 +777,6 @@ def pre_process(run_mode):
                 gas_fluxes.append(fluxes()[0])
             else:
                 gas_fluxes.append(fluxes_input[j_source])
-#    disgas = os.path.join(root, "simulations", "disgas")
-#    twodee = os.path.join(root, "simulations", "twodee")
     simulations = os.path.join(root, "simulations")
     diagno = os.path.join(simulations, "diagno")
     runs = os.path.join(simulations, "runs")
@@ -796,6 +792,11 @@ def pre_process(run_mode):
     for i_day in range(0, len(days)):
         day = days[i_day]
         diagno_daily = os.path.join(diagno, str(day))
+        run = os.path.join(runs, str(day))
+        try:
+            os.mkdir(run)
+        except FileExistsError:
+            print("Folder " + run + " already exists")
         if continuous_simulation:
             if i_day == 0:
                 run_mode = 'new'
@@ -803,63 +804,36 @@ def pre_process(run_mode):
                 run_mode = 'restart'
         # Set DISGAS folder
         if disgas_on:
-            disgas_daily = os.path.join(runs, str(day))
+            disgas_daily = os.path.join(run, 'disgas')
             runs_disgas.append(disgas_daily)
-            outfiles = os.path.join(disgas_daily, "outfiles")
+            outfiles_disgas = os.path.join(disgas_daily, "outfiles")
             try:
                 os.mkdir(disgas_daily)
             except FileExistsError:
                 print("Folder " + disgas_daily + " already exists")
-            try:
-                os.mkdir(outfiles)
-                if not outfiles.endswith(os.path.sep):
-                    outfiles += os.path.sep
-            except FileExistsError:
-                print("Folder outfiles already exists in " + str(disgas_daily))
             disgas_input = os.path.join(disgas_daily, "disgas.inp")
-            with open(
-                os.path.join(disgas_daily, "source.dat"),
-                "w",
-                encoding="utf-8",
-                errors="surrogateescape",
-            ) as source_file:
+            with open(os.path.join(disgas_daily, "source.dat"), "w", encoding="utf-8", errors="surrogateescape",) as \
+                    source_file:
                 for j_source in range(0, n_sources):
-                    source_file.write(
-                        "{0:7.3f}".format(easting[j_source])
-                        + " "
-                        + "{0:7.3f}".format(northing[j_source])
-                        + " "
-                        + "{0:7.2f}".format(elevations[j_source])
-                        + " "
-                        + str(gas_fluxes[j_source])
-                        + "\n"
-                    )
+                    source_file.write("{0:7.3f}".format(easting[j_source]) + " " + "{0:7.3f}".format(northing[j_source])
+                        + " " + "{0:7.2f}".format(elevations[j_source]) + " " + str(gas_fluxes[j_source]) + "\n")
             source_file.close()
             roughness_file_exist = True
             try:
-                shutil.copyfile(
-                    os.path.join(root, "roughness.grd"),
-                    os.path.join(disgas_daily, "roughness.grd"),
-                )
+                shutil.copyfile(os.path.join(root, "roughness.grd"), os.path.join(disgas_daily, "roughness.grd"),)
             except (FileExistsError, FileNotFoundError):
                 roughness_file_exist = False
             try:
-                shutil.copy(
-                    os.path.join(diagno_daily, "surface_data.txt"),
-                    os.path.join(disgas_daily, "surface_data.txt"),
-                )
+                shutil.copy(os.path.join(diagno_daily, "surface_data.txt"), os.path.join(disgas_daily,
+                                                                                         "surface_data.txt"),)
             except (FileExistsError, FileNotFoundError):
                 print('ERROR with surface_data.txt')
             # read and memorize disgas.inp file
             disgas_input_records = []
-            with open(
-                disgas_original, "r", encoding="utf-8", errors="surrogateescape"
-            ) as disgas_or_input:
+            with open(disgas_original, "r", encoding="utf-8", errors="surrogateescape") as disgas_or_input:
                 for line in disgas_or_input:
                     disgas_input_records.append(line)
-            with open(
-                disgas_input, "w", encoding="utf-8", errors="surrogateescape"
-            ) as disgas_input_file:
+            with open(disgas_input, "w", encoding="utf-8", errors="surrogateescape") as disgas_input_file:
                 for record in disgas_input_records:
                     if "ROUGHNESS_MODEL" in record:
                         roughness_command = record.split("=")[1]
@@ -934,7 +908,7 @@ def pre_process(run_mode):
                         disgas_input_file.write("   DIAGNO_FILE_PATH   = " +
                                                 os.path.join(diagno_daily, "diagno.out") + " \n")
                     elif "OUTPUT_DIRECTORY" in record:
-                        disgas_input_file.write("   OUTPUT_DIRECTORY    = " + outfiles + " \n")
+                        disgas_input_file.write("   OUTPUT_DIRECTORY    = " + outfiles_disgas + " \n")
                     elif "OUTPUT_INTERVAL" in record:
                         output_interval_sec = output_interval * 3600
                         disgas_input_file.write("  OUTPUT_INTERVAL_(SEC) = " + str(output_interval_sec) + "\n")
@@ -942,56 +916,30 @@ def pre_process(run_mode):
                         disgas_input_file.write(record)
             shutil.copy(disgas_input, disgas_original)
         if twodee_on:
-            twodee_daily = os.path.join(runs, str(day))
+            twodee_daily = os.path.join(run, 'twodee')
             runs_twodee.append(twodee_daily)
             outfiles_twodee = os.path.join(twodee_daily, "outfiles")
             try:
                 os.mkdir(twodee_daily)
             except FileExistsError:
                 print("Folder " + twodee_daily + " already exists")
-            try:
-                os.mkdir(outfiles_twodee)
-                if not outfiles_twodee.endswith(os.path.sep):
-                    outfiles_twodee += os.path.sep
-            except FileExistsError:
-                print("Folder outfiles already exists in " + str(twodee_daily))
             twodee_input = os.path.join(twodee_daily, "twodee.inp")
             try:
-                shutil.copyfile(
-                    os.path.join(root, "roughness.grd"),
-                    os.path.join(twodee_daily, "roughness.grd"),
-                )
+                shutil.copyfile(os.path.join(root, "roughness.grd"), os.path.join(twodee_daily, "roughness.grd"),)
             except FileNotFoundError:
                 print("Unable to find a valid roughness file for TWODEE")
                 sys.exit()
             try:
-                shutil.copyfile(
-                    os.path.join(diagno_daily, "surface_data.txt"),
-                    os.path.join(twodee_daily, "surface_data.txt"),
-                )
+                shutil.copyfile(os.path.join(diagno_daily, "surface_data.txt"), os.path.join(twodee_daily,
+                                                                                             "surface_data.txt"),)
             except (FileExistsError, FileNotFoundError):
                 print('ERROR with surface_data.txt')
-            with open(
-                os.path.join(twodee_daily, "source.dat"),
-                "w",
-                encoding="utf-8",
-                errors="surrogateescape",
-            ) as source_file:
+            with open(os.path.join(twodee_daily, "source.dat"), "w", encoding="utf-8", errors="surrogateescape",) as \
+                    source_file:
                 for j in range(0, n_sources):
-                    source_file.write(
-                        "{0:7.3f}".format(easting[j])
-                        + " "
-                        + "{0:7.3f}".format(northing[j])
-                        + " "
-                        + "{0:7.3f}".format(gas_fluxes[j])
-                        + " "
-                        + "{0:7.2f}".format(dx_sources_twodee[j])
-                        + " "
-                        + "{0:7.2f}".format(dy_sources_twodee[j])
-                        + " KG_SEC 0 "
-                        + "{0:7.3f}".format(dur[j])
-                        + "\n"
-                    )
+                    source_file.write("{0:7.3f}".format(easting[j]) + " " + "{0:7.3f}".format(northing[j]) + " "
+                        + "{0:7.3f}".format(gas_fluxes[j]) + " " + "{0:7.2f}".format(dx_sources_twodee[j]) + " "
+                        + "{0:7.2f}".format(dy_sources_twodee[j]) + " KG_SEC 0 " + "{0:7.3f}".format(dur[j]) + "\n")
             source_file.close()
             # read and memorize twodee.inp file. First read and memorize the domain properties of diagno, since
             # twodee's domain must coincide with it
@@ -1006,14 +954,10 @@ def pre_process(run_mode):
                     elif 'UTMYOR' in line:
                         yor_diagno = float(line.split('UTMYOR')[0]) * 1000
             twodee_input_records = []
-            with open(
-                twodee_original, "r", encoding="utf-8", errors="surrogateescape"
-            ) as twodee_or_input:
+            with open(twodee_original, "r", encoding="utf-8", errors="surrogateescape") as twodee_or_input:
                 for line in twodee_or_input:
                     twodee_input_records.append(line)
-            with open(
-                twodee_input, "w", encoding="utf-8", errors="surrogateescape"
-            ) as twodee_input_file:
+            with open(twodee_input, "w", encoding="utf-8", errors="surrogateescape") as twodee_input_file:
                 for record in twodee_input_records:
                     if "YEAR" in record:
                         twodee_input_file.write("  YEAR   = " + day[0:4] + "\n")
@@ -1286,24 +1230,24 @@ def read_diagno_outputs():
         twodee_inp_new = os.path.join(twodee_folder, 'twodee.inp')
         disgas_input_records = []
         twodee_input_records = []
-        try:
-            os.mkdir(disgas_folder)
-        except FileExistsError:
-            print('Folder ' + disgas_folder + ' already exists')
-        try:
-            os.mkdir(twodee_folder)
-        except FileExistsError:
-            print('Folder ' + twodee_folder + ' already exists')
+        # try:
+        #     os.mkdir(disgas_folder)
+        # except FileExistsError:
+        #     print('Folder ' + disgas_folder + ' already exists')
+        # try:
+        #     os.mkdir(twodee_folder)
+        # except FileExistsError:
+        #     print('Folder ' + twodee_folder + ' already exists')
         # Copy the necessary files into the temporary disgas folder
-        shutil.copy(os.path.join(runs, day_simulation, 'roughness.grd'), os.path.join(disgas_folder, 'roughness.grd'))
-        shutil.copy(os.path.join(runs, day_simulation, 'surface_data.txt'),
-                    os.path.join(disgas_folder, 'surface_data.txt'))
+        # shutil.copy(os.path.join(runs, day_simulation, 'roughness.grd'), os.path.join(disgas_folder, 'roughness.grd'))
+        # shutil.copy(os.path.join(runs, day_simulation, 'surface_data.txt'),
+        #             os.path.join(disgas_folder, 'surface_data.txt'))
         try:
             os.mkdir(os.path.join(disgas_folder, 'outfiles'))
         except FileExistsError:
             print('Folder ' + os.path.join(disgas_folder, 'outfiles') + ' already exists')
         # Copy the necessary files into the temporary twodee folder
-        shutil.copy(os.path.join(runs, day_simulation, 'roughness.grd'), os.path.join(twodee_folder, 'roughness.grd'))
+        # shutil.copy(os.path.join(runs, day_simulation, 'roughness.grd'), os.path.join(twodee_folder, 'roughness.grd'))
         try:
             os.mkdir(os.path.join(twodee_folder, 'outfiles'))
         except FileExistsError:
@@ -1555,9 +1499,7 @@ def run_disgas(max_np):
                     except IndexError:
                         node = ''
                 disgas_input_file = os.path.join(run, "disgas.inp")
-                disgas_log_file = os.path.join(
-                    run, "disgas_log.txt"
-                )
+                disgas_log_file = os.path.join(run, "disgas_log.txt")
                 if continuous_simulation and day != days[0]:
                     current_day = datetime.datetime.strptime(day, '%Y%m%d')
                     previous_day = current_day - datetime.timedelta(days=1)
@@ -1570,13 +1512,13 @@ def run_disgas(max_np):
                         print('ERROR. Restart run requested but file ' +
                               os.path.join(disgas_previous_day, "restart.dat") + ' not found')
                         sys.exit()
-                if not diagno_on:
-                    disgas_output_folder = os.path.join(run, 'outfiles')
-                    try:
-                        os.mkdir(disgas_output_folder)
-                    except FileExistsError:
-                        shutil.rmtree(disgas_output_folder)
-                        os.mkdir(disgas_output_folder)
+                # if not diagno_on:
+                #     disgas_output_folder = os.path.join(run, 'outfiles')
+                #     try:
+                #         os.mkdir(disgas_output_folder)
+                #     except FileExistsError:
+                #         shutil.rmtree(disgas_output_folder)
+                #         os.mkdir(disgas_output_folder)
                 if slurm:
                     try:
                         p = subprocess.Popen(["srun", "-n", "1", '--partition=' + partition, '--nodelist=' + node,
@@ -1644,13 +1586,13 @@ def run_twodee(max_np):
                         print('ERROR. Restart run requested but file ' +
                               os.path.join(twodee_previous_day, "restart.dat") + ' not found')
                         sys.exit()
-                if not diagno_on:
-                    twodee_output_folder = os.path.join(run, 'outfiles')
-                    try:
-                        os.mkdir(twodee_output_folder)
-                    except FileExistsError:
-                        shutil.rmtree(twodee_output_folder)
-                        os.mkdir(twodee_output_folder)
+                # if not diagno_on:
+                #     twodee_output_folder = os.path.join(run, 'outfiles')
+                #     try:
+                #         os.mkdir(twodee_output_folder)
+                #     except FileExistsError:
+                #         shutil.rmtree(twodee_output_folder)
+                #         os.mkdir(twodee_output_folder)
                 if slurm:
                     try:
                         p = subprocess.Popen(["srun", "-n", "1", '--partition=' + partition,  '--nodelist=' + node,
@@ -1710,7 +1652,8 @@ def converter(run_in):
             for line in surface_data_file:
                 try:
                     records = line.split("\t")
-                    if file_validity == datetime.timedelta(hours=int(records[0][0:2])):  # To be generalized if time step < 1h
+                    if file_validity == datetime.timedelta(hours=int(records[0][0:2])):  # To be generalized if
+                        # time step < 1h
                         t2m = float(records[2])
                         p2m = float(records[3]) / 100  # in hPa for this conversion
                         break
@@ -1724,6 +1667,21 @@ def converter(run_in):
             converted_output_file.write(str(np.amin(c_ppm)) + "  " + str(np.amax(c_ppm)) + "\n")
             np.savetxt(converted_output_file, c_ppm, fmt="%.5e")
 
+    # splitted_run_in = run_in.split(os.path.sep)
+    # try:
+    #     splitted_run_in.remove('')
+    #     splitted_run_in.remove('disgas')
+    #     splitted_run_in.remove('twodee')
+    # except ValueError:
+    #     pass
+    # outfiles_folder = os.path.sep
+    # for element in splitted_run_in:
+    #     outfiles_folder += element + os.path.sep
+    # outfiles_folder = os.path.join(outfiles_folder, 'outfiles')
+    # try:
+    #     os.mkdir(outfiles_folder)
+    # except FileExistsError:
+    #     pass
     outfiles_folder = os.path.join(run_in, 'outfiles')
     temp_folder = os.path.join(outfiles_folder, 'temp')
     try:
@@ -1750,7 +1708,18 @@ def match_grid(run_in):
     x_grd_disgas, y_grd_disgas = np.meshgrid(x_disgas, y_disgas)
     x_twodee = np.linspace(bottom_left_easting - dx, top_right_easting + dx, nx + 2)
     y_twodee = np.linspace(bottom_left_northing - dy, top_right_northing + dy, ny + 2)
-    outfiles_folder = os.path.join(run_in, 'outfiles')
+    splitted_run_in = run_in.split(os.path.sep)
+    try:
+        splitted_run_in.remove('')
+        splitted_run_in.remove('disgas')
+        splitted_run_in.remove('twodee')
+    except ValueError:
+        pass
+    outfiles_folder = os.path.sep
+    for element in splitted_run_in:
+        outfiles_folder += element + os.path.sep
+    outfiles_folder = os.path.join(outfiles_folder, 'outfiles')
+    # outfiles_folder = os.path.join(run_in, 'outfiles')
     temp_folder = os.path.join(outfiles_folder, 'temp')
     try:
         os.mkdir(temp_folder)
@@ -1780,10 +1749,45 @@ def match_grid(run_in):
     shutil.rmtree(temp_folder)
 
 
-def merge_outputs():
-    # FABIO: test this
+def elaborate_outputs():
+    for run in runs_disgas:
+        splitted_run_in = run.split(os.path.sep)
+        try:
+            splitted_run_in.remove('')
+            splitted_run_in.remove('disgas')
+        except ValueError:
+            pass
+        outfiles_folder = os.path.sep
+        for element in splitted_run_in:
+            outfiles_folder += element + os.path.sep
+        twodee_folder_to_remove = os.path.join(outfiles_folder, 'twodee')
+        shutil.rmtree(twodee_folder_to_remove)
+        outfiles_folder = os.path.join(outfiles_folder, 'outfiles')
+        disgas_outfiles_folder = os.path.join(run, 'outfiles')
+        shutil.copytree(disgas_outfiles_folder, outfiles_folder)
+        shutil.rmtree(disgas_outfiles_folder)
+    for run in runs_twodee:
+        splitted_run_in = run.split(os.path.sep)
+        try:
+            splitted_run_in.remove('')
+            splitted_run_in.remove('twodee')
+        except ValueError:
+            pass
+        outfiles_folder = os.path.sep
+        for element in splitted_run_in:
+            outfiles_folder += element + os.path.sep
+        disgas_folder_to_remove = os.path.join(outfiles_folder, 'disgas')
+        shutil.rmtree(disgas_folder_to_remove)
+        outfiles_folder = os.path.join(outfiles_folder, 'outfiles')
+        twodee_outfiles_folder = os.path.join(run, 'outfiles')
+        shutil.copytree(twodee_outfiles_folder, outfiles_folder)
+        shutil.rmtree(twodee_outfiles_folder)
     for run in split_simulations:
         outfiles_folder = os.path.join(run, 'outfiles')
+        try:
+            os.mkdir(outfiles_folder)
+        except FileExistsError:
+            print("Folder outfiles already exists in " + run)
         disgas_outfiles_folder = os.path.join(run, 'disgas', 'outfiles')
         twodee_outfiles_folder = os.path.join(run, 'twodee', 'outfiles')
         output_heights_v_str = output_heights.split(' ')
@@ -1822,9 +1826,8 @@ def merge_outputs():
                         new_merged_output_file.write(record)
                     new_merged_output_file.write(str(np.amin(c_merged)) + "  " + str(np.amax(c_merged)) + "\n")
                     np.savetxt(new_merged_output_file, c_merged, fmt="%.5e")
-        # FABIO: clean original folders, to think about it
-        # shutil.rmtree(disgas_outfiles_folder)
-        # shutil.rmtree(twodee_outfiles_folder)
+        shutil.rmtree(disgas_outfiles_folder)
+        shutil.rmtree(twodee_outfiles_folder)
 
 
 root = os.getcwd()
@@ -1956,6 +1959,8 @@ if twodee_on:
             match_grid(simulation)  # Interpolate twodee output onto disgas grid, this is needed for the following
             # interpolation
 
-if disgas_on and twodee_on:  # Some runs may have been split, we need to check this and if this is the case, we need
-    # to merge the simulations outputs
-    merge_outputs()
+elaborate_outputs()  # To copy each outfiles folder into the general outfiles folder and to merge simulation outputs
+# when runs have been split
+# if disgas_on and twodee_on:  # Some runs may have been split, we need to check this and if this is the case, we need
+# to merge the simulations outputs
+#    merge_outputs()

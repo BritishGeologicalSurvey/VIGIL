@@ -648,9 +648,7 @@ def pre_process(run_mode):
             random_dx.append(choices(dxs, k=1)[0])
             random_dy.append(choices(dys, k=1)[0])
             random_dur.append(choices(durs, k=1)[0])
-            random_temperatures.append(gas_temperature)  # FABIO for the moment the sampled locations have all the
-            # same temperatures specified in gas_properties.csv
-
+            random_temperatures.append(gas_temperature)
         return (
             random_eastings,
             random_northings,
@@ -727,8 +725,6 @@ def pre_process(run_mode):
     n_sources = 0
     try:
         with open("sources_input.txt", "r", encoding="utf-8", errors="surrogateescape") as locations_file:
-            # FABIO: temperatures must be specified in sources_input.txt, check how this fits with the gas temperature
-            # specified in gas_properties.csv
             for line in locations_file:
                 try:
                     records = line.split("\t")
@@ -760,7 +756,7 @@ def pre_process(run_mode):
             elevations.append(source_el)
             probabilities.append(1.0)
             fluxes_input.append(source_emission)
-            source_temperatures.append(gas_temperature)  # FABIO: if problems with reading sources_input.txt, assign
+            source_temperatures.append(gas_temperature)  # If problems with reading sources_input.txt, assign
             # the same temperauture to all sources
             dx_sources_twodee.append(source_dx)
             dy_sources_twodee.append(source_dy)
@@ -1462,7 +1458,6 @@ def read_diagno_outputs():
                     runs_twodee.remove(run)
                     break
             prepare_temporary_simulations(day)
-            split_simulations.append(os.path.join(runs, day))
         elif len(index_sources_twodee) == 0 and len(index_sources_disgas) != 0:
             for run in runs_twodee:
                 if day in run:
@@ -1489,11 +1484,14 @@ def run_simulations(max_np):
         if end_run > len(runs):
             end_run = len(runs)
         try:
-            for run in runs[start_run:end_run]:
+            for run in runs[start_run:end_run + 1]:
                 if 'disgas' in run:
                     solver = 'disgas'
-                else:
+                elif 'twodee' in run:
                     solver = 'twodee'
+                else:
+                    print('ERROR. Unable to identify the solver to use in run_simulations')
+                    sys.exit()
                 day = run.split(os.sep)[-1]
                 if len(nodes_list) > 0:
                     try:
@@ -1538,154 +1536,6 @@ def run_simulations(max_np):
             sys.exit()
         n_elaborated_runs = end_run
         if n_elaborated_runs == len(days):
-            break
-        for p in ps:
-            p.wait()
-    for p in ps:
-        p.wait()
-
-
-def run_disgas(max_np):
-    import datetime
-    disgas = os.path.join(root, "simulations", "runs")
-    n_elaborated_days = 0
-    n_node = 0
-    node = ''
-    if continuous_simulation:
-        max_np = 1
-    while n_elaborated_days <= len(runs_disgas):
-        ps = []
-        start_day = n_elaborated_days
-        end_day = n_elaborated_days + max_np
-        if end_day > len(runs_disgas):
-            end_day = len(runs_disgas)
-        try:
-            for run in runs_disgas[start_day:end_day]:
-                day = run.split(os.sep)[-1]
-                if len(nodes_list) > 0:
-                    try:
-                        node = nodes_list[n_node]
-                    except IndexError:
-                        node = ''
-                disgas_input_file = os.path.join(run, "disgas.inp")
-                disgas_log_file = os.path.join(run, "disgas_log.txt")
-                if continuous_simulation and day != days[0]:
-                    current_day = datetime.datetime.strptime(day, '%Y%m%d')
-                    previous_day = current_day - datetime.timedelta(days=1)
-                    previous_day = previous_day.strftime('%Y%m%d')
-                    disgas_previous_day = os.path.join(disgas, str(previous_day))
-                    try:
-                        shutil.copyfile(os.path.join(disgas_previous_day, "restart.dat"),
-                                        os.path.join(run, "restart.dat"))
-                    except FileNotFoundError:
-                        print('ERROR. Restart run requested but file ' +
-                              os.path.join(disgas_previous_day, "restart.dat") + ' not found')
-                        sys.exit()
-                # if not diagno_on:
-                #     disgas_output_folder = os.path.join(run, 'outfiles')
-                #     try:
-                #         os.mkdir(disgas_output_folder)
-                #     except FileExistsError:
-                #         shutil.rmtree(disgas_output_folder)
-                #         os.mkdir(disgas_output_folder)
-                if slurm:
-                    try:
-                        p = subprocess.Popen(["srun", "-n", "1", '--partition=' + partition, '--nodelist=' + node,
-                                              "disgas", disgas_input_file, disgas_log_file])
-                    except FileNotFoundError:
-                        print('Unable to run srun -n 1 --partition=' + partition + ' --nodelist=' + node + ' disgas ' +
-                              disgas_input_file + ' ' + disgas_log_file)
-                        sys.exit()
-                else:
-                    try:
-                        p = subprocess.Popen(["disgas", disgas_input_file, disgas_log_file])
-                    except FileNotFoundError:
-                        print('Unable to run DISGAS')
-                        sys.exit()
-                ps.append(p)
-                if len(nodes_list) > 0:
-                    n_node += 1
-                    if n_node >= len(nodes_list):
-                        n_node = 0
-        except BaseException:
-            print("Unable to run DISGAS")
-            sys.exit()
-        n_elaborated_days = end_day
-        if n_elaborated_days == len(days):
-            break
-        for p in ps:
-            p.wait()
-    for p in ps:
-        p.wait()
-
-
-def run_twodee(max_np):
-    import datetime
-    twodee = os.path.join(root, "simulations", "runs")
-    n_elaborated_days = 0
-    n_node = 0
-    node = ''
-    if continuous_simulation:
-        max_np = 1
-    while n_elaborated_days <= len(runs_twodee):
-        ps = []
-        start_day = n_elaborated_days
-        end_day = n_elaborated_days + max_np
-        if end_day > len(runs_twodee):
-            end_day = len(runs_twodee)
-        try:
-            for run in runs_twodee[start_day:end_day]:
-                day = run.split(os.sep)[-1]
-                if len(nodes_list) > 0:
-                    try:
-                        node = nodes_list[n_node]
-                    except IndexError:
-                        node = ''
-                twodee_input_file = os.path.join(run, "twodee.inp")
-                twodee_log_file = os.path.join(run, "twodee_log.txt")
-                if continuous_simulation and day != days[0]:
-                    current_day = datetime.datetime.strptime(day, '%Y%m%d')
-                    previous_day = current_day - datetime.timedelta(days=1)
-                    previous_day = previous_day.strftime('%Y%m%d')
-                    twodee_previous_day = os.path.join(twodee, str(previous_day))
-                    try:
-                        shutil.copyfile(os.path.join(twodee_previous_day, "restart.dat"),
-                                        os.path.join(run, "restart.dat"))
-                    except FileNotFoundError:
-                        print('ERROR. Restart run requested but file ' +
-                              os.path.join(twodee_previous_day, "restart.dat") + ' not found')
-                        sys.exit()
-                # if not diagno_on:
-                #     twodee_output_folder = os.path.join(run, 'outfiles')
-                #     try:
-                #         os.mkdir(twodee_output_folder)
-                #     except FileExistsError:
-                #         shutil.rmtree(twodee_output_folder)
-                #         os.mkdir(twodee_output_folder)
-                if slurm:
-                    try:
-                        p = subprocess.Popen(["srun", "-n", "1", '--partition=' + partition,  '--nodelist=' + node,
-                                              "twodee", twodee_input_file, twodee_log_file, ])
-                    except FileNotFoundError:
-                        print('Unable to run srun -n 1 --partition=' + partition + ' --nodelist=' + node + ' ' +
-                              twodee_input_file + ' ' + twodee_log_file)
-                        sys.exit()
-                else:
-                    try:
-                        p = subprocess.Popen(["twodee", twodee_input_file, twodee_log_file])
-                    except FileNotFoundError:
-                        print('Unable to run TWODEE')
-                        sys.exit()
-                ps.append(p)
-                if len(nodes_list) > 0:
-                    n_node += 1
-                    if n_node >= len(nodes_list):
-                        n_node = 0
-        except BaseException:
-            print("Unable to run TWODEE")
-            sys.exit()
-        n_elaborated_days = end_day
-        if n_elaborated_days == len(days):
             break
         for p in ps:
             p.wait()
@@ -1829,12 +1679,13 @@ def elaborate_outputs():
         outfiles_folder = os.path.sep
         for element in splitted_run_in:
             outfiles_folder += element + os.path.sep
-        twodee_folder_to_remove = os.path.join(outfiles_folder, 'twodee')
-        shutil.rmtree(twodee_folder_to_remove)
+        twodee_folder = os.path.join(outfiles_folder, 'twodee')
+        twodee_subfolders = os.listdir(twodee_folder)
+        if 'outfiles' not in twodee_subfolders:
+            shutil.rmtree(twodee_folder)
         outfiles_folder = os.path.join(outfiles_folder, 'outfiles')
         disgas_outfiles_folder = os.path.join(run, 'outfiles')
         shutil.copytree(disgas_outfiles_folder, outfiles_folder)
-        shutil.rmtree(disgas_outfiles_folder)
     for run in runs_twodee:
         splitted_run_in = run.split(os.path.sep)
         try:
@@ -1845,58 +1696,53 @@ def elaborate_outputs():
         outfiles_folder = os.path.sep
         for element in splitted_run_in:
             outfiles_folder += element + os.path.sep
-        disgas_folder_to_remove = os.path.join(outfiles_folder, 'disgas')
-        shutil.rmtree(disgas_folder_to_remove)
+        disgas_folder = os.path.join(outfiles_folder, 'disgas')
+        disgas_subfolders = os.listdir(disgas_folder)
+        if 'outfiles' not in disgas_subfolders:
+            shutil.rmtree(disgas_folder)
         outfiles_folder = os.path.join(outfiles_folder, 'outfiles')
         twodee_outfiles_folder = os.path.join(run, 'outfiles')
-        shutil.copytree(twodee_outfiles_folder, outfiles_folder)
-        shutil.rmtree(twodee_outfiles_folder)
-    for run in split_simulations:
-        outfiles_folder = os.path.join(run, 'outfiles')
         try:
-            os.mkdir(outfiles_folder)
+            shutil.copytree(twodee_outfiles_folder, outfiles_folder)
         except FileExistsError:
-            print("Folder outfiles already exists in " + run)
-        disgas_outfiles_folder = os.path.join(run, 'disgas', 'outfiles')
-        twodee_outfiles_folder = os.path.join(run, 'twodee', 'outfiles')
-        output_heights_v_str = output_heights.split(' ')
-        output_heights_v = []
-        for output_height in output_heights_v_str:
-            try:
-                output_heights_v.append(float(output_height))
-            except ValueError:
-                continue
-        for i_level in range(1, len(output_heights_v) + 1):
-            level_disgas = str(i_level).zfill(3)
-            level_twodee = str(int(output_heights_v[i_level - 1] * 100)).zfill(4) + 'cm'
-            for i_time in range(1, 25):
-                time_disgas = str(i_time).zfill(6)
-                time_twodee = str(i_time * output_interval * 3600).zfill(6)
-                original_disgas_file = os.path.join(disgas_outfiles_folder, 'c_' + level_disgas + '_' + time_disgas +
-                                                    '.grd')
-                original_twodee_file = os.path.join(twodee_outfiles_folder, 'c_' + level_twodee + '_' + time_twodee +
-                                                    '.grd')
-                # FABIO: for the moment the merged file has the same name formatting of disgas outputs
-                merged_output_file = os.path.join(outfiles_folder, 'c_' + level_disgas + '_' + time_disgas + '.grd')
-                first_records = []
-                with open(original_disgas_file, 'r') as input_file_read:
-                    i_line = 1
-                    for line in input_file_read:
-                        first_records.append(line)
-                        if i_line > 3:
-                            break
-                        else:
-                            i_line += 1
-                c_disgas = np.loadtxt(original_disgas_file, skiprows=5)
-                c_twodee = np.loadtxt(original_twodee_file, skiprows=5)
-                c_merged = np.add(c_disgas, c_twodee)
-                with open(merged_output_file, 'w') as new_merged_output_file:
-                    for record in first_records:
-                        new_merged_output_file.write(record)
-                    new_merged_output_file.write(str(np.amin(c_merged)) + "  " + str(np.amax(c_merged)) + "\n")
-                    np.savetxt(new_merged_output_file, c_merged, fmt="%.5e")
-        shutil.rmtree(disgas_outfiles_folder)
-        shutil.rmtree(twodee_outfiles_folder)
+            # We are in a split simulation
+            disgas_outfiles_folder = os.path.join(disgas_folder, 'outfiles')
+            output_heights_v_str = output_heights.split(' ')
+            output_heights_v = []
+            for output_height in output_heights_v_str:
+                try:
+                    output_heights_v.append(float(output_height))
+                except ValueError:
+                    continue
+            for i_level in range(1, len(output_heights_v) + 1):
+                level_disgas = str(i_level).zfill(3)
+                level_twodee = str(int(output_heights_v[i_level - 1] * 100)).zfill(4) + 'cm'
+                for i_time in range(1, 25):
+                    time_disgas = str(i_time).zfill(6)
+                    time_twodee = str(i_time * output_interval * 3600).zfill(6)
+                    original_disgas_file = os.path.join(disgas_outfiles_folder, 'c_' + level_disgas + '_' + time_disgas
+                                                        + '.grd')
+                    original_twodee_file = os.path.join(twodee_outfiles_folder, 'c_' + level_twodee + '_' + time_twodee
+                                                        + '.grd')
+                    # For the moment the merged file has the same name formatting of disgas outputs
+                    merged_output_file = os.path.join(outfiles_folder, 'c_' + level_disgas + '_' + time_disgas + '.grd')
+                    first_records = []
+                    with open(original_disgas_file, 'r') as input_file_read:
+                        i_line = 1
+                        for line in input_file_read:
+                            first_records.append(line)
+                            if i_line > 3:
+                                break
+                            else:
+                                i_line += 1
+                    c_disgas = np.loadtxt(original_disgas_file, skiprows=5)
+                    c_twodee = np.loadtxt(original_twodee_file, skiprows=5)
+                    c_merged = np.add(c_disgas, c_twodee)
+                    with open(merged_output_file, 'w') as new_merged_output_file:
+                        for record in first_records:
+                            new_merged_output_file.write(record)
+                        new_merged_output_file.write(str(np.amin(c_merged)) + "  " + str(np.amax(c_merged)) + "\n")
+                        np.savetxt(new_merged_output_file, c_merged, fmt="%.5e")
 
 
 root = os.getcwd()
@@ -1997,7 +1843,6 @@ days = prepare_days()
 
 runs_disgas = []
 runs_twodee = []
-split_simulations = []
 
 easting_sources, northing_sources, elevation_sources, dx_sources, dy_sources, dur_sources, gas_fluxes_sources, \
     temperatures_sources, rho_tracking_specie, r_tracking_specie, m_tracking_specie = pre_process(run_type)
@@ -2029,21 +1874,5 @@ if twodee_on:
             match_grid(simulation)  # Interpolate twodee output onto disgas grid, this is needed for the following
             # interpolation
 
-# if disgas_on:
-#     run_disgas(max_number_processes)
-#     for simulation in runs_disgas:
-#         converter(simulation)  # Convert disgas output in ppm to be consistent with twodee outputs in case of merging
-#         # and/or automatic scenario
-#
-# if twodee_on:
-#     run_twodee(max_number_processes)
-#     if disgas_on:
-#         for simulation in runs_twodee:
-#             match_grid(simulation)  # Interpolate twodee output onto disgas grid, this is needed for the following
-#             # interpolation
-
-# elaborate_outputs()  # To copy each outfiles folder into the general outfiles folder and to merge simulation outputs
+elaborate_outputs()  # To copy each outfiles folder into the general outfiles folder and to merge simulation outputs
 # when runs have been split
-# if disgas_on and twodee_on:  # Some runs may have been split, we need to check this and if this is the case, we need
-# to merge the simulations outputs
-#    merge_outputs()

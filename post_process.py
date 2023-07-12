@@ -258,7 +258,7 @@ def read_arguments():
 
 
 def folder_structure():
-    outputs_dir = os.path.join(root, "post_processing", "runs")
+    outputs_dir = os.path.join(root, "post_processing")
     original_output_dir = os.path.join(root, "simulations", "runs")
     processed_output_dir = os.path.join(outputs_dir, "runs_processed")
     ecdf_dir = os.path.join(outputs_dir, "output_ecdf")
@@ -597,7 +597,7 @@ def elaborate_day(day_input):
         conc = np.loadtxt(input_file, skiprows=5)
         conc[conc < 0] = 0
         molar_weight = 0
-        conc_converted = 0
+        conc_converted = np.empty_like(conc)
         if units == "ppm":
             if model_input == "disgas" or model_input == 'merged':
                 file_dt = os.path.split(processed_file)[1]
@@ -662,9 +662,6 @@ def elaborate_day(day_input):
                     sys.exit()
             else:
                 conc_converted = conc
-        if conc_converted == 0:
-            print('ERROR. Unable to convert gas concentration')
-            sys.exit()
         try:
             np.loadtxt(processed_file, skiprows=5)
         except OSError:
@@ -1432,7 +1429,7 @@ def save_plots(min_con_in, max_con_in):
                 print('(' + str(bottom_left_easting) + ',' + str(top_right_easting) + '),(' + str(bottom_left_northing)
                       + ',' + str(top_right_northing) + ')')
                 sys.exit()
-            while x <= bottom_left_easting:
+            while x_top_resized <= bottom_left_easting:
                 i_bottom_left += 1
                 i_top_right += 1
                 x_top_resized += dx_top

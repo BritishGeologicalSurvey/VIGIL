@@ -1586,21 +1586,6 @@ def converter(run_in):
             converted_output_file.write(str(np.amin(c_ppm)) + "  " + str(np.amax(c_ppm)) + "\n")
             np.savetxt(converted_output_file, c_ppm, fmt="%.5e")
 
-    # splitted_run_in = run_in.split(os.path.sep)
-    # try:
-    #     splitted_run_in.remove('')
-    #     splitted_run_in.remove('disgas')
-    #     splitted_run_in.remove('twodee')
-    # except ValueError:
-    #     pass
-    # outfiles_folder = os.path.sep
-    # for element in splitted_run_in:
-    #     outfiles_folder += element + os.path.sep
-    # outfiles_folder = os.path.join(outfiles_folder, 'outfiles')
-    # try:
-    #     os.mkdir(outfiles_folder)
-    # except FileExistsError:
-    #     pass
     outfiles_folder = os.path.join(run_in, 'outfiles')
     temp_folder = os.path.join(outfiles_folder, 'temp')
     try:
@@ -1638,7 +1623,6 @@ def match_grid(run_in):
     for element in splitted_run_in:
         outfiles_folder += element + os.path.sep
     outfiles_folder = os.path.join(outfiles_folder, 'outfiles')
-    # outfiles_folder = os.path.join(run_in, 'outfiles')
     temp_folder = os.path.join(outfiles_folder, 'temp')
     try:
         os.mkdir(temp_folder)

@@ -528,54 +528,41 @@ def automatic_weather(analysis_start):
         import shutil
         import time
 
-        def wtfile_download(url, wtfile_dwnl):
+        def wtfile_download(url_to_download, wtfile_to_download):
             print("Downloading forecast file " + url)
             try:
-                urllib.request.urlretrieve(url, wtfile_dwnl)
+                urllib.request.urlretrieve(url_to_download, wtfile_to_download)
             except (urllib.error.HTTPError, urllib.error.URLError):
                 try:
                     time.sleep(60)
-                    urllib.request.urlretrieve(url, wtfile_dwnl)
+                    urllib.request.urlretrieve(url_to_download, wtfile_to_download)
                 except (urllib.error.HTTPError, urllib.error.URLError):
                     try:
                         time.sleep(60)
-                        urllib.request.urlretrieve(url, wtfile_dwnl)
+                        urllib.request.urlretrieve(url_to_download, wtfile_to_download)
                     except (urllib.error.HTTPError, urllib.error.URLError):
-                        print('Unable to retrieve URL ' + url)
+                        print('Unable to retrieve URL ' + url_to_download)
                         sys.exit()
 
-        def interpolate(
-                slon,
-                slat,
-                lon_corner,
-                lat_corner,
-                zoom,
-                wtfile,
-                wtfile_int,
-                wtfile_interpolated,
-        ):
+        def interpolate(slon, slat, corner_lon, corner_lat, zoom_to_location, wtfile_in, wtfile_interpolated,
+                        wtfile_profile):
             from shutil import copyfile
-
-            if zoom:
-                try:
-                    os_cmd = os.system("srun -n 1 wgrib2 " + wtfile + " -set_grib_type same -new_grid_winds earth "
-                                                                      "-new_grid latlon " +
-                                       lon_corner + ":400:0.01 " + lat_corner + ":400:0.01 " + wtfile_int)
-                    if os_cmd != 0:
-                        raise Exception('Command srun not found in the system')
-                except:
-                    os.system("wgrib2 " + wtfile + " -set_grib_type same -new_grid_winds earth -new_grid latlon " +
-                              lon_corner + ":400:0.01 " + lat_corner + ":400:0.01 " + wtfile_int)
-            else:
-                copyfile(wtfile, wtfile_int)
-            print("Saving weather data along the vertical at the vent location")
-            try:
-                os_cmd = os.system("srun -n 1 wgrib2 " + wtfile + " -s -lon " + slon + " " + slat + " >" +
-                                   wtfile_interpolated)
+            if zoom_to_location:
+                os_cmd = os.system("srun -n 1 wgrib2 " + wtfile_in + " -set_grib_type same -new_grid_winds earth "
+                                   "-new_grid latlon " +
+                                   corner_lon + ":400:0.01 " + corner_lat + ":400:0.01 " + wtfile_interpolated)
                 if os_cmd != 0:
-                    raise Exception('Command srun not found in the system')
-            except:
-                os.system("wgrib2 " + wtfile + " -s -lon " + slon + " " + slat + " >" + wtfile_interpolated)
+                    print('Command srun not found in the system')
+                    os.system("wgrib2 " + wtfile_in + " -set_grib_type same -new_grid_winds earth -new_grid latlon " +
+                          corner_lon + ":400:0.01 " + corner_lat + ":400:0.01 " + wtfile_interpolated)
+            else:
+                copyfile(wtfile_in, wtfile_interpolated)
+            print("Saving weather data along the vertical at the vent location")
+            os_cmd = os.system("srun -n 1 wgrib2 " + wtfile_in + " -s -lon " + slon + " " + slat + " >" +
+                               wtfile_profile)
+            if os_cmd != 0:
+                print('Command srun not found in the system')
+                os.system("wgrib2 " + wtfile_interpolated + " -s -lon " + slon + " " + slat + " >" + wtfile_profile)
 
         slon_source_left = str(lon_source - 2)
         slon_source_right = str(lon_source + 2)
@@ -625,14 +612,7 @@ def automatic_weather(analysis_start):
         year_anl = year
         month_anl = month
         day_anl = day
-        url = (
-                "http://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/gfs."
-                + year_anl
-                + month_anl
-                + day_anl
-                + "/"
-                + anl
-        )
+        url = ("http://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/gfs." + year_anl + month_anl + day_anl + "/" + anl)
         while True:
             try:
                 print(url)
@@ -640,22 +620,13 @@ def automatic_weather(analysis_start):
                 break
             except urllib.error.HTTPError:
                 ianl = ianl - 6
-                print(
-                    "Analysis file at "
-                    + anl
-                    + "z not yet available. Retrieving the latest available"
-                )
+                print("Analysis file at " + anl + "z not yet available. Retrieving the latest available")
             except urllib.error.URLError:
                 ianl = ianl - 6
-                print(
-                    "Analysis file at "
-                    + anl
-                    + "z not yet available. Retrieving the latest available"
-                )
-            if (
-                    ianl < 0
-            ):  # this is in case the analysis at 00z is not available; in this case, ianl = -6 from above, hence must be
-                # corrected. Additionally, the variable ianl will be updated later otherwise it would affect ifcst
+                print("Analysis file at " + anl + "z not yet available. Retrieving the latest available")
+            if ianl < 0:  # this is in case the analysis at 00z is not available; in this case, ianl = -6 from above,
+                # hence must be corrected. Additionally, the variable ianl will be updated later otherwise it would
+                # affect ifcst
                 anl = "18"
                 ianl = 18
                 year_anl = year_yst
@@ -670,14 +641,8 @@ def automatic_weather(analysis_start):
                 anl = "0" + str(ianl)
             else:
                 anl = str(ianl)
-            url = (
-                    "http://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/gfs."
-                    + year_anl
-                    + month_anl
-                    + day_anl
-                    + "/"
-                    + anl
-            )
+            url = ("http://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/gfs." + year_anl + month_anl + day_anl + "/" +
+                   anl)
         print("Most up to date GFS analysis: " + url)
 
         # Retrieve weather data that best matches current time
@@ -692,37 +657,23 @@ def automatic_weather(analysis_start):
         while ifcst < max_ifcst:
             fcst = "f" + "{:03d}".format(ifcst)
             wtfile_dwnl = "gfs.t" + anl + "z.pgrb2.0p25." + fcst
-            url = (
-                    "http://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/gfs."
-                    + year_anl
-                    + month_anl
-                    + day_anl
-                    + "/"
-                    + anl
-                    + "/atmos/"
-                    + wtfile_dwnl
-            )
+            url = ("http://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/gfs." + year_anl + month_anl + day_anl + "/" +
+                   anl + "/atmos/" + wtfile_dwnl)
             try:
                 urllib.request.urlopen(url)
             except urllib.error.HTTPError:
                 ianl = ianl - 6
                 ifcst = ifcst + 6
-                print(
-                    "Forecast file "
-                    + wtfile_dwnl
-                    + " not yet available. Retrieving the equivalent from the previous forecast"
-                )
+                print("Forecast file " + wtfile_dwnl + " not yet available. Retrieving the equivalent from the "
+                      "previous forecast")
                 urls = []
                 wtfiles = []
                 max_ifcst = ifcst + nfcst
             except urllib.error.URLError:
                 ianl = ianl - 6
                 ifcst = ifcst + 6
-                print(
-                    "Forecast file "
-                    + wtfile_dwnl
-                    + " not yet available. Retrieving the equivalent from the previous forecast"
-                )
+                print("Forecast file " + wtfile_dwnl + " not yet available. Retrieving the equivalent from the "
+                      "previous forecast")
                 urls = []
                 wtfiles = []
                 max_ifcst = ifcst + nfcst
@@ -743,77 +694,31 @@ def automatic_weather(analysis_start):
             day_profile = str(time_profile)[8:10]
             hour_profile = str(time_profile)[11:13]
             abs_validity = year_profile + month_profile + day_profile + hour_profile
-            wtfile_int = os.path.join(
-                data_folder,
-                "weather_data_interpolated_"
-                + year_anl
-                + month_anl
-                + day_anl
-                + anl
-                + "_"
-                + fcst,
-            )
-            wtfile = os.path.join(
-                data_folder,
-                "weather_data_" + year_anl + month_anl + day_anl + anl + "_" + fcst,
-            )
+            wtfile_int = os.path.join(data_folder, "weather_data_interpolated_" + year_anl + month_anl + day_anl + anl
+                                      + "_" + fcst,)
+            wtfile = os.path.join(data_folder, "weather_data_" + year_anl + month_anl + day_anl + anl + "_" + fcst,)
             wtfile_prof = os.path.join(data_folder, "profile_" + abs_validity + ".txt")
             try:
-                url = (
-                        "https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25_1hr.pl?file="
-                        + wtfile_dwnl
-                        + "&all_lev=on&var_HGT=on&var_TMP=on&var_UGRD=on&var_VGRD=on&var_PRES=on&subregion=&leftlon="
-                        + slon_source_left
-                        + "&rightlon="
-                        + slon_source_right
-                        + "&toplat="
-                        + slat_source_top
-                        + "&bottomlat="
-                        + slat_source_bottom
-                        + "&dir=%2Fgfs."
-                        + year_anl
-                        + month_anl
-                        + day_anl
-                        + "%2F"
-                        + anl
-                        + "%2Fatmos"
-                )
+                url = ("https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25_1hr.pl?file=" + wtfile_dwnl
+                       + "&all_lev=on&var_HGT=on&var_TMP=on&var_UGRD=on&var_VGRD=on&var_PRES=on&subregion=&leftlon="
+                       + slon_source_left + "&rightlon=" + slon_source_right + "&toplat=" + slat_source_top
+                       + "&bottomlat=" + slat_source_bottom + "&dir=%2Fgfs." + year_anl + month_anl + day_anl + "%2F"
+                       + anl + "%2Fatmos")
                 urllib.request.urlopen(url)
                 zoom = False
             except (urllib.error.HTTPError, urllib.error.URLError):
                 time.sleep(60)
                 try:
-                    url = (
-                            "https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25_1hr.pl?file="
-                            + wtfile_dwnl
-                            + "&all_lev=on&var_HGT=on&var_TMP=on&var_UGRD=on&var_VGRD=on&var_PRES=on&subregion=&leftlon="
-                            + slon_source_left
-                            + "&rightlon="
-                            + slon_source_right
-                            + "&toplat="
-                            + slat_source_top
-                            + "&bottomlat="
-                            + slat_source_bottom
-                            + "&dir=%2Fgfs."
-                            + year_anl
-                            + month_anl
-                            + day_anl
-                            + "%2F"
-                            + anl
-                            + "%2Fatmos"
-                    )
+                    url = ("https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25_1hr.pl?file=" + wtfile_dwnl
+                           + "&all_lev=on&var_HGT=on&var_TMP=on&var_UGRD=on&var_VGRD=on&var_PRES=on&subregion=&leftlon="
+                           + slon_source_left + "&rightlon=" + slon_source_right + "&toplat=" + slat_source_top
+                           + "&bottomlat=" + slat_source_bottom + "&dir=%2Fgfs." + year_anl + month_anl + day_anl
+                           + "%2F" + anl + "%2Fatmos")
                     urllib.request.urlopen(url)
                     zoom = False
                 except (urllib.error.HTTPError, urllib.error.URLError):
-                    url = (
-                            "http://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/gfs."
-                            + year_anl
-                            + month_anl
-                            + day_anl
-                            + "/"
-                            + anl
-                            + "/atmos/"
-                            + wtfile_dwnl)
+                    url = ("http://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/gfs." + year_anl + month_anl + day_anl
+                           + "/" + anl + "/atmos/" + wtfile_dwnl)
                     urllib.request.urlopen(url)
                     zoom = True
             urls.append(url)
@@ -856,7 +761,6 @@ def automatic_weather(analysis_start):
             n_pool += 1
             if n_downloaded_days == nfcst:
                 break
-
         try:
             pool = ThreadingPool(nfcst)
             pool.map(

@@ -773,20 +773,20 @@ def pre_process(run_mode):
                 gas_fluxes.append(fluxes_input[j_source])
     simulations = os.path.join(root, "simulations")
     diagno = os.path.join(simulations, "diagno")
-    runs = os.path.join(simulations, "runs")
+    runs_folder = os.path.join(simulations, "runs")
     # Set runs folder
     try:
         os.mkdir(simulations)
     except FileExistsError:
         print("Folder " + simulations + " already exists")
     try:
-        os.mkdir(runs)
+        os.mkdir(runs_folder)
     except FileExistsError:
-        print("Folder " + runs + " already exists")
+        print("Folder " + runs_folder + " already exists")
     for i_day in range(0, len(days)):
         day = days[i_day]
         diagno_daily = os.path.join(diagno, str(day))
-        run = os.path.join(runs, str(day))
+        run = os.path.join(runs_folder, str(day))
         try:
             os.mkdir(run)
         except FileExistsError:

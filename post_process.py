@@ -600,68 +600,35 @@ def elaborate_day(day_input):
         conc_converted = np.empty_like(conc)
         if units == "ppm":
             if model_input == "disgas" or model_input == 'merged':
-                file_dt = os.path.split(processed_file)[1]
-                file_dt = file_dt.split("_")[2]
-                file_dt = file_dt.split(".grd")[0]
-                file_time_h = file_dt[-4:]
-                input_file_name = input_file.split(os.sep)[-1]
-                file_folder = input_file.split(input_file_name)[0]
-                file_folder_daily = file_folder.split("outfiles")[0]
-                if model_input == 'merged':
-                    file_folder_daily = os.path.join(file_folder_daily, 'disgas')
-                surface_data = os.path.join(file_folder_daily, "surface_data.txt")
-                with open(surface_data) as surface_data_file:
-                    for line in surface_data_file:
-                        records = line.split("\t")
-                        try:
-                            float(records[1])
-                        except IndexError:
-                            continue
-                        if file_time_h == records[0]:
-                            t2m = float(records[2])
-                            p2m = float(records[3]) / 100  # in hPa for this conversion
-                            break
-                for specie_property in species_properties:
-                    if specie_property["specie_name"] == specie_input:
-                        molar_weight = specie_property["molar_weight"]
-                        conversion_factor = ((22.4 / molar_weight) * (t2m / 273) * (1013 / p2m)) * 1000000
-                        conc_converted = np.multiply(conc, conversion_factor)  # convert kg/m3 to ppm
-                if molar_weight == 0:
-                    print('ERROR. Unable to find ' + specie_input + ' in the species properties database')
-                    sys.exit()
-            else:
                 conc_converted = conc
         else:
-            if model == "twodee":
-                file_dt = os.path.split(processed_file)[1]
-                file_dt = file_dt.split("_")[2]
-                file_dt = file_dt.split(".grd")[0]
-                file_time_h = file_dt[-4:]
-                input_file_name = input_file.split(os.sep)[-1]
-                file_folder = input_file.split(input_file_name)[0]
-                file_folder_daily = file_folder.split("outfiles")[0]
-                surface_data = os.path.join(file_folder_daily, "surface_data.txt")
-                with open(surface_data) as surface_data_file:
-                    for line in surface_data_file:
-                        records = line.split("\t")
-                        try:
-                            float(records[1])
-                        except IndexError:
-                            continue
-                        if file_time_h == records[0]:
-                            t2m = float(records[2])
-                            p2m = float(records[3]) / 100  # in hPa for this conversion
-                            break
-                for specie_property in species_properties:
-                    if specie_property["specie_name"] == specie_input:
-                        molar_weight = specie_property["molar_weight"]
-                        conversion_factor = ((molar_weight / 22.4) * (273 / t2m) * (p2m / 1013)) / 1000000
-                        conc_converted = np.multiply(conc, conversion_factor)  # convert ppm to kg/m3
-                if molar_weight == 0:
-                    print('ERROR. Unable to find ' + specie_input + ' in the species properties database')
-                    sys.exit()
-            else:
-                conc_converted = conc
+            file_dt = os.path.split(processed_file)[1]
+            file_dt = file_dt.split("_")[2]
+            file_dt = file_dt.split(".grd")[0]
+            file_time_h = file_dt[-4:]
+            input_file_name = input_file.split(os.sep)[-1]
+            file_folder = input_file.split(input_file_name)[0]
+            file_folder_daily = os.path.join(file_folder.split("outfiles")[0], 'twodee')
+            surface_data = os.path.join(file_folder_daily, "surface_data.txt")
+            with open(surface_data) as surface_data_file:
+                for line in surface_data_file:
+                    records = line.split("\t")
+                    try:
+                        float(records[1])
+                    except IndexError:
+                        continue
+                    if file_time_h == records[0]:
+                        t2m = float(records[2])
+                        p2m = float(records[3]) / 100  # in hPa for this conversion
+                        break
+            for specie_property in species_properties:
+                if specie_property["specie_name"] == specie_input:
+                    molar_weight = specie_property["molar_weight"]
+                    conversion_factor = ((molar_weight / 22.4) * (273 / t2m) * (p2m / 1013)) / 1000000
+                    conc_converted = np.multiply(conc, conversion_factor)  # convert ppm to kg/m3
+            if molar_weight == 0:
+                print('ERROR. Unable to find ' + specie_input + ' in the species properties database')
+                sys.exit()
         try:
             np.loadtxt(processed_file, skiprows=5)
         except OSError:
@@ -924,16 +891,13 @@ def elaborate_day(day_input):
     run_folder = os.path.join(original_output_folder, day_input)
     run_folder_subfolders = os.listdir(run_folder)
     if 'twodee' in run_folder_subfolders:
+        model = 'twodee'
         if 'disgas' in run_folder_subfolders:
             model = 'merged'
-        else:
-            model = 'disgas'
     else:
         model = 'disgas'
         if 'twodee' in run_folder_subfolders:
             model = 'merged'
-        else:
-            model = 'twodee'
     model_output_folder = os.path.join(run_folder, "outfiles")
     model_processed_output_folder_daily = os.path.join(processed_output_folder, day_input)
     try:

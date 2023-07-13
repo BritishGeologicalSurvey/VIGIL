@@ -1211,11 +1211,11 @@ def read_diagno_outputs():
 
     def prepare_temporary_simulations(day_simulation):
         try:
-            os.remove(os.path.join(runs, day_simulation, 'source.dat'))
+            os.remove(os.path.join(runs_folder, day_simulation, 'source.dat'))
         except FileNotFoundError:
             pass
-        disgas_folder = os.path.join(runs, day_simulation, 'disgas')
-        twodee_folder = os.path.join(runs, day_simulation, 'twodee')
+        disgas_folder = os.path.join(runs_folder, day_simulation, 'disgas')
+        twodee_folder = os.path.join(runs_folder, day_simulation, 'twodee')
         runs_disgas.append(disgas_folder)
         runs_twodee.append(twodee_folder)
         disgas_inp = os.path.join(disgas_folder, 'disgas.inp')
@@ -1224,24 +1224,11 @@ def read_diagno_outputs():
         twodee_inp_new = os.path.join(twodee_folder, 'twodee.inp_new')
         disgas_input_records = []
         twodee_input_records = []
-        # try:
-        #     os.mkdir(disgas_folder)
-        # except FileExistsError:
-        #     print('Folder ' + disgas_folder + ' already exists')
-        # try:
-        #     os.mkdir(twodee_folder)
-        # except FileExistsError:
-        #     print('Folder ' + twodee_folder + ' already exists')
-        # Copy the necessary files into the temporary disgas folder
-        # shutil.copy(os.path.join(runs, day_simulation, 'roughness.grd'), os.path.join(disgas_folder, 'roughness.grd'))
-        # shutil.copy(os.path.join(runs, day_simulation, 'surface_data.txt'),
-        #             os.path.join(disgas_folder, 'surface_data.txt'))
         try:
             os.mkdir(os.path.join(disgas_folder, 'outfiles'))
         except FileExistsError:
             print('Folder ' + os.path.join(disgas_folder, 'outfiles') + ' already exists')
         # Copy the necessary files into the temporary twodee folder
-        # shutil.copy(os.path.join(runs, day_simulation, 'roughness.grd'), os.path.join(twodee_folder, 'roughness.grd'))
         try:
             os.mkdir(os.path.join(twodee_folder, 'outfiles'))
         except FileExistsError:
@@ -1323,12 +1310,8 @@ def read_diagno_outputs():
                     twodee_input_file.write(record)
         os.rename(disgas_inp_new, disgas_inp)
         os.rename(twodee_inp_new, twodee_inp)
-        # os.remove(disgas_inp)
-        # os.remove(twodee_inp)
-        # os.remove(os.path.join(runs, day_simulation, 'roughness.grd'))
-        # os.remove(os.path.join(runs, day_simulation, 'surface_data.txt'))
 
-    runs = os.path.join(root, "simulations", "runs")
+    runs_folder = os.path.join(root, "simulations", "runs")
     tz0 = 298
     p_air = 101325
     r_air = 287
@@ -1664,9 +1647,10 @@ def elaborate_outputs():
         for element in splitted_run_in:
             outfiles_folder += element + os.path.sep
         twodee_folder = os.path.join(outfiles_folder, 'twodee')
-        twodee_subfolders = os.listdir(twodee_folder)
-        if 'outfiles' not in twodee_subfolders:
-            shutil.rmtree(twodee_folder)
+        if os.path.exists(twodee_folder):
+            twodee_subfolders = os.listdir(twodee_folder)
+            if 'outfiles' not in twodee_subfolders:
+                shutil.rmtree(twodee_folder)
         outfiles_folder = os.path.join(outfiles_folder, 'outfiles')
         disgas_outfiles_folder = os.path.join(run, 'outfiles')
         shutil.copytree(disgas_outfiles_folder, outfiles_folder)
@@ -1681,9 +1665,10 @@ def elaborate_outputs():
         for element in splitted_run_in:
             outfiles_folder += element + os.path.sep
         disgas_folder = os.path.join(outfiles_folder, 'disgas')
-        disgas_subfolders = os.listdir(disgas_folder)
-        if 'outfiles' not in disgas_subfolders:
-            shutil.rmtree(disgas_folder)
+        if os.path.exists(disgas_folder):
+            disgas_subfolders = os.listdir(disgas_folder)
+            if 'outfiles' not in disgas_subfolders:
+                shutil.rmtree(disgas_folder)
         outfiles_folder = os.path.join(outfiles_folder, 'outfiles')
         twodee_outfiles_folder = os.path.join(run, 'outfiles')
         try:

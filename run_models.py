@@ -532,7 +532,8 @@ def prepare_days():
     days_prepared = []
     try:
         raw_days = []  # store the days as originally formatted
-        with open(os.path.join(root, "days_list.txt"), "r", encoding="utf-8", errors="surrogateescape") as days_list_file:
+        with open(os.path.join(root, "days_list.txt"), "r", encoding="utf-8", errors="surrogateescape") as \
+                days_list_file:
             for line in days_list_file:
                 raw_days.append(line)
     except FileNotFoundError:

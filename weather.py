@@ -885,18 +885,18 @@ def automatic_weather(analysis_start_in):
             if u_sl is None or v_sl is None or t2m_sl is None or pz0_sl is None or tz0_sl is None:
                 print('Unable to read all necessary meteorological parameters from ' + wtfile_sl_location_step)
                 sys.exit()
-            wind_sl_sl = (u_sl ** 2 + v_sl ** 2) ** 0.5
+            wind_sl_in = (u_sl ** 2 + v_sl ** 2) ** 0.5
             wind_dir_degrees = atan2(u_sl, v_sl) * 180 / pi
-            direction_sl_sl = wind_dir_degrees + 180
+            direction_sl_in = wind_dir_degrees + 180
             prof_file = os.path.join(folder_sl, "data_location_data_" + validity_sl + ".txt")
             wt_output = open(prof_file, "w", encoding="utf-8", errors="surrogateescape")
             wt_output.write("    U[m/s]     V[m/s]  WIND[m/s]  WIND_DIR[deg]    T2m[K]    Tz0[K]   Pz0[Pa]\n")
-            wt_output.write("%10.2f %10.2f %10.2f %10.2f %10.2f %10.2f %10.2f\n" % (u_sl, v_sl, wind_sl_sl,
-                                                                                    direction_sl_sl, t2m_sl, tz0_sl,
+            wt_output.write("%10.2f %10.2f %10.2f %10.2f %10.2f %10.2f %10.2f\n" % (u_sl, v_sl, wind_sl_in,
+                                                                                    direction_sl_in, t2m_sl, tz0_sl,
                                                                                     pz0_sl))
             wt_output.close()
-            gamma_sl_sl = (t2m_sl - tz0_sl) / 2.0
-            return u_sl, v_sl, t2m_sl, wind_sl, direction_sl, tz0_sl, gamma_sl_sl, pz0_sl
+            gamma_sl_in = (t2m_sl - tz0_sl) / 2.0
+            return u_sl, v_sl, t2m_sl, wind_sl_in, direction_sl_in, tz0_sl, gamma_sl_in, pz0_sl
 
         files_list = os.listdir(data_folder_diagno)
         path = os.path.normpath(data_folder_diagno)

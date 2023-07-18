@@ -895,7 +895,7 @@ def automatic_weather(analysis_start_in):
                                                                                     direction_sl_sl, t2m_sl, tz0_sl,
                                                                                     pz0_sl))
             wt_output.close()
-            gamma_sl_sl = (t2m - tz0) / 2.0
+            gamma_sl_sl = (t2m_sl - tz0_sl) / 2.0
             return u_sl, v_sl, t2m_sl, wind_sl, direction_sl, tz0_sl, gamma_sl_sl, pz0_sl
 
         files_list = os.listdir(data_folder_diagno)

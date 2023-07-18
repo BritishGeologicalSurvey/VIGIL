@@ -948,7 +948,7 @@ def automatic_weather(analysis_start_in):
                 wind, direction, height, gamma_pl = extract_grib_data(data_folder_diagno, validity, wtfile_prof_step)
                 for i_wind in range(0, len(wind) - 1):
                     try:
-                        heights_string += "{:>5}".format(str(int(round(height[i]))))
+                        heights_string += "{:>5}".format(str(int(round(height[i_wind]))))
                     except TypeError:
                         heights_string += "   -1"
                     try:

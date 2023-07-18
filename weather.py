@@ -711,7 +711,7 @@ def automatic_weather(analysis_start_in):
             if end_day > nfcst:
                 end_day = nfcst
             n_downloaded_days = end_day
-            pools.append(n_pool_dwnl)
+            pools_dwnl.append(n_pool_dwnl)
             n_pool_dwnl += 1
             if n_downloaded_days == nfcst:
                 break
@@ -728,7 +728,7 @@ def automatic_weather(analysis_start_in):
             except BaseException:
                 print("Unable to doanload weather data")
                 sys.exit()
-            n_downloaded_days = end
+            n_downloaded_days = end_day
             n_pool_dwnl += 1
             if n_downloaded_days == nfcst:
                 break

@@ -1044,7 +1044,7 @@ def run_diagno(max_np):
         for i_day in range(0, len(days)):
             day_diagno = days[i_day]
             diagno_daily = os.path.join(diagno, str(day_diagno))
-            path = os.path.join(root, "simulations", str(day))
+            path = os.path.join(root, "simulations", str(day_diagno))
             files = os.listdir(path)
             try:
                 os.mkdir(diagno_daily)
@@ -1105,7 +1105,7 @@ def run_diagno(max_np):
                         max_height = max(heights)
                         for height in heights:
                             new_record_string += str(height) + ' '
-                        new_record_string += ' CELLZB(1:NZ+1) (m)'
+                        new_record_string += ' CELLZB(1:NZ+1) (m) + \n'
                 if new_record_string != '':
                     diagno_input_records = [new_record_string if item == old_record else item for item in
                                             diagno_input_records]
@@ -1195,7 +1195,7 @@ def run_diagno(max_np):
         except BaseException:
             print("Unable to process weather data with Diagno")
             sys.exit()
-        n_elaborated_days = end
+        n_elaborated_days = end_day
         if n_elaborated_days == len(days):
             break
         for p in ps:

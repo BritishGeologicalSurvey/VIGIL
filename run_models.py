@@ -784,6 +784,9 @@ def pre_process(run_mode):
         os.mkdir(runs_folder)
     except FileExistsError:
         print("Folder " + runs_folder + " already exists")
+        if not diagno_on:
+            shutil.rmtree(runs_folder)
+            os.mkdir(runs_folder)
     for i_day in range(0, len(days)):
         day = days[i_day]
         diagno_daily = os.path.join(diagno, str(day))
@@ -1105,7 +1108,7 @@ def run_diagno(max_np):
                         max_height = max(heights)
                         for height in heights:
                             new_record_string += str(height) + ' '
-                        new_record_string += ' CELLZB(1:NZ+1) (m) + \n'
+                        new_record_string += ' CELLZB(1:NZ+1) (m) ' + '\n'
                 if new_record_string != '':
                     diagno_input_records = [new_record_string if item == old_record else item for item in
                                             diagno_input_records]

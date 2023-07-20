@@ -11,134 +11,55 @@ import utm
 def read_arguments():
     parser = argparse.ArgumentParser(description="Input data", 
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-        "-N",
-        "--nproc",
-        default=1,
-        help="Maximum number of allowed simultaneous processes",
-    )
+    parser.add_argument("-N", "--nproc", default=1, help="Maximum number of allowed simultaneous processes",)
     parser.add_argument('-RT', '--run_type', default='new', help='Specify if the simulation is a new one or a restart.'
                                                                  'Possible options are: new, restart')
     parser.add_argument('-CS', '--continuous_simulation', default='False', help='Specify if the simulation is '
                                                                                 'continuous between the specified '
                                                                                 'start and end dates. Possible options '
                                                                                 'are True or False')
-    parser.add_argument(
-        "-RS",
-        "--random_sources",
-        default="off",
-        help="on: randomly select NS locations from a probability map. off: fixed source locations from file "
-             "sources_input.txt",
-    )
-    parser.add_argument(
-        "-NS",
-        "--nsources",
-        default="random",
-        help="Specify a number for a fixed number of sources. If random, then randomly select the number of sources "
-             "from an interval",
-    )
-    parser.add_argument(
-        "-SINT",
-        "--sources_interval",
-        default='',
-        help="Type the minimum and maximum number of sources",
-    )
-    parser.add_argument(
-        "-SLOC",
-        "--source_location",
-        default='',
-        help="Coordinate type (UTM/GEO), latitude/northing, longitude/easting, elevation (above ground in m) of 1 "
-             "fixed source",
-    )
-    parser.add_argument(
-        "-SDX",
-        "--source_dx",
-        default=999999,
-        help="Extension [m] along the X direction of 1 single source. Option valid for Twodee only",
-    )
-    parser.add_argument(
-        "-SDY",
-        "--source_dy",
-        default=999999,
-        help="Extension [m] along the Y direction of 1 single source. Option valid for Twodee only",
-    )
-    parser.add_argument(
-        "-SDUR",
-        "--source_dur",
-        default=0,
-        help="Emission duration [s] of 1 single source. Option valid for Twodee only",
-    )
-    parser.add_argument(
-        "-D",
-        "--domain",
-        default='',
-        help="Coordinates type (UTM/GEO), coordinates (latitude/northing, longitude/easting) of the bottom left corner "
-             "and top right corner of the domain",
-    )
-    parser.add_argument(
-        "-NX",
-        "--nx",
-        default=-1,
-        help="Number of grid cells along the x-direction. If not provided, the grid spacing along the x-direction "
-             "must be provided",
-    )
-    parser.add_argument(
-        "-NY",
-        "--ny",
-        default=-1,
-        help="Number of grid cells along the y-direction. If not provided, the grid spacing along the y-direction "
-             "must be provided",
-    )
-    parser.add_argument(
-        "-DX",
-        "--dx",
-        default=-1,
-        help="Grid spacing (in m) along the x-direction. If not provided, the number of grid cells along the "
-             "x-direction must be provided",
-    )
-    parser.add_argument(
-        "-DY",
-        "--dy",
-        default=-1,
-        help="Grid spacing (in m) along the y-direction. If not provided, the number of grid cells along the "
-             "y-direction must be provided",
-    )
-    parser.add_argument(
-        "-SEM",
-        "--source_emission",
-        default="999",
-        help="Source emission rate [kg/s]. If specified, it is assigned to all the sources in the domain",
-    )
-    parser.add_argument(
-        "-RER",
-        "--random_emission",
-        default="off",
-        help="on: randomly assign emission rate for each source in the domain sampled from a flux.txt file. off: use "
-             "specified emission rate",
-    )
-    parser.add_argument(
-        "-RD", "--run_duration", default=24, help="Run duration (hours). Currently fractions of hours or duration > 24 "
-                                                  "hours are not allowed")
+    parser.add_argument("-RS", "--random_sources", default="off", help="on: randomly select NS locations from a "
+                        "probability map. off: fixed source locations from file sources_input.txt",)
+    parser.add_argument("-NS", "--nsources", default="random", help="Specify a number for a fixed number of sources. "
+                        "If random, then randomly select the number of sources from an interval",)
+    parser.add_argument("-SINT", "--sources_interval", default='', help="Type the minimum and maximum number of "
+                        "sources",)
+    parser.add_argument("-SLOC", "--source_location", default='', help="Coordinate type (UTM/GEO), latitude/northing, "
+                        "longitude/easting, elevation (above ground in m) of 1 fixed source",)
+    parser.add_argument("-SDX", "--source_dx", default=999999, help="Extension [m] along the X direction of 1 single "
+                        "source. Option valid for Twodee only",)
+    parser.add_argument("-SDY", "--source_dy", default=999999, help="Extension [m] along the Y direction of 1 single "
+                        "source. Option valid for Twodee only",)
+    parser.add_argument("-SDUR", "--source_dur", default=0, help="Emission duration [s] of 1 single source. Option "
+                        "valid for Twodee only",)
+    parser.add_argument("-D", "--domain", default='', help="Coordinates type (UTM/GEO), coordinates (latitude/northing,"
+                        " longitude/easting) of the bottom left corner and top right corner of the domain",)
+    parser.add_argument("-NX", "--nx", default=-1, help="Number of grid cells along the x-direction. If not provided, "
+                        "the grid spacing along the x-direction must be provided",)
+    parser.add_argument("-NY", "--ny", default=-1, help="Number of grid cells along the y-direction. If not provided, "
+                        "the grid spacing along the y-direction must be provided",)
+    parser.add_argument("-DX", "--dx", default=-1, help="Grid spacing (in m) along the x-direction. If not provided, "
+                        "the number of grid cells along the x-direction must be provided",)
+    parser.add_argument("-DY", "--dy", default=-1, help="Grid spacing (in m) along the y-direction. If not provided, "
+                        "the number of grid cells along the y-direction must be provided",)
+    parser.add_argument("-SEM", "--source_emission", default="999", help="Source emission rate [kg/s]. If specified, "
+                        "it is assigned to all the sources in the domain",)
+    parser.add_argument("-RER", "--random_emission", default="off", help="on: randomly assign emission rate for each "
+                        "source in the domain sampled from a flux.txt file. off: use specified emission rate",)
+    parser.add_argument("-RD", "--run_duration", default=24, help="Run duration (hours). Currently fractions of hours "
+                        "or duration > 24 hours are not allowed")
     parser.add_argument("-OI", "--output_interval", default=1, help="Output interval (hours). Currently fractions of "
-                                                                    "hours are not allowed")
+                        "hours are not allowed")
     parser.add_argument("-OH", "--output_heights", default='', help="List of output heights (comma separated) in m "
-                                                                    "above the ground")
-    parser.add_argument(
-        "-DI", "--diagno", default="on", help="on or off, to run Diagno. Turn it off only if Diagno has already "
-                                              "been run"
-    )
-    parser.add_argument(
-        "-DM", "--dispersion_model", default="off", help="Twodee, Disgas or Automatic"
-    )
-    parser.add_argument(
-        "-US", "--use_slurm", default="False", help="True or False, to use SLURM Workload Manager"
-    )
-    parser.add_argument(
-        "-SP", "--slurm_partition", default="", help="Name of the cluster partition to run the Slurm jobs"
-    )
-    parser.add_argument(
-        "-TS", "--tracking_specie", default='', help="The original emitted specie that is tracked in the simulation"
-    )
+                        "above the ground")
+    parser.add_argument("-DI", "--diagno", default="on", help="on or off, to run Diagno. Turn it off only if Diagno has"
+                        " already been run")
+    parser.add_argument("-DM", "--dispersion_model", default="off", help="Twodee, Disgas or Automatic")
+    parser.add_argument("-US", "--use_slurm", default="False", help="True or False, to use SLURM Workload Manager")
+    parser.add_argument("-SP", "--slurm_partition", default="", help="Name of the cluster partition to run the Slurm "
+                        "jobs")
+    parser.add_argument("-TS", "--tracking_specie", default='', help="The original emitted specie that is tracked in "
+                        "the simulation")
     args = parser.parse_args()
     nproc = args.nproc
     run_type_in = args.run_type
@@ -208,18 +129,14 @@ def read_arguments():
                     bottom_left_easting_in = float(out_utm[0])
                     bottom_left_northing_in = float(out_utm[1])
                 except ValueError:
-                    print(
-                        "ERROR. Please provide valid coordinates for the bottom left corner of the domain"
-                    )
+                    print("ERROR. Please provide valid coordinates for the bottom left corner of the domain")
                     sys.exit()
                 try:
                     out_utm = utm.from_latlon(top_right_1, top_right_2)
                     top_right_easting_in = float(out_utm[0])
                     top_right_northing_in = float(out_utm[1])
                 except ValueError:
-                    print(
-                        "ERROR. Please provide valid coordinates for the top right corner of the domain"
-                    )
+                    print("ERROR. Please provide valid coordinates for the top right corner of the domain")
                     sys.exit()
             else:
                 print("ERROR. Please provide valid coordinates")
@@ -232,16 +149,11 @@ def read_arguments():
         else:
             print("ERROR. Please provide a valide type of coordinates (UTM or GEO)")
             sys.exit()
-        if (
-            bottom_left_northing_in == top_right_northing_in
-            or bottom_left_easting_in == top_right_easting_in
-        ):
+        if bottom_left_northing_in == top_right_northing_in or bottom_left_easting_in == top_right_easting_in:
             print("ERROR. Coordinates of the corners cannot coincide")
             sys.exit()
-        if (
-            bottom_left_northing_in > top_right_northing_in
-            and bottom_left_easting_in > top_right_easting_in
-        ):  # Check coordinates are in the proper order, otherwise swap
+        if bottom_left_northing_in > top_right_northing_in and bottom_left_easting_in > top_right_easting_in:
+        # Check coordinates are in the proper order, otherwise swap
             temp = bottom_left_northing_in
             bottom_left_northing_in = top_right_northing_in
             top_right_northing_in = temp
@@ -310,20 +222,15 @@ def read_arguments():
         top_right_easting_in = bottom_left_easting_in + dx_in * nx_in
     if bottom_left_northing_in + dy_in * ny_in != top_right_northing_in:
         top_right_northing_in = bottom_left_northing_in + dy_in * ny_in
-
     if random_sources_in == "on":
         try:
             np.loadtxt("probability_map.grd", skiprows=5)
         except ValueError:
-            print(
-                "Please provide a valid probability_map.grd file when random_sources option is on"
-            )
+            print("Please provide a valid probability_map.grd file when random_sources option is on")
             sys.exit()
         if nsources_in == "random":
             if len(sources_interval_in) != 2:
-                print(
-                    "ERROR. Please specify the minimum and maximum number of sources with -SINT --sources_interval"
-                )
+                print("ERROR. Please specify the minimum and maximum number of sources with -SINT --sources_interval")
                 sys.exit()
         else:
             try:
@@ -332,10 +239,8 @@ def read_arguments():
                 print("Please provide a valid integer for -NS --nsources")
                 sys.exit()
         if random_emission_in == "off" and source_emission_in == 999:
-            print(
-                "ERROR. random_sources set to on requires either random_emission set to on or a "
-                "specified source_emission"
-            )
+            print("ERROR. random_sources set to on requires either random_emission set to on or a specified "
+                  "source_emission")
             sys.exit()
     else:
         if random_sources_in != "off":
@@ -346,54 +251,34 @@ def read_arguments():
                 sources_file = open("sources_input.txt", "r")
                 sources_file.close()
             except FileNotFoundError:
-                print(
-                    "File sources_input.txt not found. Using one source from input data"
-                )
+                print("File sources_input.txt not found. Using one source from input data")
                 if len(source_location) != 4:
-                    print(
-                        "ERROR. Please provide valid entries for -SLOC --sources_location"
-                    )
+                    print("ERROR. Please provide valid entries for -SLOC --sources_location")
                     sys.exit()
                 else:
                     coordinates_type = source_location[0]
                     if coordinates_type == "GEO":
-                        if (
-                            -90 <= float(source_location[1]) <= 90
-                            and -180 <= float(source_location[2]) <= 180
-                        ):  # identify geographic coordinates
+                        if -90 <= float(source_location[1]) <= 90 and -180 <= float(source_location[2]) <= 180:
+                            # identify geographic coordinates
                             try:
-                                out_utm = utm.from_latlon(
-                                    float(source_location[1]), float(source_location[2])
-                                )
+                                out_utm = utm.from_latlon(float(source_location[1]), float(source_location[2]))
                                 source_easting_in = float(out_utm[0])
                                 source_northing_in = float(out_utm[1])
                             except ValueError:
-                                print(
-                                    "ERROR. Please provide valid coordinates of the source location"
-                                )
+                                print("ERROR. Please provide valid coordinates of the source location")
                                 sys.exit()
                     elif coordinates_type == "UTM":
                         source_easting_in = float(source_location[1])
                         source_northing_in = float(source_location[0])
-                        if (
-                            not bottom_left_easting_in
-                            <= source_easting_in
-                            <= top_right_easting_in
-                            or not bottom_left_northing_in
-                            <= source_northing_in
-                            <= top_right_northing_in
-                        ):
+                        if not bottom_left_easting_in <= source_easting_in <= top_right_easting_in or \
+                                not bottom_left_northing_in <= source_northing_in <= top_right_northing_in:
                             print("ERROR. Location not within the domain")
                             sys.exit()
                     else:
-                        print(
-                            "ERROR. Please provide a valide type of coordinates (UTM or GEO)"
-                        )
+                        print("ERROR. Please provide a valide type of coordinates (UTM or GEO)")
                         sys.exit()
                     if float(source_location[2]) < 0:
-                        print(
-                            "ERROR. Please provide a valid value for the source elevation in m above ground (>= 0 m)"
-                        )
+                        print("ERROR. Please provide a valid value for the source elevation in m above ground (>= 0 m)")
                         sys.exit()
                     else:
                         source_el_in = float(source_location[2])
@@ -790,6 +675,7 @@ def pre_process(run_mode):
     for i_day in range(0, len(days)):
         day = days[i_day]
         diagno_daily = os.path.join(diagno, str(day))
+        met_data = os.path.join(simulations, str(day))
         run = os.path.join(runs_folder, str(day))
         try:
             os.mkdir(run)
@@ -822,7 +708,7 @@ def pre_process(run_mode):
             except (FileExistsError, FileNotFoundError):
                 roughness_file_exist = False
             try:
-                shutil.copy(os.path.join(diagno_daily, "surface_data.txt"), os.path.join(disgas_daily,
+                shutil.copyfile(os.path.join(met_data, "surface_data.txt"), os.path.join(disgas_daily,
                                                                                          "surface_data.txt"),)
             except (FileExistsError, FileNotFoundError):
                 print('ERROR with surface_data.txt')
@@ -1084,17 +970,15 @@ def run_diagno(max_np):
                 # read and memorize diagno.inp file
                 diagno_input_records = []
                 diagno_input = os.path.join(diagno_folder, 'diagno.inp')
-                with open(
-                        diagno_input, "r", encoding="utf-8", errors="surrogateescape"
-                ) as diagno_or_input:
+                with open(diagno_input, "r", encoding="utf-8", errors="surrogateescape") as diagno_or_input:
                     for line in diagno_or_input:
                         diagno_input_records.append(line)
                 new_record_string = ''
                 old_record = ''
+                heights = []
                 for record in diagno_input_records:
                     if 'CELLZB' in record:
                         old_record = record
-                        heights = []
                         new_record_string = ''
                         str_heights = record.split('CELLZB(1:NZ+1)')[0].split(' ')
                         for height in str_heights:
@@ -1112,9 +996,7 @@ def run_diagno(max_np):
                 if new_record_string != '':
                     diagno_input_records = [new_record_string if item == old_record else item for item in
                                             diagno_input_records]
-                with open(
-                        diagno_input, "w", encoding="utf-8", errors="surrogateescape"
-                ) as diagno_input_file:
+                with open(diagno_input, "w", encoding="utf-8", errors="surrogateescape") as diagno_input_file:
                     for record in diagno_input_records:
                         if 'NX' in record:
                             if disgas_on:
@@ -1126,6 +1008,8 @@ def run_diagno(max_np):
                                 diagno_input_file.write(str(ny + 2) + '          NY\n')
                             else:
                                 diagno_input_file.write(str(ny) + '          NY\n')
+                        elif 'NZ' in record and ('CELLZB' not in record and 'NZPRNT' not in record):
+                            diagno_input_file.write(str(len(heights) - 1) + '          NZ\n')
                         elif 'DXK' in record:
                             diagno_input_file.write("{0:7.3f}".format(dx / 1000) + '          DXK (km)\n')
                         elif 'DYK' in record:

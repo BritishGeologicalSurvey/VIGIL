@@ -645,7 +645,7 @@ def elaborate_day(day_input):
                     for specie_property in species_properties:
                         if specie_property["specie_name"] == specie_input:
                             molar_ratio = specie_property["molar_ratio"]
-                            molar_weight = specie["molar_weight"]
+                            molar_weight = specie_property["molar_weight"]
                             try:
                                 background_c = specie_property["background_concentration"]
                             except UnboundLocalError:
@@ -659,8 +659,8 @@ def elaborate_day(day_input):
                             elif units == 'kg/m3':
                                 background_c = background_c * ((molar_weight / 22.4) * (273 / t2m) * (p2m / 1013)) / \
                                                1000000
-                        if specie["specie_name"] == original_specie:
-                            molar_weight_tracking_specie = specie["molar_weight"]
+                        if specie_property["specie_name"] == original_specie:
+                            molar_weight_tracking_specie = specie_property["molar_weight"]
                             species_conversion_factor = molar_ratio * (molar_weight / molar_weight_tracking_specie)
                     conc_converted = np.where(conc_converted < 0, 0, conc_converted)
                     conc_converted += background_c

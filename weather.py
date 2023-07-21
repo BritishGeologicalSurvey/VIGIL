@@ -929,7 +929,7 @@ def automatic_weather(analysis_start_in):
             diagno_preupr.write("23         NENDHR\n")
             diagno_preupr.write("0.5          TDIF\n")
             diagno_preupr.write("13          NCELL\n")
-            diagno_preupr.write("0. 1. 2. 4. 8. 16. 24. 32. 40. 60. 80. 100. 250. 500.  CELLZB\n")
+            diagno_preupr.write("0. 1. 2. 5. 10. 20. 50. 100. 250. 500.  CELLZB\n")
             diagno_preupr.write(year_diagno[2:4] + "       KYEAR\n")
             diagno_preupr.write(str(int(month_diagno)) + "       KMONTH\n")
             diagno_preupr.write(str(int(day_diagno)) + "       KDAY\n")
@@ -1099,6 +1099,7 @@ def automatic_weather(analysis_start_in):
                               errors="surrogateescape",)
                 for line_diagno in diagno:
                     diagno_records.append(line_diagno)
+                diagno_records[6] = '0. 1. 2. 5. 10. 20. 50. 100. 250. 500.  CELLZB\n'
                 diagno_records[12] = '    2         NWIND\n'
                 diagno_records[42] = gamma_string_1
                 diagno_records[43] = gamma_string_2
@@ -1309,6 +1310,7 @@ def automatic_weather(analysis_start_in):
             for line_diagno in diagno:
                 diagno_records.append(line_diagno)
             diagno_records[12] = '    ' + str(n_stations) + '         NWIND\n'
+            diagno_records[6] = '0. 1. 2. 5. 10. 20. 50. 100. 250. 500.  CELLZB\n'
             diagno_records[42] = gamma_string_1
             diagno_records[43] = gamma_string_2
             diagno_records[44] = gamma_string_3

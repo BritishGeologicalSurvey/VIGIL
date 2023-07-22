@@ -814,7 +814,7 @@ def pre_process(run_mode):
                 print("Unable to find a valid roughness file for TWODEE")
                 sys.exit()
             try:
-                shutil.copyfile(os.path.join(diagno_daily, "surface_data.txt"), os.path.join(twodee_daily,
+                shutil.copyfile(os.path.join(met_data, "surface_data.txt"), os.path.join(twodee_daily,
                                                                                              "surface_data.txt"),)
             except (FileExistsError, FileNotFoundError):
                 print('ERROR with surface_data.txt')
@@ -827,7 +827,7 @@ def pre_process(run_mode):
             source_file.close()
             # read and memorize twodee.inp file. First read and memorize the domain properties of diagno, since
             # twodee's domain must coincide with it
-            with open(os.path.join(diagno_daily, "diagno.inp"), 'r') as diagno_input_data:
+            with open(os.path.join(met_data, "diagno.inp"), 'r') as diagno_input_data:
                 for line in diagno_input_data:
                     if 'NX\n' in line:
                         nx_diagno = int(line.split('NX')[0])

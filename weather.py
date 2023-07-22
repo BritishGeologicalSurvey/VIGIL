@@ -928,7 +928,7 @@ def automatic_weather(analysis_start_in):
             diagno_preupr.write("0          NSTRHR\n")
             diagno_preupr.write("23         NENDHR\n")
             diagno_preupr.write("0.5          TDIF\n")
-            diagno_preupr.write("13          NCELL\n")
+            diagno_preupr.write("9          NCELL\n")
             diagno_preupr.write("0. 1. 2. 5. 10. 20. 50. 100. 250. 500.  CELLZB\n")
             diagno_preupr.write(year_diagno[2:4] + "       KYEAR\n")
             diagno_preupr.write(str(int(month_diagno)) + "       KMONTH\n")

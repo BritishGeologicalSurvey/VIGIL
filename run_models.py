@@ -153,7 +153,7 @@ def read_arguments():
             print("ERROR. Coordinates of the corners cannot coincide")
             sys.exit()
         if bottom_left_northing_in > top_right_northing_in and bottom_left_easting_in > top_right_easting_in:
-        # Check coordinates are in the proper order, otherwise swap
+            # Check coordinates are in the proper order, otherwise swap
             temp = bottom_left_northing_in
             bottom_left_northing_in = top_right_northing_in
             top_right_northing_in = temp

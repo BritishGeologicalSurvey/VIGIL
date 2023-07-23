@@ -1413,6 +1413,10 @@ def run_simulations(max_np):
 def converter(run_in):
     def convert_to_ppm(input_file, output_file):
         import datetime
+        splitted_path = run_in.split(os.sep)
+        day = splitted_path[-2]
+        met_data = run_in.split('runs')[0]
+        met_data = os.path.join(met_data, 'diagno', day)
         first_records = []
         with open(input_file, 'r') as input_file_read:
             i_line = 1
@@ -1433,7 +1437,7 @@ def converter(run_in):
         if file_validity > 23:
             file_validity = 23  # Because diagno outputs do not go beyond 23 hours
         file_validity = datetime.timedelta(hours=file_validity)         
-        surface_data = os.path.join(run_in, 'surface_data.txt')
+        surface_data = os.path.join(met_data, 'surface_data.txt')
         with open(surface_data) as surface_data_file:
             for line in surface_data_file:
                 try:

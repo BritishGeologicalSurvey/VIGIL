@@ -119,9 +119,7 @@ def read_arguments():
     if calculate_ecdf_in.lower() == 'true':
         calculate_ecdf_in = True
         if ex_prob_in == '':
-            print(
-                'ERROR. Please specify at least one exceedance probability to plot when --calculate_ecdf==True'
-            )
+            print('ERROR. Please specify at least one exceedance probability to plot when --calculate_ecdf==True')
             sys.exit()
     elif calculate_ecdf_in.lower() == 'false':
         calculate_ecdf_in = False
@@ -183,9 +181,7 @@ def read_arguments():
             min_con_in = float(plot_limits[0])
             max_con_in = float(plot_limits[1])
         except ValueError:
-            print(
-                'ERROR. Please specify valid minimum and maximum concentration -PL --plot_limits'
-            )
+            print('ERROR. Please specify valid minimum and maximum concentration -PL --plot_limits')
             sys.exit()
     if len(plot_isolines_s) >= 1:
         for isoline in plot_isolines_s:
@@ -198,9 +194,7 @@ def read_arguments():
                     plot_isolines_in = []
                     break
     if output_format_in.lower() != 'grd':
-        print(
-            'ERROR. Please specify a valid output format. Current valid options are: GRD'
-        )
+        print('ERROR. Please specify a valid output format. Current valid options are: GRD')
         sys.exit()
     else:
         output_format_in = 'grd'
@@ -593,7 +587,7 @@ def elaborate_tracking_points():
 
 
 def elaborate_day(day_input):
-    def converter(input_file, processed_file, specie_input, model_input):
+    def converter(input_file, processed_file, specie_input):
         conc = np.loadtxt(input_file, skiprows=5)
         conc[conc < 0] = 0
         molar_weight = 0
@@ -994,7 +988,7 @@ def elaborate_day(day_input):
             end_file = len(files_list_path)
         pool_files = ThreadingPool(max_number_processes)
         pool_files.map(converter, files_list_path[start_file:end_file], processed_files[start_file:end_file],
-                       species_list[start_file:end_file], models[start_file:end_file],)
+                       species_list[start_file:end_file],)
         n_elaborated_files = end_file
         if n_elaborated_files == len(files_list_path):
             break

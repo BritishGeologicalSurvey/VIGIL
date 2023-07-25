@@ -1,7 +1,7 @@
 HOW TO RUN EXAMPLE_1:  Campi Flegrei Solfatara (Italy)
 
-python ../../weather.py -S 12/08/2022 -E 12/08/2022 -V 211010 -NS 1 -M forecast -N 1 -DG on
+python ../../weather.py -S 16/07/2023 -E 16/07/2023 -V 211010 -NS 1 -M forecast -N 1 -DG on
 
-python ../../run_models.py -RS off -D UTM,4517000,426000,4522000,431000 -NX 100 -NY 100 -N 1 -DG on
+python ../../run_models.py -RS off -D UTM,4517000,426000,4522000,431000 -NX 100 -NY 100 -N 1 -DM disgas -TS CO2 -OH 0,0.5,1.5,5,15,30
 
-python ../../post_process.py -P true -T all -L all -D all -C False -N 1 -M disgas -U ppm -TS CO2 -S CO2 -PT True -TI 25 -PL 350,1000
+python ../../post_process.py -P true -T all -L all -D all -C False -N 1 -U ppm -TS CO2 -S CO2 -PT True -TI 25 -PL 350,1000

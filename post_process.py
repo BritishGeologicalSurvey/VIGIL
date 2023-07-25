@@ -599,8 +599,7 @@ def elaborate_day(day_input):
         molar_weight = 0
         conc_converted = np.empty_like(conc)
         if units == 'ppm':
-            if model_input == 'disgas' or model_input == 'merged':
-                conc_converted = conc
+            conc_converted = conc
         else:
             file_dt = os.path.split(processed_file)[1]
             file_dt = file_dt.split('_')[2]

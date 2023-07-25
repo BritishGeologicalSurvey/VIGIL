@@ -473,7 +473,8 @@ def gas_properties():
             if bg_conc != bg_conc:
                 print('WARNING. Background concentration of ' + specie_in + ' not found in gas_properties.csv')
         except KeyError:
-            print('WARNING. Background concentration of ' + specie_in + ' not found in gas_properties.csv')
+            print('ERROR. Background concentration of ' + specie_in + ' not found in gas_properties.csv')
+            sys.exit()
         for i_exp in range(len(exp_times)):
             if float(exp_times[i_exp]) < simulation_time / n_time_steps / 3600:
                 print('WARNING. For specie ' + specie_in + ' the exposure time ' + str(exp_times[i_exp]) +

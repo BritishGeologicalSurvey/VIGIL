@@ -458,9 +458,17 @@ def pre_process(run_mode):
         except KeyError:
             print('ERROR. Gas molar weight of ' + tracking_specie + ' not found in gas_properties.csv')
             sys.exit()
+        try:
+            y = np.sort(data['BG_' + tracking_specie])
+            bg_conc = list(y)[0]
+            if bg_conc != bg_conc:
+                print('WARNING. Background concentration of ' + tracking_specie + ' not found in gas_properties.csv')
+        except KeyError:
+            print('ERROR. Background concentration of ' + tracking_specie + ' not found in gas_properties.csv')
+            sys.exit()
         rho_g = 101325 / (r_gas * t_gas)
         rho_g_20 = 101325 / (r_gas * 293)  # Time-averaged gas density for the twodee.inp file
-        return r_gas, t_gas, rho_g, rho_g_20, m_gas
+        return r_gas, t_gas, rho_g, rho_g_20, m_gas, bg_conc
 
     def sample_random_sources(
         n_sources_inp, input_file, dur_min_inp, dur_max_inp, source_size_min_inp, source_size_max_inp
@@ -555,7 +563,8 @@ def pre_process(run_mode):
         return sampled_flux
 
     # Extract temperature and gas constant of the tracking specie
-    gas_constant, gas_temperature, gas_density, gas_density_20, gas_molar_weight = extract_gas_properties()
+    gas_constant, gas_temperature, gas_density, gas_density_20, gas_molar_weight, gas_background_concentration = \
+        extract_gas_properties()
     # Set source files for DISGAS and TWODEE. TWODEE also needs source start and stop time, to be generalized
     random_eastings = []
     random_northings = []
@@ -894,6 +903,8 @@ def pre_process(run_mode):
                         twodee_input_file.write('   OUTPUT_DIRECTORY   = ' + outfiles_twodee + ' \n')
                     elif 'HEIGHTS_(M)' in record:
                         twodee_input_file.write('     HEIGHTS_(M)          = ' + output_heights + '\n')
+                    elif 'CONCENTRATION_BG' in record:
+                        twodee_input_file.write('     CONCENTRATION_BG     = ' + gas_background_concentration  + '\n')
                     elif 'TOPOGRAPHY_FILE' in record and 'TOPOGRAPHY_FILE_FORMAT' not in record:
                         twodee_input_file.write('   TOPOGRAPHY_FILE   = ' +
                                                 os.path.join(diagno_daily, 'topography.grd') + ' \n')

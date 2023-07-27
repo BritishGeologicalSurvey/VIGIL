@@ -680,7 +680,10 @@ def pre_process(run_mode):
     for i_day in range(0, len(days)):
         day = days[i_day]
         diagno_daily = os.path.join(diagno, str(day))
-        met_data = os.path.join(simulations, str(day))
+        if diagno_on:
+            met_data = os.path.join(simulations, str(day))
+        else:
+            met_data = os.path.join(simulations, 'diagno', str(day))
         run = os.path.join(runs_folder, str(day))
         try:
             os.mkdir(run)
@@ -820,7 +823,7 @@ def pre_process(run_mode):
                 sys.exit()
             try:
                 shutil.copyfile(os.path.join(met_data, 'surface_data.txt'), os.path.join(twodee_daily,
-                                                                                             'surface_data.txt'),)
+                                'surface_data.txt'),)
             except (FileExistsError, FileNotFoundError):
                 print('ERROR with surface_data.txt')
             with open(os.path.join(twodee_daily, 'source.dat'), 'w', encoding='utf-8', errors='surrogateescape',) as \
@@ -904,7 +907,8 @@ def pre_process(run_mode):
                     elif 'HEIGHTS_(M)' in record:
                         twodee_input_file.write('     HEIGHTS_(M)          = ' + output_heights + '\n')
                     elif 'CONCENTRATION_BG' in record:
-                        twodee_input_file.write('     CONCENTRATION_BG     = ' + gas_background_concentration  + '\n')
+                        twodee_input_file.write('     CONCENTRATION_BG     = ' + str(gas_background_concentration) +
+                                                '\n')
                     elif 'TOPOGRAPHY_FILE' in record and 'TOPOGRAPHY_FILE_FORMAT' not in record:
                         twodee_input_file.write('   TOPOGRAPHY_FILE   = ' +
                                                 os.path.join(diagno_daily, 'topography.grd') + ' \n')

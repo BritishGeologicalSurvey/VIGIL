@@ -118,8 +118,8 @@ def read_arguments():
             bottom_left_2 = float(domain[2])
             top_right_1 = float(domain[3])
             top_right_2 = float(domain[4])
-            if (-90 <= bottom_left_1 <= 90 and -180 <= bottom_left_2 <= 180) and (
-                -90 <= top_right_1 <= 90 and -180 <= top_right_2 <= 180):  # identify valid geographic coordinates
+            if (-90 <= bottom_left_1 <= 90 and -180 <= bottom_left_2 <= 180) and \
+                    (-90 <= top_right_1 <= 90 and -180 <= top_right_2 <= 180):  # identify valid geographic coordinates
                 try:
                     out_utm = utm.from_latlon(bottom_left_1, bottom_left_2)
                     bottom_left_easting_in = float(out_utm[0])
@@ -364,6 +364,9 @@ def read_arguments():
         output_heights_in = [float(output_height) for output_height in output_heights_in]
         if 0.0 not in output_heights_in:  # 0 m level is necessary for DISGAS is the source height is set to 0 m abg
             output_heights_in.append(0.0)
+        if 10.0 > max(output_heights_in):
+            output_heights_in.append(10.0)  # 10.0 is the reference level for wind measurements in diagno.inp. This
+            # can be generalized, at the moment ZSWIND in diagno.inp is not changed in VIGIL
         nz_in = len(output_heights_in)
         for height in sorted(output_heights_in):
             output_heights_in_str += str(height) + ' '

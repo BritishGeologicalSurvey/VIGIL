@@ -1217,10 +1217,7 @@ def read_diagno_outputs():
     tz0 = 298
     p_air = 101325
     r_air = 287
-    area_source = dx * dy
-    r_source = (area_source / 3.1416) ** 0.5
     for day in days:
-        # ri_sources = []
         g_prime_sources = []
         rho_gas_sources = []
         twodee_sources = []
@@ -1322,6 +1319,11 @@ def read_diagno_outputs():
         q_average_sources = [gas_fluxes_sources[i_source] / rho_gas_sources[i_source]
                              for i_source in range(0, len(gas_fluxes_sources))]
         for i_source in range(0, len(wind_time_average_sources)):
+            if twodee_on:
+                area_source = dx_sources[i_source] * dy_sources[i_source]
+            else:
+                area_source = dx * dy
+            r_source = (area_source / 3.1416) ** 0.5
             try:
                 ri_source = (1 / wind_time_average_sources[i_source] ** 2) * ((g_prime_sources[i_source] *
                              q_average_sources[i_source]) / r_source) ** (2 / 3)
@@ -1499,8 +1501,8 @@ def match_grid(run_in):
     x_disgas = np.linspace(bottom_left_easting + dx / 2, top_right_easting - dx / 2, nx)
     y_disgas = np.linspace(bottom_left_northing + dy / 2, top_right_northing - dy / 2, ny)
     x_grd_disgas, y_grd_disgas = np.meshgrid(x_disgas, y_disgas)
-    x_twodee = np.linspace(bottom_left_easting - dx, top_right_easting + dx, nx + 2)
-    y_twodee = np.linspace(bottom_left_northing - dy, top_right_northing + dy, ny + 2)
+    x_twodee = np.linspace(bottom_left_easting - dx, top_right_easting + dx, nx + 2) # FABIO: sto testando senza +2
+    y_twodee = np.linspace(bottom_left_northing - dy, top_right_northing + dy, ny + 2) # FABIO: sto testando senza +2
     splitted_run_in = run_in.split(os.path.sep)
     try:
         splitted_run_in.remove('')

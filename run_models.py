@@ -1583,6 +1583,9 @@ def elaborate_outputs():
         twodee_outfiles_folder = os.path.join(run, 'outfiles')
         try:
             shutil.copytree(twodee_outfiles_folder, outfiles_folder)
+            for output_file in os.listdir(outfiles_folder):
+                if 'c_' not in output_file: # remove all other twodee output files
+                    shutil.rmtree(os.path.join(outfiles_folder, output_file))
         except FileExistsError:
             # We are in a split simulation
             disgas_outfiles_folder = os.path.join(disgas_folder, 'outfiles')

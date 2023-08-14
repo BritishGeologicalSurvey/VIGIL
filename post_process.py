@@ -707,12 +707,12 @@ def elaborate_day(day_input):
             output_files_day = []
             overcome_matrix_out = np.zeros((ny, nx))
             for output_file in day_output_files:
-                if output_file.split('_')[1] == file_level_s_input:
+                if output_file.split('_')[1] == file_level_s_input and 'tavg' not in output_file:
                     output_files_day.append(os.path.join(output_folder, output_file))
             calculate_overcome_time(output_files_day)
             pers_output = os.path.join(persistence_folder, specie_input, 'C_' + str(concentration_threshold_input)
                                        + '_t_' + str(exposure_time_input) + 'H',
-                                       'persistence_' + file_level_s + '.grd')
+                                       'persistence_' + file_level_s_input + '.grd')
             return pers_output, overcome_matrix_out
 
         for specie_per in species:

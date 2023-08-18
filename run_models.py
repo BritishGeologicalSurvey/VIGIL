@@ -612,8 +612,11 @@ def pre_process(run_mode):
     elevations = random_elevations
     probabilities = random_probabilities
     fluxes_input = random_fluxes
-    dx_sources_twodee = random_dx
-    dy_sources_twodee = random_dy
+    # dx_sources_twodee = random_dx
+    # dy_sources_twodee = random_dy
+    # FABIO: new lines
+    dx_src = random_dx
+    dy_src = random_dy
     dur = random_dur
     source_temperatures = random_temperatures
     n_sources = 0
@@ -628,15 +631,20 @@ def pre_process(run_mode):
                     probabilities.append(float(records[3]))
                     fluxes_input.append(float(records[4]))
                     source_temperatures.append(float(records[5]))
-                    if twodee_on:
-                        try:
-                            dx_sources_twodee.append(float(records[6]))
-                            dy_sources_twodee.append(float(records[7]))
-                            dur.append(float(records[8]))
-                        except IndexError:
-                            dx_sources_twodee.append(1)
-                            dy_sources_twodee.append(1)
-                            dur.append(86400)
+                    # FABIO: new lines
+                    dx_src.append(float(records[6]))
+                    dy_src.append(float(records[7]))
+                    dur.append(float(records[8]))
+                    ####################
+                    # if twodee_on:
+                    #     try:
+                    #         dx_sources_twodee.append(float(records[6]))
+                    #         dy_sources_twodee.append(float(records[7]))
+                    #         dur.append(float(records[8]))
+                    #     except IndexError:
+                    #         dx_sources_twodee.append(1)
+                    #         dy_sources_twodee.append(1)
+                    #         dur.append(86400)
                     n_sources += 1
                 except ValueError:
                     continue
@@ -652,8 +660,12 @@ def pre_process(run_mode):
             fluxes_input.append(source_emission)
             source_temperatures.append(gas_temperature)  # If problems with reading sources_input.txt, assign
             # the same temperauture to all sources
-            dx_sources_twodee.append(source_dx)
-            dy_sources_twodee.append(source_dy)
+            # FABIO: new lines
+            dx_src.append(source_dx)
+            dy_src.append(source_dy)
+            ######################
+            # dx_sources_twodee.append(source_dx)
+            # dy_sources_twodee.append(source_dy)
             dur.append(source_dur)
         n_sources = len(easting)
 
@@ -710,8 +722,34 @@ def pre_process(run_mode):
             with open(os.path.join(disgas_daily, 'source.dat'), 'w', encoding='utf-8', errors='surrogateescape',) as \
                     source_file:
                 for j_source in range(0, n_sources):
-                    source_file.write('{0:7.3f}'.format(easting[j_source]) + ' ' + '{0:7.3f}'.format(northing[j_source])
-                        + ' ' + '{0:7.2f}'.format(elevations[j_source]) + ' ' + str(gas_fluxes[j_source]) + '\n')
+                    # source_file.write('{0:7.3f}'.format(easting[j_source]) + ' ' +
+                    #                   '{0:7.3f}'.format(northing[j_source]) + ' ' +
+                    #                   '{0:7.2f}'.format(elevations[j_source]) + ' ' + str(gas_fluxes[j_source]) +
+                    #                   '\n')
+                    # FABIO: new lines
+                    if dx_src[j_source] * dy_src[j_source] > dx * dy:
+                        # Split the source across the computational cells, since currently DISGAS does only allow point
+                        # sources
+                        nx_source = int(dx_src[j_source] / dx) + 1
+                        ny_source = int(dy_src[j_source] / dy) + 1
+                        x_or_source = easting[j_source] - dx_src[j_source] / 2
+                        y_or_source = northing[j_source] - dy_src[j_source] / 2
+                        splitted_flux = gas_fluxes[j_source] / (nx_source * ny_source)
+                        x_source = x_or_source
+                        y_source = y_or_source
+                        for jj_source in range(0, ny_source):
+                            for ii_source in range(0, nx_source):
+                                source_file.write('{0:7.3f}'.format(x_source) + ' ' + '{0:7.3f}'.format(y_source) + ' '
+                                                  + '{0:7.2f}'.format(elevations[j_source]) + ' ' + str(splitted_flux) +
+                                                  '\n')
+                                x_source += dx
+                            y_source += dy
+                    else:
+                        source_file.write('{0:7.3f}'.format(easting[j_source]) + ' ' +
+                                          '{0:7.3f}'.format(northing[j_source]) + ' ' +
+                                          '{0:7.2f}'.format(elevations[j_source]) + ' ' + str(gas_fluxes[j_source]) +
+                                          '\n')
+                    #################################
             source_file.close()
             roughness_file_exist = True
             try:
@@ -832,9 +870,14 @@ def pre_process(run_mode):
             with open(os.path.join(twodee_daily, 'source.dat'), 'w', encoding='utf-8', errors='surrogateescape',) as \
                     source_file:
                 for j in range(0, n_sources):
+                    # FABIO: new lines
                     source_file.write('{0:7.3f}'.format(easting[j]) + ' ' + '{0:7.3f}'.format(northing[j]) + ' '
-                        + '{0:7.3f}'.format(gas_fluxes[j]) + ' ' + '{0:7.2f}'.format(dx_sources_twodee[j]) + ' '
-                        + '{0:7.2f}'.format(dy_sources_twodee[j]) + ' KG_SEC 0 ' + '{0:7.3f}'.format(dur[j]) + '\n')
+                                      + '{0:7.3f}'.format(gas_fluxes[j]) + ' ' + '{0:7.2f}'.format(dx_src[j]) + ' '
+                                      + '{0:7.2f}'.format(dy_src[j]) + ' KG_SEC 0 ' + '{0:7.3f}'.format(dur[j]) + '\n')
+                    ##############################
+                    # source_file.write('{0:7.3f}'.format(easting[j]) + ' ' + '{0:7.3f}'.format(northing[j]) + ' '
+                    #     + '{0:7.3f}'.format(gas_fluxes[j]) + ' ' + '{0:7.2f}'.format(dx_sources_twodee[j]) + ' '
+                    #    + '{0:7.2f}'.format(dy_sources_twodee[j]) + ' KG_SEC 0 ' + '{0:7.3f}'.format(dur[j]) + '\n')
             source_file.close()
             # read and memorize twodee.inp file. First read and memorize the domain properties of diagno, since
             # twodee's domain must coincide with it
@@ -933,8 +976,12 @@ def pre_process(run_mode):
                     else:
                         twodee_input_file.write(record)
             shutil.copy(twodee_input, twodee_original)
-    return easting, northing, elevations, dx_sources_twodee, dy_sources_twodee, dur, gas_fluxes, source_temperatures, \
-        gas_density, gas_constant, gas_molar_weight
+    # FABIO: new lines
+    return easting, northing, elevations, dx_src, dy_src, dur, gas_fluxes, source_temperatures, gas_density, \
+           gas_constant, gas_molar_weight
+    ######################################
+    # return easting, northing, elevations, dx_sources_twodee, dy_sources_twodee, dur, gas_fluxes, source_temperatures, \
+    #    gas_density, gas_constant, gas_molar_weight
 
 
 def run_diagno(max_np):

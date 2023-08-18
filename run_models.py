@@ -1376,7 +1376,7 @@ def read_diagno_outputs():
                              q_average_sources[i_source]) / r_source) ** (2 / 3)
             except ValueError:  # When gprime <0, for the moment we set Ri = 0.01 (small number)
                 ri_source = 0.01
-            if ri_source > 1:
+            if ri_source > 0.25: # FABIO: less restrictive condition
                 twodee_sources.append(ri_source)
                 index_sources_twodee.append(i_source)
             else:

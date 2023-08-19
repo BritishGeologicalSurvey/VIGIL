@@ -1548,8 +1548,8 @@ def match_grid(run_in):
     x_disgas = np.linspace(bottom_left_easting + dx / 2, top_right_easting - dx / 2, nx)
     y_disgas = np.linspace(bottom_left_northing + dy / 2, top_right_northing - dy / 2, ny)
     x_grd_disgas, y_grd_disgas = np.meshgrid(x_disgas, y_disgas)
-    x_twodee = np.linspace(bottom_left_easting - dx, top_right_easting + dx, nx)
-    y_twodee = np.linspace(bottom_left_northing - dy, top_right_northing + dy, ny)
+    x_twodee = np.linspace(bottom_left_easting, top_right_easting, nx + 2)
+    y_twodee = np.linspace(bottom_left_northing, top_right_northing, ny + 2)
     splitted_run_in = run_in.split(os.path.sep)
     try:
         splitted_run_in.remove('')

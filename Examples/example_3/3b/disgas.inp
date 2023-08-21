@@ -1,0 +1,67 @@
+DISGAS INPUT FILE
+
+TIME
+  YEAR   = 2021
+  MONTH  = 09
+  DAY    = 16
+  HOUR   =  0
+  MINUTE = 0
+  SIMULATION_INTERVAL_(SEC) =   14400
+  RESTART_RUN = NO
+  RESET_TIME = NO
+
+GRID
+  NX     = 400
+  NY     = 170
+  NZ     = 9
+  Z_LAYERS_(M) = 0.0 0.05 0.5 1.0 1.5 2.0 2.5 3.0 10.0 
+  DX_(M) = 3.0
+  DY_(M) = 3.0
+  X_ORIGIN_(UTM_M) = 511300.0
+  Y_ORIGIN_(UTM_M) = 4535600.0
+
+PROPERTIES
+  DISPERSION_TYPE = GAS            
+  PARTICLE_DIAMETER = 1e-5        
+  PARTICLE_DENSITY =  2500.         
+  PARTICLE_SHAPE_PARAMETER = 1.    
+  PARTICLE_MODEL_VSET = GANSER      
+
+TOPOGRAPHY
+  EXTRACT_TOPOGRAPHY_FROM_FILE = YES   
+  Z_ORIGIN_(M) = 0.0
+  X_SLOPE_(DEG) = 0.0
+  Y_SLOPE_(DEG) = 0.0
+
+METEO
+  WIND_MODEL            = DIAGNO       
+  HORIZONTAL_TURB_MODEL = SMAGORINSKY   
+  VERTICAL_TURB_MODEL   = SIMILARITY    
+  ROUGHNESS_MODEL       = UNIFORM      
+  ROUGHNESS_LENGTH      = 0.05          
+  DIFF_COEFF_HORIZONTAL = 10.           
+  DIFF_COEFF_VERTICAL   = 10.          
+
+ FILES                                        (Relative or absolute file paths)
+   TOPOGRAPHY_FILE_PATH   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3_automatic/simulations/diagno/20210916/topography.grd 
+   ROUGHNESS_FILE_PATH   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3_automatic/simulations/runs/20210916/disgas/roughness.grd 
+   RESTART_FILE_PATH   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3_automatic/simulations/runs/20210916/disgas/restart.dat 
+   SOURCE_FILE_PATH   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3_automatic/simulations/runs/20210916/disgas/source.dat 
+   WIND_FILE_PATH   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3_automatic/simulations/runs/20210916/disgas/winds.dat 
+   DIAGNO_FILE_PATH   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3_automatic/simulations/diagno/20210916/diagno.out 
+   OUTPUT_DIRECTORY    = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3_automatic/simulations/runs/20210916/disgas/outfiles 
+
+OUTPUT
+  LOG_VERBOSITY_LEVEL  = 0                 
+  OUTPUT_GRD_TYPE      = ASCII            
+  OUTPUT_INTERVAL_(SEC) = 3600
+  OUTPUT_U_VELOCITY = NO                 
+  OUTPUT_V_VELOCITY = NO                 
+  OUTPUT_W_VELOCITY = NO                  
+  OUTPUT_CONCENTRATION = YES               
+  OUTPUT_LAYERS = ALL                    
+  TRACK_POINTS = NO                      
+  N_POINTS = 2                            
+  POINTS_EASTING = 643080 641000           
+  POINTS_NORTHING = 1774150 1774250      
+  POINTS_ELEVATION = 1 1                   

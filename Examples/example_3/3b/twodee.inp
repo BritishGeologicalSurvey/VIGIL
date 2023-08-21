@@ -14,24 +14,24 @@
   DAY    = 16
   HOUR   =  0
    MINUTE = 00 
-  SIMULATION_INTERVAL_(SEC) =   86400
+  SIMULATION_INTERVAL_(SEC) =   14400
   RESTART_RUN = NO
    ! 
  GRID
    UTM_ZONE  = 33N                                  
    UTM_DATUM = WGS_84                               
    !
-  X_ORIGIN_(UTM_M) = 511300.0
-  Y_ORIGIN_(UTM_M) = 4535600.0
-  NX     = 400
-  NY     = 170
+  X_ORIGIN_(UTM_M) = 511297.0
+  Y_ORIGIN_(UTM_M) = 4535597.0
+  NX     = 402
+  NY     = 172
   DX_(M) = 3.0
   DY_(M) = 3.0
    !
  PROPERTIES 
   AMBIENT_GAS_DENSITY_20C_(KG/M3) = 1.204
   DENSE_GAS_DENSITY_20C_(KG/M3) =  1.831
-  AVERAGED_TEMPERATURE_(C) = 300.0
+  AVERAGED_TEMPERATURE_(C) = 293.0
    DOSE_GAS_TOXIC_EXPONENT         = 2.0
    !  
  METEO
@@ -42,18 +42,18 @@
    Y_STATION_(UTM_M) = 500.                       
    !
  FILES  
-   OUTPUT_DIRECTORY   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3/simulations/runs/20210916/twodee/outfiles 
+   OUTPUT_DIRECTORY   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3_automatic/simulations/runs/20210916/twodee/outfiles 
    ! 
-   TOPOGRAPHY_FILE   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3/simulations/diagno/20210916/topography.grd 
+   TOPOGRAPHY_FILE   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3_automatic/simulations/diagno/20210916/topography.grd 
    TOPOGRAPHY_FILE_FORMAT  = GRD               
-   ROUGHNESS_FILE   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3/simulations/runs/20210916/twodee/roughness.grd 
+   ROUGHNESS_FILE   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3_automatic/simulations/runs/20210916/twodee/roughness.grd 
    ROUGHNESS_FILE_FORMAT   = GRD                
-   RESTART_FILE   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3/simulations/runs/20210916/twodee/restart.dat 
-   SOURCE_FILE   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3/simulations/runs/20210916/twodee/source.dat 
+   RESTART_FILE   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3_automatic/simulations/runs/20210916/twodee/restart.dat 
+   SOURCE_FILE   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3_automatic/simulations/runs/20210916/twodee/source.dat 
    !
    WIND_FILE               = winds.dat          
-   DIAGNO_FILE   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3/simulations/diagno/20210916/diagno.out 
-   SURF_DATA_FILE   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3/simulations/diagno/20210916/surface_data.txt 
+   DIAGNO_FILE   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3_automatic/simulations/diagno/20210916/diagno.out 
+   SURF_DATA_FILE   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3_automatic/simulations/diagno/20210916/surface_data.txt 
    MET_NC_FILE             = winds.nc           
    !
    TRACK_POINTS            = NO                
@@ -79,8 +79,8 @@
    OUTPUT_DOSE            = yes                      
    OUTPUT_CONCENTRATION   = yes
    OUTPUT_MAX_CONCENTRATION = yes                     
-     HEIGHTS_(M)          = 0.0 0.05 0.5 1.0 1.5 2.0 2.5 3.0 
-     CONCENTRATION_BG     = 350.                     
+     HEIGHTS_(M)          = 0.0 0.05 0.5 1.0 1.5 2.0 2.5 3.0 10.0 
+     CONCENTRATION_BG     = 400.0
    OUTPUT_Z_CRITICAL      = yes                     
      CRITICAL_C_(%)       = 5 10 15                    
    OUTPUT_IMPACT          = no                       

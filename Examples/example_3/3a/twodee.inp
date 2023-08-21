@@ -1,0 +1,99 @@
+!-------------------------------
+!
+!  EXAMPLE OF TWODEE INPUT FILE
+!
+!-------------------------------
+
+ VERSION
+   VERSION = 2.2
+   PROBLEM_NAME = Example
+   !
+ TIME
+  YEAR   = 2021
+  MONTH  = 09
+  DAY    = 16
+  HOUR   =  0
+   MINUTE = 00 
+  SIMULATION_INTERVAL_(SEC) =   14400
+  RESTART_RUN = NO
+   ! 
+ GRID
+   UTM_ZONE  = 33N                                  
+   UTM_DATUM = WGS_84                               
+   !
+  X_ORIGIN_(UTM_M) = 511300.0
+  Y_ORIGIN_(UTM_M) = 4535600.0
+  NX     = 400
+  NY     = 170
+  DX_(M) = 3.0
+  DY_(M) = 3.0
+   !
+ PROPERTIES 
+  AMBIENT_GAS_DENSITY_20C_(KG/M3) = 1.204
+  DENSE_GAS_DENSITY_20C_(KG/M3) =  1.831
+  AVERAGED_TEMPERATURE_(C) = 293.0
+   DOSE_GAS_TOXIC_EXPONENT         = 2.0
+   !  
+ METEO
+   WIND_MODEL        = DIAGNO                      
+   Z_REFERENCE_(M)   = 2.0
+   !
+   X_STATION_(UTM_M) = 500.                            
+   Y_STATION_(UTM_M) = 500.                       
+   !
+ FILES  
+   OUTPUT_DIRECTORY   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3/simulations/runs/20210916/twodee/outfiles 
+   ! 
+   TOPOGRAPHY_FILE   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3/simulations/diagno/20210916/topography.grd 
+   TOPOGRAPHY_FILE_FORMAT  = GRD               
+   ROUGHNESS_FILE   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3/simulations/runs/20210916/twodee/roughness.grd 
+   ROUGHNESS_FILE_FORMAT   = GRD                
+   RESTART_FILE   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3/simulations/runs/20210916/twodee/restart.dat 
+   SOURCE_FILE   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3/simulations/runs/20210916/twodee/source.dat 
+   !
+   WIND_FILE               = winds.dat          
+   DIAGNO_FILE   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3/simulations/diagno/20210916/diagno.out 
+   SURF_DATA_FILE   = /lustrehome/fabiodioguardi/Software/VIGIL/Examples/example_3/simulations/diagno/20210916/surface_data.txt 
+   MET_NC_FILE             = winds.nc           
+   !
+   TRACK_POINTS            = NO                
+   TRACK_POINTS_FILE       = points.pts         
+   TRACK_BOXES             = NO                 
+   TRACK_BOXES_FILE        = boxes.dat         
+   !
+ OUTPUT
+  OUTPUT_INTERVAL_(SEC) = 3600
+   !
+   OUTPUT_GRD_FILE_FORMAT = yes                      
+   OUTPUT_NC_FILE_FORMAT  = no                      
+   OUTPUT_KML_FILE_FORMAT = no                     
+   ! 
+   OUTPUT_DOMAIN          = yes                      
+   OUTPUT_Z0              = yes                     
+   OUTPUT_SOURCE          = yes                     
+   OUTPUT_METEO           = yes                     
+   !
+   OUTPUT_VELOCITY        = yes                      
+   OUTPUT_H               = yes                      
+   OUTPUT_RHO             = yes                      
+   OUTPUT_DOSE            = yes                      
+   OUTPUT_CONCENTRATION   = yes
+   OUTPUT_MAX_CONCENTRATION = yes                     
+     HEIGHTS_(M)          = 0.0 0.05 0.5 1.0 1.5 2.0 2.5 3.0 10.0 
+     CONCENTRATION_BG     = 400.0
+   OUTPUT_Z_CRITICAL      = yes                     
+     CRITICAL_C_(%)       = 5 10 15                    
+   OUTPUT_IMPACT          = no                       
+   !
+ NUMERIC
+   FRONT_FROUDE_NUMBER     = 1.0                        
+   OPTIMAL_COURANT_NUMBER  = 0.25
+   EDGE_ENTRAINMENT_COEFF  = 0.0                        
+   DIFFUSION_COEFFICIENT   = 0.20                       
+   SHAPE_PARAMETER         = 0.5                        
+   ZETA_PARAMETER          = 0.0                       
+   ALPHA_2                 = 0.7
+   ALPHA_3                 = 1.3
+   ALPHA_7                 = 0.45
+   VON_KARMAN_CONSTANT     = 0.4
+   BRITTER_B_CONSTANT      = 0.11

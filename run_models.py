@@ -1127,7 +1127,7 @@ def run_diagno(max_np):
                         sys.exit()
                 elif job_scheduler == 'condor':
                     try:
-                        p = subprocess.Popen(['condor_submit', 'script_presfc','&'])
+                        p = subprocess.Popen(['condor_submit', 'script_presfc', '&'])
                     except FileNotFoundError:
                         print('Unable to run condor_submit script_presfc')
                         sys.exit()

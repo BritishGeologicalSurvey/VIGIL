@@ -1500,6 +1500,7 @@ def run_simulations(max_np):
                               + ' ' + input_file + ' ' + log_file)
                         sys.exit()
                 elif job_scheduler == 'condor':
+                    os.chdir(run)
                     try:
                         p = subprocess.Popen(['condor_submit', 'script_' + solver])
                     except FileNotFoundError:

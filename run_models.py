@@ -329,7 +329,7 @@ def read_arguments():
         except ValueError:
             print('ERROR. Please provide a valid number for the variable -SDUR --source_dur')
             sys.exit()
-    if job_scheduler_in.lower() != 'slurm':
+    if job_scheduler_in.lower() == 'slurm':
         if slurm_partition == '':
             print('ERROR. Cluster partition must be declared if --JS = slurm')
     if job_scheduler_in.lower() != 'condor' and job_scheduler_in.lower() != 'slurm':

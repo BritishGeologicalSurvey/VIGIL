@@ -1127,7 +1127,7 @@ def run_diagno(max_np):
                         sys.exit()
                 elif job_scheduler == 'condor':
                     try:
-                        p = subprocess.Popen(['condor_submit', 'script_presfc', '&'])
+                        p = subprocess.Popen(['condor_submit', 'script_presfc'])
                     except FileNotFoundError:
                         print('Unable to run condor_submit script_presfc')
                         sys.exit()
@@ -1149,7 +1149,7 @@ def run_diagno(max_np):
                             sys.exit()
                     elif job_scheduler == 'condor':
                         try:
-                            p = subprocess.Popen(['condor_submit', 'script_preupr', '&'])
+                            p = subprocess.Popen(['condor_submit', 'script_preupr'])
                         except FileNotFoundError:
                             print('Unable to run condor_submit script_preupr')
                             sys.exit()
@@ -1170,7 +1170,7 @@ def run_diagno(max_np):
                         sys.exit()
                 elif job_scheduler == 'condor':
                     try:
-                        p = subprocess.Popen(['condor_submit', 'script_diagno', '&'])
+                        p = subprocess.Popen(['condor_submit', 'script_diagno'])
                     except FileNotFoundError:
                         print('Unable to run condor_submit script_diagno')
                         sys.exit()
@@ -1501,7 +1501,7 @@ def run_simulations(max_np):
                         sys.exit()
                 elif job_scheduler == 'condor':
                     try:
-                        p = subprocess.Popen(['condor_submit', 'script_' + solver, '&'])
+                        p = subprocess.Popen(['condor_submit', 'script_' + solver])
                     except FileNotFoundError:
                         print('Unable to run condor_submit script_' + solver)
                         sys.exit()
@@ -1811,6 +1811,7 @@ if job_scheduler == 'slurm':
     n_nodes = - (-max_number_processes // ncpus_per_node)
     nodes_list = list_available_nodes[0:n_nodes]
 elif job_scheduler == 'condor':
+    nodes_list = []
     # Define executable paths needed in the condor scripts
     presfc_path = shutil.which('presfc')
     preupr_path = shutil.which('preupr')

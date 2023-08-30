@@ -52,7 +52,7 @@ def read_arguments():
     parser.add_argument('-DI', '--diagno', default='on', help='on or off, to run Diagno. Turn it off only if Diagno has'
                         ' already been run')
     parser.add_argument('-DM', '--dispersion_model', default='off', help='Twodee, Disgas or Automatic')
-    parser.add_argument('-US', '--use_slurm', default='False', help='True or False, to use SLURM Workload Manager')
+    parser.add_argument('-JS', '--job_scheduler', default='None', help='Options: Slurm, Condor')
     parser.add_argument('-SP', '--slurm_partition', default='', help='Name of the cluster partition to run the Slurm '
                         'jobs')
     parser.add_argument('-TS', '--tracking_specie', default='', help='The original emitted specie that is tracked in '
@@ -80,7 +80,7 @@ def read_arguments():
         sys.exit()
     model = args.dispersion_model
     diagno = args.diagno
-    use_slurm = args.use_slurm
+    job_scheduler_in = args.job_scheduler
     slurm_partition = args.slurm_partition
     source_dx_in = args.source_dx
     source_dy_in = args.source_dy
@@ -329,14 +329,11 @@ def read_arguments():
         except ValueError:
             print('ERROR. Please provide a valid number for the variable -SDUR --source_dur')
             sys.exit()
-    if use_slurm.lower() == 'true':
-        use_slurm = True
+    if job_scheduler_in.lower() != 'slurm':
         if slurm_partition == '':
-            print('ERROR. Cluster partition must be declared if use_slurm is on')
-    elif use_slurm.lower() == 'false':
-        use_slurm = False
-    else:
-        print('ERROR. Please provide a valid entry for the variable -US --use_slurm')
+            print('ERROR. Cluster partition must be declared if --JS = slurm')
+    if job_scheduler_in.lower() != 'condor' and job_scheduler_in.lower() != 'slurm':
+        print('ERROR. Please provide a valid entry for the variable -JS --job_scheduler')
         sys.exit()
     if tracking_specie_in == '':
         print('ERROR. Please specify the name of the tracked specie -TS --tracking_specie')
@@ -403,7 +400,7 @@ def read_arguments():
         diagno,
         twodee,
         disgas,
-        use_slurm,
+        job_scheduler_in,
         slurm_partition,
         tracking_specie_in,
         run_duration_in,
@@ -823,6 +820,19 @@ def pre_process(run_mode):
                         disgas_input_file.write('  OUTPUT_INTERVAL_(SEC) = ' + str(output_interval_sec) + '\n')
                     else:
                         disgas_input_file.write(record)
+            if job_scheduler == 'condor':
+                script_disgas = os.path.join(disgas_daily, 'script_disgas')
+                with open(script_disgas, 'w') as condor_script:
+                    condor_script.write('universe = vanilla\n')
+                    condor_script.write('getenv = true\n')
+                    condor_script.write('executable = ' + disgas_path + '\n')
+                    condor_script.write('arguments = \n')
+                    condor_script.write('output = disgas.out\n')
+                    condor_script.write('error = disgas.error\n')
+                    condor_script.write('log = disgas.log\n')
+                    condor_script.write('request_cpus = 1\n')
+                    condor_script.write('rank = Memory\n')
+                    condor_script.write('queue\n')
             shutil.copy(disgas_input, disgas_original)
         if twodee_on:
             twodee_daily = os.path.join(run, 'twodee')
@@ -946,6 +956,19 @@ def pre_process(run_mode):
                                                 ' \n')
                     else:
                         twodee_input_file.write(record)
+            if job_scheduler == 'condor':
+                script_twodee = os.path.join(twodee_daily, 'script_twodee')
+                with open(script_twodee, 'w') as condor_script:
+                    condor_script.write('universe = vanilla\n')
+                    condor_script.write('getenv = true\n')
+                    condor_script.write('executable = ' + twodee_path + '\n')
+                    condor_script.write('arguments = \n')
+                    condor_script.write('output = twodee.out\n')
+                    condor_script.write('error = twodee.error\n')
+                    condor_script.write('log = twodee.log\n')
+                    condor_script.write('request_cpus = 1\n')
+                    condor_script.write('rank = Memory\n')
+                    condor_script.write('queue\n')
             shutil.copy(twodee_input, twodee_original)
     return easting, northing, elevations, dx_src, dy_src, dur, gas_fluxes, source_temperatures, gas_density, \
         gas_constant, gas_molar_weight
@@ -974,6 +997,43 @@ def run_diagno(max_np):
                 except FileExistsError:
                     print('File ' + f + ' already present in ' + diagno)
             shutil.copy(topography, os.path.join(diagno_daily, 'topography.grd'))
+            if job_scheduler == 'condor':
+                script_presfc = os.path.join(diagno_daily, 'script_presfc')
+                with open(script_presfc, 'w') as condor_script:
+                    condor_script.write('universe = vanilla\n')
+                    condor_script.write('getenv = true\n')
+                    condor_script.write('executable = ' + presfc_path + '\n')
+                    condor_script.write('arguments = \n')
+                    condor_script.write('output = presfc.out\n')
+                    condor_script.write('error = presfc.error\n')
+                    condor_script.write('log = presfc.log\n')
+                    condor_script.write('request_cpus = 1\n')
+                    condor_script.write('rank = Memory\n')
+                    condor_script.write('queue\n')
+                script_preupr = os.path.join(diagno_daily, 'script_preupr')
+                with open(script_preupr, 'w') as condor_script:
+                    condor_script.write('universe = vanilla\n')
+                    condor_script.write('getenv = true\n')
+                    condor_script.write('executable = ' + preupr_path + '\n')
+                    condor_script.write('arguments = \n')
+                    condor_script.write('output = preupr.out\n')
+                    condor_script.write('error = preupr.error\n')
+                    condor_script.write('log = preupr.log\n')
+                    condor_script.write('request_cpus = 1\n')
+                    condor_script.write('rank = Memory\n')
+                    condor_script.write('queue\n')
+                script_diagno = os.path.join(diagno_daily, 'script_diagno')
+                with open(script_diagno, 'w') as condor_script:
+                    condor_script.write('universe = vanilla\n')
+                    condor_script.write('getenv = true\n')
+                    condor_script.write('executable = ' + diagno_path + '\n')
+                    condor_script.write('arguments = \n')
+                    condor_script.write('output = diagno.out\n')
+                    condor_script.write('error = diagno.error\n')
+                    condor_script.write('log = diagno.log\n')
+                    condor_script.write('request_cpus = 1\n')
+                    condor_script.write('rank = Memory\n')
+                    condor_script.write('queue\n')
             shutil.rmtree(path)
 
     prepare_diagno()
@@ -1059,11 +1119,17 @@ def run_diagno(max_np):
                         else:
                             diagno_input_file.write(record)
                 os.chdir(diagno_folder)
-                if slurm:
+                if job_scheduler == 'slurm':
                     try:
                         p = subprocess.Popen(['srun', '-n', '1', '--partition=' + partition, 'presfc', '&'])
                     except FileNotFoundError:
                         print('Unable to run srun -n 1 --partition=' + partition + ' presfc')
+                        sys.exit()
+                elif job_scheduler == 'condor':
+                    try:
+                        p = subprocess.Popen(['condor_submit', 'script_presfc','&'])
+                    except FileNotFoundError:
+                        print('Unable to run condor_submit script_presfc')
                         sys.exit()
                 else:
                     try:
@@ -1075,11 +1141,17 @@ def run_diagno(max_np):
                 ps.append(p)
                 if shutil.which('preupr') is not None and \
                         (not os.path.exists(os.path.join(root, 'weather_stations_list.txt'))):
-                    if slurm:
+                    if job_scheduler == 'slurm':
                         try:
                             p = subprocess.Popen(['srun', '-n', '1', '--partition=' + partition, 'preupr', '&'])
                         except FileNotFoundError:
                             print('Unable to run srun -n 1 --partition=' + partition + ' preupr')
+                            sys.exit()
+                    elif job_scheduler == 'condor':
+                        try:
+                            p = subprocess.Popen(['condor_submit', 'script_preupr', '&'])
+                        except FileNotFoundError:
+                            print('Unable to run condor_submit script_preupr')
                             sys.exit()
                     else:
                         try:
@@ -1089,12 +1161,18 @@ def run_diagno(max_np):
                             sys.exit()
                     p.wait()
                     ps.append(p)
-                if slurm:
+                if job_scheduler == 'slurm':
                     try:
                         p = subprocess.Popen(['srun', '-n', '1', '--partition=' + partition, '--nodelist=' + node,
                                               'diagno', '&'])
                     except FileNotFoundError:
                         print('Unable to run srun -n 1 --partition=' + partition + ' --nodelist=' + node + ' diagno')
+                        sys.exit()
+                elif job_scheduler == 'condor':
+                    try:
+                        p = subprocess.Popen(['condor_submit', 'script_diagno', '&'])
+                    except FileNotFoundError:
+                        print('Unable to run condor_submit script_diagno')
                         sys.exit()
                 else:
                     try:
@@ -1413,13 +1491,19 @@ def run_simulations(max_np):
                         print('ERROR. Restart run requested but file ' +
                               os.path.join(previous_day_folder, 'restart.dat') + ' not found')
                         sys.exit()
-                if slurm:
+                if job_scheduler == 'slurm':
                     try:
                         p = subprocess.Popen(['srun', '-n', '1', '--partition=' + partition, '--nodelist=' + node,
                                               solver, input_file, log_file])
                     except FileNotFoundError:
                         print('Unable to run srun -n 1 --partition=' + partition + ' --nodelist=' + node + ' ' + solver
                               + ' ' + input_file + ' ' + log_file)
+                        sys.exit()
+                elif job_scheduler == 'condor':
+                    try:
+                        p = subprocess.Popen(['condor_submit', 'script_' + solver, '&'])
+                    except FileNotFoundError:
+                        print('Unable to run condor_submit script_' + solver)
                         sys.exit()
                 else:
                     try:
@@ -1674,7 +1758,7 @@ topography = os.path.join(root, 'topography.grd')
     diagno_on,
     twodee_on,
     disgas_on,
-    slurm,
+    job_scheduler,
     partition,
     tracking_specie,
     run_duration,
@@ -1687,7 +1771,7 @@ if disgas_on == 'off' and twodee_on == 'off':
     print('Both DISGAS and TWODEE are turned off')
     sys.exit()
 
-if slurm:
+if job_scheduler == 'slurm':
     list_available_nodes = []
     result = subprocess.run(['sinfo', '-o=%N'], stdout=subprocess.PIPE)
     sinfo_node_output = result.stdout.decode('utf-8')
@@ -1726,6 +1810,13 @@ if slurm:
     ncpus_per_node = int(sinfo_core_output.split('=')[-1])
     n_nodes = - (-max_number_processes // ncpus_per_node)
     nodes_list = list_available_nodes[0:n_nodes]
+elif job_scheduler == 'condor':
+    # Define executable paths needed in the condor scripts
+    presfc_path = shutil.which('presfc')
+    preupr_path = shutil.which('preupr')
+    diagno_path = shutil.which('diagno')
+    disgas_path = shutil.which('disgas')
+    twodee_path = shutil.which('twodee')
 else:
     nodes_list = []
 

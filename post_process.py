@@ -854,7 +854,7 @@ def elaborate_day(day_input):
                         file_to_interpolate_specie = file_to_interpolate.split(os.sep)[-2]
                         if file_to_interpolate_specie != species[l_specie]:
                             continue
-                        file_to_interpolate_directory = file_to_interpolate.split(file_name)[0]
+                        file_to_interpolate_directory = file_to_interpolate.split(file_to_interpolate_name)[0]
                         file_to_interpolate_level = file_to_interpolate_name.split('_')[1]
                         file_to_interpolate_level = float(file_to_interpolate_level.split('mabg')[0])
                         file_to_interpolate_time_step = file_to_interpolate_name.split('_')[2]

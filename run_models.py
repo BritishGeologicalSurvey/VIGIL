@@ -712,9 +712,9 @@ def pre_process(run_mode):
                         x_or_source = easting[j_source] - dx_src[j_source] / 2
                         y_or_source = northing[j_source] - dy_src[j_source] / 2
                         splitted_flux = gas_fluxes[j_source] / (nx_source * ny_source)
-                        x_source = x_or_source
                         y_source = y_or_source
                         for jj_source in range(0, ny_source):
+                            x_source = x_or_source
                             for ii_source in range(0, nx_source):
                                 source_file.write('{0:7.3f}'.format(x_source) + ' ' + '{0:7.3f}'.format(y_source) + ' '
                                                   + '{0:7.2f}'.format(elevations[j_source]) + ' ' + str(splitted_flux) +

@@ -467,14 +467,6 @@ def gas_properties():
         except KeyError:
             print('WARNING. Exposure times of ' + specie_in + ' not found in gas_properties.csv. Gas '
             'persistence calculation not possible for gas specie ' + specie_in)
-        try:
-            y = np.sort(data['BG_' + specie_in])
-            bg_conc = list(y)[0]
-            if bg_conc != bg_conc:
-                print('WARNING. Background concentration of ' + specie_in + ' not found in gas_properties.csv')
-        except KeyError:
-            print('ERROR. Background concentration of ' + specie_in + ' not found in gas_properties.csv')
-            sys.exit()
         for i_exp in range(len(exp_times)):
             if float(exp_times[i_exp]) < simulation_time / n_time_steps / 3600:
                 print('WARNING. For specie ' + specie_in + ' the exposure time ' + str(exp_times[i_exp]) +
@@ -500,7 +492,7 @@ def gas_properties():
             persistence_sp = False
         else:
             persistence_sp = True
-        return molar_ratio, molar_weight, conc_thresholds, exp_times, bg_conc, persistence_sp
+        return molar_ratio, molar_weight, conc_thresholds, exp_times, persistence_sp
 
     gas_properties_file = os.path.join(root, 'gas_properties.csv')
     try:
@@ -513,29 +505,25 @@ def gas_properties():
     molar_weights = []
     concentration_thresholds = []
     exposure_times = []
-    background_concentrations = []
     persistence_calculation = []
     for specie in species:
-        molar_ratio_specie, molar_weight_specie, concentration_thresholds_specie, exposure_times_specie, background_c, \
+        molar_ratio_specie, molar_weight_specie, concentration_thresholds_specie, exposure_times_specie,  \
             persistence_specie = extract_gas_properties(specie)
         molar_ratios.append(molar_ratio_specie)
         molar_weights.append(molar_weight_specie)
         concentration_thresholds.append(concentration_thresholds_specie)
         exposure_times.append(exposure_times_specie)
-        background_concentrations.append(background_c)
         persistence_calculation.append(persistence_specie)
-    molar_ratio_specie, molar_weight_specie, concentration_thresholds_specie, exposure_times_specie, background_c, \
+    molar_ratio_specie, molar_weight_specie, concentration_thresholds_specie, exposure_times_specie, \
         persistence_tracking_specie = extract_gas_properties(original_specie)
     molar_ratios_tracking_specie = molar_ratio_specie
     molar_weights_tracking_specie = molar_weight_specie
     concentration_thresholds_tracking_specie = concentration_thresholds_specie
     exposure_times_tracking_specie = exposure_times_specie
-    background_concentration_tracking_specie = background_c
     species_properties_out = []
     for i in range(0, len(species)):
         gas_specie = {'specie_name': species[i], 'molar_ratio': molar_ratios[i], 'molar_weight': molar_weights[i],
                       'concentration_thresholds': concentration_thresholds[i], 'exposure_times': exposure_times[i],
-                      'background_concentration': background_concentrations[i],
                       'persistence_calculation': persistence_calculation[i]}
         species_properties_out.append(gas_specie)
     if original_specie not in species:
@@ -543,7 +531,6 @@ def gas_properties():
                       'molar_weight': molar_weights_tracking_specie,
                       'concentration_thresholds': concentration_thresholds_tracking_specie,
                       'exposure_times': exposure_times_tracking_specie,
-                      'background_concentration': background_concentration_tracking_specie,
                       'persistence_calculation': persistence_tracking_specie}
         species_properties_out.append(gas_specie)
     if not persistence_tracking_specie and True not in persistence_calculation:
@@ -640,24 +627,10 @@ def elaborate_day(day_input):
                         if specie_property['specie_name'] == specie_input:
                             molar_ratio = specie_property['molar_ratio']
                             molar_weight = specie_property['molar_weight']
-                            try:
-                                background_c = specie_property['background_concentration']
-                            except UnboundLocalError:
-                                background_c = 0
-                            try:
-                                background_c = float(background_c)
-                            except TypeError:
-                                background_c = 0
-                            if units == 'ppm':
-                                species_conversion_factor = molar_ratio
-                            elif units == 'kg/m3':
-                                background_c = background_c * ((molar_weight / 22.4) * (273 / t2m) * (p2m / 1013)) / \
-                                               1000000
                         if specie_property['specie_name'] == original_specie:
                             molar_weight_tracking_specie = specie_property['molar_weight']
                             species_conversion_factor = molar_ratio * (molar_weight / molar_weight_tracking_specie)
                     conc_converted = np.where(conc_converted < 0, 0, conc_converted)
-                    conc_converted += background_c
                     conc_converted = np.multiply(conc_converted, species_conversion_factor)
                     processed_file.write(str(np.amin(conc_converted)) + '  ' + str(np.amax(conc_converted)) + '\n')
                     np.savetxt(processed_file, conc_converted, fmt='%.2e')

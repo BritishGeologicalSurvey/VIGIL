@@ -948,7 +948,7 @@ def pre_process(run_mode):
                         twodee_input_file.write(record)
             shutil.copy(twodee_input, twodee_original)
     return easting, northing, elevations, dx_src, dy_src, dur, gas_fluxes, source_temperatures, gas_density, \
-        gas_constant, gas_molar_weight
+        gas_constant, gas_molar_weight, gas_background_concentration
 
 
 def run_diagno(max_np):
@@ -1484,7 +1484,8 @@ def converter(run_in):
                 except ValueError:
                     continue
         conversion_factor = ((22.4 / m_tracking_specie) * (t2m / 273) * (1013 / p2m)) * 1000000
-        c_ppm = c_kgm3 * conversion_factor  # convert kg/m3 to ppm
+        c_ppm_temp = c_kgm3 * conversion_factor  # convert kg/m3 to ppm
+        c_ppm = c_ppm_temp + bg_conc_tracking_specie  # Add background concentration to DISGAS outputs
         with open(output_file, 'w') as converted_output_file:
             for record in first_records:
                 converted_output_file.write(record)
@@ -1742,7 +1743,8 @@ runs_disgas = []
 runs_twodee = []
 
 easting_sources, northing_sources, elevation_sources, dx_sources, dy_sources, dur_sources, gas_fluxes_sources, \
-    temperatures_sources, rho_tracking_specie, r_tracking_specie, m_tracking_specie = pre_process(run_type)
+    temperatures_sources, rho_tracking_specie, r_tracking_specie, m_tracking_specie, bg_conc_tracking_specie = \
+    pre_process(run_type)
 
 if diagno_on:
     max_height_diagno = run_diagno(max_number_processes)

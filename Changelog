@@ -1,3 +1,31 @@
+12/07/2023 Fabio Dioguardi <fabio.dioguardi@uniba.it>
+Related to the new automatic scenario, implemented the run splitting to manage situations in which some gas sources in the domain require disgas and other twodee
+
+20/05/2023 Fabio Dioguardi <fabio.dioguardi@uniba.it>
+Implemented the new scenario (disgas or twodee) automatic detection mode
+
+12/05/2023 Fabio Dioguardi <fabio.dioguardi@uniba.it>
+Included the new argument -DM (dispersion model) that replaced the arguments -TD -DG
+Implemented the new scenario (disgas or twodee) automatic detection mode
+
+23/03/2023 Fabio Dioguardi <fabio.dioguardi@uniba.it>
+Version 1.3.5 released
+
+23/03/2023 Fabio Dioguardi <fabio.dioguardi@uniba.it>
+Fixed a bug in post_process.py that prevented the correct time-averaging of the outputs
+
+27/02/2023 Fabio Dioguardi <fabio.dioguardi@uniba.it>
+Version 1.3.4 released
+
+27/02/2023 Fabio Dioguardi <fabio.dioguardi@uniba.it>
+Updated the User Manual
+
+20/01/2023 Fabio Dioguardi <fabio.dioguardi@uniba.it>
+Version 1.3.3 released
+
+20/01/2023 Fabio Dioguardi <fabio.dioguardi@uniba.it>
+Fixed a bug that affected the continuous simulation option
+
 25/11/2022 Fabio Dioguardi <fabio.dioguardi@uniba.it>
 Version 1.3.2 released
 

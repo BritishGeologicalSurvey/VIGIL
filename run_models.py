@@ -691,6 +691,68 @@ def pre_process(run_mode):
                 run_mode = 'new'
             else:
                 run_mode = 'restart'
+        # Set diagno.inp file
+        diagno_input_records = []
+        diagno_input = os.path.join(met_data, 'diagno.inp')
+        with open(diagno_input, 'r', encoding='utf-8', errors='surrogateescape') as diagno_or_input:
+            for line in diagno_or_input:
+                diagno_input_records.append(line)
+        new_record_string = ''
+        old_record = ''
+        heights = []
+        for record in diagno_input_records:
+            if 'CELLZB' in record:
+                old_record = record
+                new_record_string = ''
+                str_heights = record.split('CELLZB(1:NZ+1)')[0].split(' ')
+                for height in str_heights:
+                    try:
+                        heights.append(float(height))
+                    except ValueError:
+                        continue
+                if 10. not in heights:
+                    heights.append(10.)
+                heights = sorted(heights)
+                max_height = max(heights)
+                for height in heights:
+                    new_record_string += str(height) + ' '
+                new_record_string += ' CELLZB(1:NZ+1) (m) ' + '\n'
+        if new_record_string != '':
+            diagno_input_records = [new_record_string if item == old_record else item for item in diagno_input_records]
+        with open(diagno_input, 'w', encoding='utf-8', errors='surrogateescape') as diagno_input_file:
+            for record in diagno_input_records:
+                if 'NX' in record:
+                    if disgas_on:
+                        diagno_input_file.write(str(nx + 2) + '          NX\n')
+                    else:
+                        diagno_input_file.write(str(nx) + '          NX\n')
+                elif 'NY' in record:
+                    if disgas_on:
+                        diagno_input_file.write(str(ny + 2) + '          NY\n')
+                    else:
+                        diagno_input_file.write(str(ny) + '          NY\n')
+                elif 'NZ' in record and ('CELLZB' not in record and 'NZPRNT' not in record):
+                    diagno_input_file.write(str(len(heights) - 1) + '          NZ\n')
+                elif 'DXK' in record:
+                    diagno_input_file.write('{0:7.3f}'.format(dx / 1000) + '          DXK (km)\n')
+                elif 'DYK' in record:
+                    diagno_input_file.write('{0:7.3f}'.format(dy / 1000) + '          DYK (km)\n')
+                elif 'UTMXOR' in record:
+                    if disgas_on:
+                        diagno_input_file.write('{0:7.3f}'.format((bottom_left_easting - dx) / 1000) + '      '
+                                                'UTMXOR (km)\n')
+                    else:
+                        diagno_input_file.write('{0:7.3f}'.format(bottom_left_easting / 1000) + '      '
+                                                'UTMXOR (km)\n')
+                elif 'UTMYOR' in record:
+                    if disgas_on:
+                        diagno_input_file.write('{0:7.3f}'.format((bottom_left_northing - dy) / 1000) + '      '
+                                                'UTMYOR  (km)\n')
+                    else:
+                        diagno_input_file.write('{0:7.3f}'.format(bottom_left_northing / 1000) + '      '
+                                                'UTMYOR  (km)\n')
+                else:
+                    diagno_input_file.write(record)
         # Set DISGAS folder
         if disgas_on:
             disgas_daily = os.path.join(run, 'disgas')
@@ -995,69 +1057,6 @@ def run_diagno(max_np):
                     except IndexError:
                         node = ''
                 diagno_folder = os.path.join(root, 'simulations', 'diagno', day)
-                # read and memorize diagno.inp file
-                diagno_input_records = []
-                diagno_input = os.path.join(diagno_folder, 'diagno.inp')
-                with open(diagno_input, 'r', encoding='utf-8', errors='surrogateescape') as diagno_or_input:
-                    for line in diagno_or_input:
-                        diagno_input_records.append(line)
-                new_record_string = ''
-                old_record = ''
-                heights = []
-                for record in diagno_input_records:
-                    if 'CELLZB' in record:
-                        old_record = record
-                        new_record_string = ''
-                        str_heights = record.split('CELLZB(1:NZ+1)')[0].split(' ')
-                        for height in str_heights:
-                            try:
-                                heights.append(float(height))
-                            except ValueError:
-                                continue
-                        if 10. not in heights:
-                            heights.append(10.)
-                        heights = sorted(heights)
-                        max_height = max(heights)
-                        for height in heights:
-                            new_record_string += str(height) + ' '
-                        new_record_string += ' CELLZB(1:NZ+1) (m) ' + '\n'
-                if new_record_string != '':
-                    diagno_input_records = [new_record_string if item == old_record else item for item in
-                                            diagno_input_records]
-                with open(diagno_input, 'w', encoding='utf-8', errors='surrogateescape') as diagno_input_file:
-                    for record in diagno_input_records:
-                        if 'NX' in record:
-                            if disgas_on:
-                                diagno_input_file.write(str(nx + 2) + '          NX\n')
-                            else:
-                                diagno_input_file.write(str(nx) + '          NX\n')
-                        elif 'NY' in record:
-                            if disgas_on:
-                                diagno_input_file.write(str(ny + 2) + '          NY\n')
-                            else:
-                                diagno_input_file.write(str(ny) + '          NY\n')
-                        elif 'NZ' in record and ('CELLZB' not in record and 'NZPRNT' not in record):
-                            diagno_input_file.write(str(len(heights) - 1) + '          NZ\n')
-                        elif 'DXK' in record:
-                            diagno_input_file.write('{0:7.3f}'.format(dx / 1000) + '          DXK (km)\n')
-                        elif 'DYK' in record:
-                            diagno_input_file.write('{0:7.3f}'.format(dy / 1000) + '          DYK (km)\n')
-                        elif 'UTMXOR' in record:
-                            if disgas_on:
-                                diagno_input_file.write('{0:7.3f}'.format((bottom_left_easting - dx) / 1000) + '      '
-                                                        'UTMXOR (km)\n')
-                            else:
-                                diagno_input_file.write('{0:7.3f}'.format(bottom_left_easting / 1000) + '      '
-                                                        'UTMXOR (km)\n')
-                        elif 'UTMYOR' in record:
-                            if disgas_on:
-                                diagno_input_file.write('{0:7.3f}'.format((bottom_left_northing - dy) / 1000) + '      '
-                                                        'UTMYOR  (km)\n')
-                            else:
-                                diagno_input_file.write('{0:7.3f}'.format(bottom_left_northing / 1000) + '      '
-                                                        'UTMYOR  (km)\n')
-                        else:
-                            diagno_input_file.write(record)
                 os.chdir(diagno_folder)
                 if slurm:
                     try:

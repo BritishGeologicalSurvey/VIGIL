@@ -1120,6 +1120,9 @@ def run_diagno(max_np):
         p.wait()
     print('All weather data have been successfully processed with Diagno')
     os.chdir(root)
+    # Remove all .prt files to save space
+    for day in days:
+        os.remove(os.path.join(root, 'simulations', 'diagno', day, 'diagno.prt'))
     return max_height
 
 

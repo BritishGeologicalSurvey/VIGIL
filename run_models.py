@@ -51,7 +51,7 @@ def read_arguments():
                         'above the ground')
     parser.add_argument('-DI', '--diagno', default='on', help='on or off, to run Diagno. Turn it off only if Diagno has'
                         ' already been run')
-    parser.add_argument('-DM', '--dispersion_model', default='off', help='Twodee, Disgas or Automatic')
+    parser.add_argument('-DM', '--dispersion_model', default='off', help='Twodee, Disgas, Automatic, None')
     parser.add_argument('-US', '--use_slurm', default='False', help='True or False, to use SLURM Workload Manager')
     parser.add_argument('-SP', '--slurm_partition', default='', help='Name of the cluster partition to run the Slurm '
                         'jobs')
@@ -301,6 +301,9 @@ def read_arguments():
             print('ERROR. Option Automatic for -DM --dispersion_model is currently not compatible with the continuous '
                   'simulation mode')
             sys.exit()
+    elif model.lower() == 'none': # DIAGNO only mode if diagno is activated
+        twodee = False
+        disgas = False
     else:
         print('ERROR. Please provide a valid entry for the variable -DM --dispersion_model')
         sys.exit()
@@ -1683,8 +1686,8 @@ topography = os.path.join(root, 'topography.grd')
 ) = read_arguments()
 
 
-if disgas_on == 'off' and twodee_on == 'off':
-    print('Both DISGAS and TWODEE are turned off')
+if not disgas_on and not twodee_on and not diagno_on:
+    print('DIAGNO, DISGAS, TWODEE are all turned off')
     sys.exit()
 
 if slurm:
@@ -1752,6 +1755,9 @@ if disgas_on and twodee_on:  # We are in automatic scenario detection mode, henc
     # data at the source locations to calculate the Richardson number at the source and assign the right solver to each
     # simulation, for this reason we re-initialize the runs vectors
     read_diagno_outputs()
+
+if not disgas_on and not twodee_on:
+    sys.exit()
 
 if len(runs_disgas) == 0:
     disgas_on = False

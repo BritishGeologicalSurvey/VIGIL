@@ -301,7 +301,7 @@ def read_arguments():
             print('ERROR. Option Automatic for -DM --dispersion_model is currently not compatible with the continuous '
                   'simulation mode')
             sys.exit()
-    elif model.lower() == 'none': # DIAGNO only mode if diagno is activated
+    elif model.lower() == 'none':  # DIAGNO only mode if diagno is activated
         twodee = False
         disgas = False
     else:
@@ -716,7 +716,6 @@ def pre_process(run_mode):
                 if 10. not in heights:
                     heights.append(10.)
                 heights = sorted(heights)
-                max_height = max(heights)
                 for height in heights:
                     new_record_string += str(height) + ' '
                 new_record_string += ' CELLZB(1:NZ+1) (m) ' + '\n'
@@ -1601,7 +1600,7 @@ def elaborate_outputs():
         try:
             shutil.copytree(twodee_outfiles_folder, outfiles_folder)
             for output_file in os.listdir(outfiles_folder):
-                if 'c_' not in output_file: # remove all other twodee output files
+                if 'c_' not in output_file:  # remove all other twodee output files
                     os.remove(os.path.join(outfiles_folder, output_file))
         except FileExistsError:
             # We are in a split simulation

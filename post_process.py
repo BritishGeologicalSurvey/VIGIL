@@ -894,15 +894,6 @@ def elaborate_day(day_input):
     for specie in species[1:]:
         files_list_path += files_list_path
         models += models
-    time_steps_disgas = []
-    if model == 'disgas' or model == 'merged':
-        for file in files_list:
-            file_name_splitted = file.split('_')
-            file_time_step = file_name_splitted[2]
-            file_time_step = int(file_time_step.split('.')[0])
-            if file_time_step not in time_steps_disgas:
-                time_steps_disgas.append(file_time_step)
-    time_steps_disgas = sorted(time_steps_disgas)
     converted_files = []
     processed_files = []
     species_list = []
@@ -929,8 +920,7 @@ def elaborate_day(day_input):
                 file_level = int(file_name_splitted[1])
                 file_level_s = '{0:.3f}'.format(output_levels[file_level - 1]) + 'mabg'
                 file_time_step = file_name_splitted[2]
-                file_time_step = int(file_time_step.split('.')[0])
-                file_time_step = time_steps_disgas.index(file_time_step) * dt
+                file_time_step = int(file_time_step.split('.')[0]) * dt
             if file_level_s not in processed_files_levels_elaborated:
                 processed_files_levels_elaborated.append(file_level_s)
             time_validity = time_start + datetime.timedelta(seconds=file_time_step)

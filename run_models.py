@@ -727,16 +727,8 @@ def pre_process(run_mode):
                 for record in diagno_input_records:
                     if 'NX' in record:
                         diagno_input_file.write(str(nx) + '          NX\n')
-                        # if disgas_on:
-                        #     diagno_input_file.write(str(nx + 2) + '          NX\n')
-                        # else:
-                        #     diagno_input_file.write(str(nx) + '          NX\n')
                     elif 'NY' in record:
                         diagno_input_file.write(str(ny) + '          NY\n')
-                        # if disgas_on:
-                        #     diagno_input_file.write(str(ny + 2) + '          NY\n')
-                        # else:
-                        #     diagno_input_file.write(str(ny) + '          NY\n')
                     elif 'NZ' in record and ('CELLZB' not in record and 'NZPRNT' not in record):
                         diagno_input_file.write(str(len(heights) - 1) + '          NZ\n')
                     elif 'DXK' in record:
@@ -746,21 +738,9 @@ def pre_process(run_mode):
                     elif 'UTMXOR' in record:
                         diagno_input_file.write('{0:7.3f}'.format(bottom_left_easting / 1000) + '      '
                                                                                                 'UTMXOR (km)\n')
-                        # if disgas_on:
-                        #     diagno_input_file.write('{0:7.3f}'.format((bottom_left_easting - dx) / 1000) + '      '
-                        #                             'UTMXOR (km)\n')
-                        # else:
-                        #     diagno_input_file.write('{0:7.3f}'.format(bottom_left_easting / 1000) + '      '
-                        #                             'UTMXOR (km)\n')
                     elif 'UTMYOR' in record:
                         diagno_input_file.write('{0:7.3f}'.format(bottom_left_northing / 1000) + '      '
                                                                                                  'UTMYOR  (km)\n')
-                        # if disgas_on:
-                        #     diagno_input_file.write('{0:7.3f}'.format((bottom_left_northing - dy) / 1000) + '      '
-                        #                             'UTMYOR  (km)\n')
-                        # else:
-                        #     diagno_input_file.write('{0:7.3f}'.format(bottom_left_northing / 1000) + '      '
-                        #                             'UTMYOR  (km)\n')
                     else:
                         diagno_input_file.write(record)
         # Set DISGAS folder
@@ -1593,6 +1573,13 @@ def elaborate_outputs():
         outfiles_folder = os.path.join(outfiles_folder, 'outfiles')
         disgas_outfiles_folder = os.path.join(run, 'outfiles')
         shutil.copytree(disgas_outfiles_folder, outfiles_folder)
+        # Remove time 0 outputs produced by DISGAS only, to be consistent with TWODEE outputs
+        for output_file in os.listdir(outfiles_folder):
+            file_time_step = output_file.split('c_')[1]
+            file_time_step = file_time_step.split('_')[1]
+            file_time_step = file_time_step.split('.grd')[0]
+            if int(file_time_step) == 0:
+                os.remove(os.path.join(outfiles_folder, output_file))
         if len(runs_twodee) == 0:
             shutil.rmtree(disgas_outfiles_folder)
     for run in runs_twodee:

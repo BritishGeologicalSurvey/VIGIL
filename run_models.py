@@ -694,67 +694,75 @@ def pre_process(run_mode):
                 run_mode = 'new'
             else:
                 run_mode = 'restart'
-        # Set diagno.inp file
-        diagno_input_records = []
-        diagno_input = os.path.join(met_data, 'diagno.inp')
-        with open(diagno_input, 'r', encoding='utf-8', errors='surrogateescape') as diagno_or_input:
-            for line in diagno_or_input:
-                diagno_input_records.append(line)
-        new_record_string = ''
-        old_record = ''
-        heights = []
-        for record in diagno_input_records:
-            if 'CELLZB' in record:
-                old_record = record
-                new_record_string = ''
-                str_heights = record.split('CELLZB(1:NZ+1)')[0].split(' ')
-                for height in str_heights:
-                    try:
-                        heights.append(float(height))
-                    except ValueError:
-                        continue
-                if 10. not in heights:
-                    heights.append(10.)
-                heights = sorted(heights)
-                for height in heights:
-                    new_record_string += str(height) + ' '
-                new_record_string += ' CELLZB(1:NZ+1) (m) ' + '\n'
-        if new_record_string != '':
-            diagno_input_records = [new_record_string if item == old_record else item for item in diagno_input_records]
-        with open(diagno_input, 'w', encoding='utf-8', errors='surrogateescape') as diagno_input_file:
+        if diagno_on:
+            # Set diagno.inp file
+            diagno_input_records = []
+            diagno_input = os.path.join(met_data, 'diagno.inp')
+            with open(diagno_input, 'r', encoding='utf-8', errors='surrogateescape') as diagno_or_input:
+                for line in diagno_or_input:
+                    diagno_input_records.append(line)
+            new_record_string = ''
+            old_record = ''
+            heights = []
             for record in diagno_input_records:
-                if 'NX' in record:
-                    if disgas_on:
-                        diagno_input_file.write(str(nx + 2) + '          NX\n')
-                    else:
+                if 'CELLZB' in record:
+                    old_record = record
+                    new_record_string = ''
+                    str_heights = record.split('CELLZB(1:NZ+1)')[0].split(' ')
+                    for height in str_heights:
+                        try:
+                            heights.append(float(height))
+                        except ValueError:
+                            continue
+                    if 10. not in heights:
+                        heights.append(10.)
+                    heights = sorted(heights)
+                    for height in heights:
+                        new_record_string += str(height) + ' '
+                    new_record_string += ' CELLZB(1:NZ+1) (m) ' + '\n'
+            if new_record_string != '':
+                diagno_input_records = [new_record_string if item == old_record else item for item in
+                                        diagno_input_records]
+            with open(diagno_input, 'w', encoding='utf-8', errors='surrogateescape') as diagno_input_file:
+                for record in diagno_input_records:
+                    if 'NX' in record:
                         diagno_input_file.write(str(nx) + '          NX\n')
-                elif 'NY' in record:
-                    if disgas_on:
-                        diagno_input_file.write(str(ny + 2) + '          NY\n')
-                    else:
+                        # if disgas_on:
+                        #     diagno_input_file.write(str(nx + 2) + '          NX\n')
+                        # else:
+                        #     diagno_input_file.write(str(nx) + '          NX\n')
+                    elif 'NY' in record:
                         diagno_input_file.write(str(ny) + '          NY\n')
-                elif 'NZ' in record and ('CELLZB' not in record and 'NZPRNT' not in record):
-                    diagno_input_file.write(str(len(heights) - 1) + '          NZ\n')
-                elif 'DXK' in record:
-                    diagno_input_file.write('{0:7.3f}'.format(dx / 1000) + '          DXK (km)\n')
-                elif 'DYK' in record:
-                    diagno_input_file.write('{0:7.3f}'.format(dy / 1000) + '          DYK (km)\n')
-                elif 'UTMXOR' in record:
-                    if disgas_on:
-                        diagno_input_file.write('{0:7.3f}'.format((bottom_left_easting - dx) / 1000) + '      '
-                                                'UTMXOR (km)\n')
-                    else:
+                        # if disgas_on:
+                        #     diagno_input_file.write(str(ny + 2) + '          NY\n')
+                        # else:
+                        #     diagno_input_file.write(str(ny) + '          NY\n')
+                    elif 'NZ' in record and ('CELLZB' not in record and 'NZPRNT' not in record):
+                        diagno_input_file.write(str(len(heights) - 1) + '          NZ\n')
+                    elif 'DXK' in record:
+                        diagno_input_file.write('{0:7.3f}'.format(dx / 1000) + '          DXK (km)\n')
+                    elif 'DYK' in record:
+                        diagno_input_file.write('{0:7.3f}'.format(dy / 1000) + '          DYK (km)\n')
+                    elif 'UTMXOR' in record:
                         diagno_input_file.write('{0:7.3f}'.format(bottom_left_easting / 1000) + '      '
-                                                'UTMXOR (km)\n')
-                elif 'UTMYOR' in record:
-                    if disgas_on:
-                        diagno_input_file.write('{0:7.3f}'.format((bottom_left_northing - dy) / 1000) + '      '
-                                                'UTMYOR  (km)\n')
-                    else:
+                                                                                                'UTMXOR (km)\n')
+                        # if disgas_on:
+                        #     diagno_input_file.write('{0:7.3f}'.format((bottom_left_easting - dx) / 1000) + '      '
+                        #                             'UTMXOR (km)\n')
+                        # else:
+                        #     diagno_input_file.write('{0:7.3f}'.format(bottom_left_easting / 1000) + '      '
+                        #                             'UTMXOR (km)\n')
+                    elif 'UTMYOR' in record:
                         diagno_input_file.write('{0:7.3f}'.format(bottom_left_northing / 1000) + '      '
-                                                'UTMYOR  (km)\n')
-                else:
-                    diagno_input_file.write(record)
+                                                                                                 'UTMYOR  (km)\n')
+                        # if disgas_on:
+                        #     diagno_input_file.write('{0:7.3f}'.format((bottom_left_northing - dy) / 1000) + '      '
+                        #                             'UTMYOR  (km)\n')
+                        # else:
+                        #     diagno_input_file.write('{0:7.3f}'.format(bottom_left_northing / 1000) + '      '
+                        #                             'UTMYOR  (km)\n')
+                    else:
+                        diagno_input_file.write(record)
         # Set DISGAS folder
         if disgas_on:
             disgas_daily = os.path.join(run, 'disgas')
@@ -837,9 +845,11 @@ def pre_process(run_mode):
                         disgas_input_file.write('  SIMULATION_INTERVAL_(SEC) = ' +
                                                 '{0:7.0f}'.format(simulation_interval) + '\n')
                     elif 'NX' in record:
-                        disgas_input_file.write('  NX     = ' + str(nx) + '\n')
+                        # disgas_input_file.write('  NX     = ' + str(nx) + '\n')
+                        disgas_input_file.write('  NX     = ' + str(nx - 2) + '\n')
                     elif 'NY' in record:
-                        disgas_input_file.write('  NY     = ' + str(ny) + '\n')
+                        # disgas_input_file.write('  NY     = ' + str(ny) + '\n')
+                        disgas_input_file.write('  NY     = ' + str(ny - 2) + '\n')
                     elif 'NZ' in record:
                         disgas_input_file.write('  NZ     = ' + str(nz) + '\n')
                     elif 'Z_LAYERS' in record:
@@ -849,9 +859,11 @@ def pre_process(run_mode):
                     elif 'DY_(M)' in record:
                         disgas_input_file.write('  DY_(M) = ' + str(dy) + '\n')
                     elif 'X_ORIGIN_(UTM_M)' in record:
-                        disgas_input_file.write('  X_ORIGIN_(UTM_M) = ' + str(bottom_left_easting) + '\n')
+                        # disgas_input_file.write('  X_ORIGIN_(UTM_M) = ' + str(bottom_left_easting) + '\n')
+                        disgas_input_file.write('  X_ORIGIN_(UTM_M) = ' + str(bottom_left_easting + dx) + '\n')
                     elif 'Y_ORIGIN_(UTM_M)' in record:
-                        disgas_input_file.write('  Y_ORIGIN_(UTM_M) = ' + str(bottom_left_northing) + '\n')
+                        # disgas_input_file.write('  Y_ORIGIN_(UTM_M) = ' + str(bottom_left_northing) + '\n')
+                        disgas_input_file.write('  Y_ORIGIN_(UTM_M) = ' + str(bottom_left_northing + dy) + '\n')
                     elif 'RESTART_RUN' in record:
                         if run_mode == 'restart':
                             disgas_input_file.write('  RESTART_RUN = YES\n')
@@ -1517,11 +1529,11 @@ def converter(run_in):
 
 def match_grid(run_in):
     from scipy.interpolate import RegularGridInterpolator
-    x_disgas = np.linspace(bottom_left_easting + dx / 2, top_right_easting - dx / 2, nx)
-    y_disgas = np.linspace(bottom_left_northing + dy / 2, top_right_northing - dy / 2, ny)
+    x_disgas = np.linspace(bottom_left_easting + dx + dx / 2, top_right_easting - dx - dx / 2, nx - 2)
+    y_disgas = np.linspace(bottom_left_northing + dy + dy / 2, top_right_northing - dy - dy / 2, ny - 2)
     x_grd_disgas, y_grd_disgas = np.meshgrid(x_disgas, y_disgas)
-    x_twodee = np.linspace(bottom_left_easting, top_right_easting, nx + 2)
-    y_twodee = np.linspace(bottom_left_northing, top_right_northing, ny + 2)
+    x_twodee = np.linspace(bottom_left_easting, top_right_easting, nx)
+    y_twodee = np.linspace(bottom_left_northing, top_right_northing, ny)
     splitted_run_in = run_in.split(os.path.sep)
     try:
         splitted_run_in.remove('')
@@ -1552,11 +1564,11 @@ def match_grid(run_in):
         twodee_new_grid = interp((x_grd_disgas, y_grd_disgas))
         with open(converted_files[i], 'w') as twodee_interpolated_output:
             twodee_interpolated_output.write('DSAA\n')
-            twodee_interpolated_output.write(str(nx) + '  ' + str(ny) + '\n')
-            twodee_interpolated_output.write(str(bottom_left_easting + dx / 2) + '  ' + str(top_right_easting - dx / 2)
-                                             + '\n')
-            twodee_interpolated_output.write(str(bottom_left_northing + dy / 2) + '  ' + str(top_right_northing - dy /
-                                             2) + '\n')
+            twodee_interpolated_output.write(str(nx - 2) + '  ' + str(ny - 2) + '\n')
+            twodee_interpolated_output.write(str(bottom_left_easting + dx + dx / 2) + '  ' + str(top_right_easting - dx 
+                                            - dx / 2) + '\n')
+            twodee_interpolated_output.write(str(bottom_left_northing + dy + dy / 2) + '  ' + str(top_right_northing - 
+                                            dy - dy / 2) + '\n')
             twodee_interpolated_output.write(str(np.min(twodee_new_grid)) + '   ' + str(np.max(twodee_new_grid)) + '\n')
             np.savetxt(twodee_interpolated_output, twodee_new_grid, fmt='%.4e')
     shutil.rmtree(temp_folder)

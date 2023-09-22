@@ -961,8 +961,6 @@ def elaborate_day(day_input):
         time_min = min(time_steps_elaborated)
         time_steps_elaborated = sorted(time_steps_elaborated)
         time_step_simulation = (time_steps_elaborated[1] - time_steps_elaborated[0]).seconds
-        if model == 'twodee':
-            time_min -= datetime.timedelta(seconds=time_step_simulation)
         if time_av == 0:
             time_max = max(time_steps_elaborated)
         else:

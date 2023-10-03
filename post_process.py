@@ -1009,7 +1009,6 @@ def elaborate_day(day_input):
             if time_av == 0:
                 break
             else:
-                # time_min = time_max + datetime.timedelta(seconds=time_step_simulation)
                 time_min = time_max
                 if time_min >= max(time_steps_elaborated):
                     break
@@ -1269,8 +1268,6 @@ def read_output_files_for_ecdf(ji):
 
     j_ecdf = ji[0]
     i_ecdf = ji[1]
-    # pool_file_read = ThreadingPool(len(files_to_process))
-    # c_list_ecdf = pool_file_read.map(read_file, files_to_process)
     c_list_ecdf = []
     for file_to_read in files_to_process:
         c_list_ecdf.append(read_file(file_to_read))

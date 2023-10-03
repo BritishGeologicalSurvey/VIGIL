@@ -1428,7 +1428,7 @@ simulations = os.path.join(root, 'simulations')
 ) = read_arguments()
 
 
-n_stations = 1  # FABIO: to generalize to allow more weather data point when using NWP data
+n_stations = 1  # To generalize to allow more weather data point when using NWP data
 
 if not disgas_on and not twodee_on:
     print('Both DISGAS and TWODEE are turned off')

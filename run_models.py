@@ -825,10 +825,8 @@ def pre_process(run_mode):
                         disgas_input_file.write('  SIMULATION_INTERVAL_(SEC) = ' +
                                                 '{0:7.0f}'.format(simulation_interval) + '\n')
                     elif 'NX' in record:
-                        # disgas_input_file.write('  NX     = ' + str(nx) + '\n')
                         disgas_input_file.write('  NX     = ' + str(nx - 2) + '\n')
                     elif 'NY' in record:
-                        # disgas_input_file.write('  NY     = ' + str(ny) + '\n')
                         disgas_input_file.write('  NY     = ' + str(ny - 2) + '\n')
                     elif 'NZ' in record:
                         disgas_input_file.write('  NZ     = ' + str(nz) + '\n')
@@ -839,10 +837,8 @@ def pre_process(run_mode):
                     elif 'DY_(M)' in record:
                         disgas_input_file.write('  DY_(M) = ' + str(dy) + '\n')
                     elif 'X_ORIGIN_(UTM_M)' in record:
-                        # disgas_input_file.write('  X_ORIGIN_(UTM_M) = ' + str(bottom_left_easting) + '\n')
                         disgas_input_file.write('  X_ORIGIN_(UTM_M) = ' + str(bottom_left_easting + dx) + '\n')
                     elif 'Y_ORIGIN_(UTM_M)' in record:
-                        # disgas_input_file.write('  Y_ORIGIN_(UTM_M) = ' + str(bottom_left_northing) + '\n')
                         disgas_input_file.write('  Y_ORIGIN_(UTM_M) = ' + str(bottom_left_northing + dy) + '\n')
                     elif 'RESTART_RUN' in record:
                         if run_mode == 'restart':

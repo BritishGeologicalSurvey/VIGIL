@@ -19,45 +19,47 @@ The weather data can be either retrieved from ECMWF ERA5 database or from time s
 	+ Weather station data
 	In this mode, the script is design to extract weather data in the time interval specified by the user from selected weather data file. The script reads the number of files, file location and name from weather_stations.txt; the file data should be stored in the folder weather_stations.
 The following flags control the execution of weather.py:
-usage: weather.py [-h] [-M MODE] [-RT RUN_TYPE] [-CS CONTINUOUS_SIMULATION] [-S START_DATE] [-E END_DATE] [-SY SAMPLED_YEARS [SAMPLED_YEARS ...]] [-SM SAMPLED_MONTHS [SAMPLED_MONTHS ...]] [-SD SAMPLED_DAYS [SAMPLED_DAYS ...]] [-V VOLC] [-LAT LAT] [-LON LON]
-                  [-EL ELEV] [-NS SAMPLES] [-ERA5 ERA5] [-WST STATION] [-N NPROC] [-TD TWODEE] [-DG DISGAS]
+usage: weather.py [-h] [-M MODE] [-RT RUN_TYPE] [-CS CONTINUOUS_SIMULATION] [-S START_DATE] [-E END_DATE]
+                  [-SY SAMPLED_YEARS] [-SM SAMPLED_MONTHS] [-SD SAMPLED_DAYS] [-V VOLC] [-LAT LAT] [-LON LON] [-EL ELEV]
+                  [-NS SAMPLES] [-ERA5 ERA5] [-WST STATION] [-N NPROC] [-TD TWODEE] [-DG DISGAS]
+Input data optional arguments:
   -h, --help            show this help message and exit
-  -M MODE, --mode MODE  Possible options: reanalysis, forecast. If reanalysis, either ERA5 or WST options should be
-                        on. If forecast, GFS data will be downloaded and processed
+  -M MODE, --mode MODE  Possible options: reanalysis, forecast. If reanalysis, either ERA5 or WST options should be on. If
+                        forecast, GFS data will be downloaded and processed (default: reanalysis)
   -RT RUN_TYPE, --run_type RUN_TYPE
-                        Specify if the simulation is a new one or a restart. Possible options are: new, restart
+                        Specify if the simulation is a new one or a restart. Possible options are: new, restart (default:
+                        new)
   -CS CONTINUOUS_SIMULATION, --continuous_simulation CONTINUOUS_SIMULATION
-                        Specify if the simulation is continuous between the specified start and end dates. Possible options are True or False
+                        Specify if the simulation is continuous between the specified start and end dates. Possible options
+                        are True or False (default: False)
   -S START_DATE, --start_date START_DATE
-                        Start date of the sampling period. Format: DD/MM/YYYY
+                        Start date of the sampling period. Format: DD/MM/YYYY (default: 999)
   -E END_DATE, --end_date END_DATE
-                        Start date of the sampling period. Format: DD/MM/YYYY
-  -SY SAMPLED_YEARS [SAMPLED_YEARS ...], --sampled_years SAMPLED_YEARS [SAMPLED_YEARS ...]
-                        Specify years to sample from the time interval (comma separated values)
-  -SM SAMPLED_MONTHS [SAMPLED_MONTHS ...], --sampled_months SAMPLED_MONTHS [SAMPLED_MONTHS ...]
-                        Specify months to sample from the time interval (comma separated values)
-  -SD SAMPLED_DAYS [SAMPLED_DAYS ...], --sampled_days SAMPLED_DAYS [SAMPLED_DAYS ...]
-                        Specify days to sample from the time interval (comma separated values)
-  -V VOLC, --volc VOLC  This is the volcano ID based on the Smithsonian
-                        Institute IDs
-  -LAT LAT, --lat LAT   Volcano latitude
-  -LON LON, --lon LON   Volcano longitude
+                        Start date of the sampling period. Format: DD/MM/YYYY (default: 999)
+  -SY SAMPLED_YEARS, --sampled_years SAMPLED_YEARS
+                        Specify years to sample from the time interval (default: )
+  -SM SAMPLED_MONTHS, --sampled_months SAMPLED_MONTHS
+                        Specify months to sample from the time interval (default: )
+  -SD SAMPLED_DAYS, --sampled_days SAMPLED_DAYS
+                        Specify days to sample from the time interval (default: )
+  -V VOLC, --volc VOLC  This is the volcano ID based on the Smithsonian Institute IDs (default: 999)
+  -LAT LAT, --lat LAT   Volcano latitude (default: 999)
+  -LON LON, --lon LON   Volcano longitude (default: 999)
   -EL ELEV, --elev ELEV
-                        Volcano elevation
+                        Volcano elevation (default: 999)
   -NS SAMPLES, --samples SAMPLES
-                        Number of days to sample
-  -ERA5 ERA5, --ERA5 ERA5
-                        True: Use ERA5 reanalysis. False: Do not use ERA5
-                        reanalysis
+                        Number of days to sample (default: 1)
+  -ERA5 ERA5, --era5 ERA5
+                        True: Use ERA5 reanalysis. False: Do not use ERA5 reanalysis (default: False)
   -WST STATION, --station STATION
-                        True: Use weather station data. False: Do not use
-                        weather station data
+                        True: Use weather station data. False: Do not use weather station data (default: False)
   -N NPROC, --nproc NPROC
-                        Maximum number of allowed simultaneous processes
+                        Maximum number of allowed simultaneous processes (default: 1)
   -TD TWODEE, --twodee TWODEE
-                        on or off, to prepare additional weather data files for Twodee.
+                        on or off, to prepare additional weather data files for Twodee. (default: off)
   -DG DISGAS, --disgas DISGAS
-                        on or off, to run Disgas
+                        on or off, to run Disgas (default: off)
+
 ```
 
 - run_models.py
@@ -65,87 +67,21 @@ usage: weather.py [-h] [-M MODE] [-RT RUN_TYPE] [-CS CONTINUOUS_SIMULATION] [-S 
 ```bash
 Python script to run Diagno and DISGAS for the days sampled with weather.py. 
 The following flags control the execution of hazard_fumaroles.py:
-usage: run_models.py [-h] [-N NPROC] [-RT RUN_TYPE] [-CS CONTINUOUS_SIMULATION] [-RS RANDOM_SOURCES] [-NS NSOURCES]
-                     [-SINT SOURCES_INTERVAL] [-SLOC SOURCE_LOCATION] [-SDX SOURCE_DX] [-SDY SOURCE_DY] [-SDUR SOURCE_DUR]
-                     [-D DOMAIN] [-NX NX] [-NY NY] [-DX DX] [-DY DY] [-SEM SOURCE_EMISSION] [-RER RANDOM_EMISSION] [-DI DIAGNO]
-                     [-TD TWODEE] [-DG DISGAS] [-US USE_SLURM] [-SP SLURM_PARTITION]
-
-  -h, --help            show this help message and exit
-  -N NPROC, --nproc NPROC
-                        Maximum number of allowed simultaneous processes
-  -RT RUN_TYPE, --run_type RUN_TYPE
-                        Specify if the simulation is a new one or a restart.Possible options are: new, restart
-  -CS CONTINUOUS_SIMULATION, --continuous_simulation CONTINUOUS_SIMULATION
-                        Specify if the simulation is continuous between the specified start and end dates. Possible options are True
-                        or False
-  -RS RANDOM_SOURCES, --random_sources RANDOM_SOURCES
-                        on: randomly select NS locations from a probability map. off: fixed source locations from file
-                        sources_input.txt
-  -NS NSOURCES, --nsources NSOURCES
-                        Specify a number for a fixed number of sources. If random, then randomly select the number of sources from
-                        an interval
-  -SINT SOURCES_INTERVAL, --sources_interval SOURCES_INTERVAL
-                        Type the minimum and maximum number of sources
-  -SLOC SOURCE_LOCATION, --source_location SOURCE_LOCATION
-                        Coordinate type (UTM/GEO), latitude/northing, longitude/easting, elevation (above ground in m) of 1 fixed
-                        source
-  -SDX SOURCE_DX, --source_dx SOURCE_DX
-                        Extension [m] along the X direction of 1 single source. Option valid for Twodee only
-  -SDY SOURCE_DY, --source_dy SOURCE_DY
-                        Extension [m] along the Y direction of 1 single source. Option valid for Twodee only
-  -SDUR SOURCE_DUR, --source_dur SOURCE_DUR
-                        Emission duration [s] of 1 single source. Option valid for Twodee only
-  -D DOMAIN, --domain DOMAIN
-                        Coordinates type (UTM/GEO), coordinates (latitude/northing, longitude/easting) of the bottom left corner and
-                        top right corner of the domain
-  -NX NX, --nx NX       Number of grid cells along the x-direction. If not provided, the grid spacing along the x-direction must be
-                        provided
-  -NY NY, --ny NY       Number of grid cells along the y-direction. If not provided, the grid spacing along the y-direction must be
-                        provided
-  -DX DX, --dx DX       Grid spacing (in m) along the x-direction. If not provided, the number of grid cells along the x-direction
-                        must be provided
-  -DY DY, --dy DY       Grid spacing (in m) along the y-direction. If not provided, the number of grid cells along the y-direction
-                        must be provided
-  -SEM SOURCE_EMISSION, --source_emission SOURCE_EMISSION
-                        Source emission rate [kg/s]. If specified, it is assigned to all the sources in the domain
-  -RER RANDOM_EMISSION, --random_emission RANDOM_EMISSION
-                        on: randomly assign emission rate for each source in the domain sampled from a flux.txt file. off: use
-                        specified emission rate
-  -DI DIAGNO, --diagno DIAGNO
-                        on or off, to run Diagno. Turn it off only if Diagno has already been run
-  -TD TWODEE, --twodee TWODEE
-                        on or off, to run Twodee
-  -DG DISGAS, --disgas DISGAS
-                        on or off, to run Disgas
-  -US USE_SLURM, --use_slurm USE_SLURM
-                        True or False, to use SLURM Workload Manager (default: False)
-  -SP SLURM_PARTITION, --slurm_partition SLURM_PARTITION
-                        Name of the cluster partition to run the Slurm jobs (default: )
-```
-
-- post_process.py
-
-```bash
-Python script that:
-	+ reads the DISGAS outputs produced by hazard_fumaroles.py and based on the list of days simulated, which is read from the file days_list.txt generated by hazard_fumaroles.txt
-	+ converts the DISGAS outputs (currently in H2O concentration) in concentration of other gas species specified by the user in input and based on the gas species properties made available by the user in the file gas_properties.csv. The converted concentrations are stored in the folder simulation_converted
-	+ calculates the converted outputs at user's specified exceedance probabilities, time steps and vertical levels; these are stored in the folder output_ecdf
-	+ plot the converted outputs and those at selected exceedance probabilities at user's selectd time steps and vertical levels; the plots are stored in the folder graphical_outputs.
-The following flags control the execution of post_process.py:
-usage: post_process.py [-h] [-P PLOT] [-ECDF CALCULATE_ECDF] [-PER PERSISTENCE] [-EX EX_PROB] [-T TIME_STEPS] [-L LEVELS] [-D DAYS_PLOT]
-                       [-C CONVERT] [-S SPECIES] [-TS TRACKING_SPECIE] [-N NPROC] [-M MODELS] [-U UNITS] [-PL PLOT_LIMITS] [-PI PLOT_ISOLINES]
-                       [-TA TIME_AV] [-OF OUTPUT_FORMAT] [-PT PLOT_TOPOGRAPHY] [-TI TOPOGRAPHY_ISOLINES] [-PR PLOT_RESOLUTION]
-                       [-TP TRACKING_POINTS]
-
+usage: post_process.py [-h] [-P PLOT] [-ECDF CALCULATE_ECDF] [-PER PERSISTENCE] [-EX EX_PROB] [-T TIME_STEPS] [-L LEVELS]
+                       [-D DAYS_PLOT] [-C CONVERT] [-S SPECIES] [-TS TRACKING_SPECIE] [-N NPROC] [-U UNITS]
+                       [-PL PLOT_LIMITS] [-PI PLOT_ISOLINES] [-TA TIME_AV] [-OF OUTPUT_FORMAT] [-PT PLOT_TOPOGRAPHY]
+                       [-TI TOPOGRAPHY_ISOLINES] [-PR PLOT_RESOLUTION] [-TP TRACKING_POINTS]
+Input data optional arguments:
   -h, --help            show this help message and exit
   -P PLOT, --plot PLOT  Produce plots of the solutions and probabilistic output (if activated). True/False (default: False)
   -ECDF CALCULATE_ECDF, --calculate_ecdf CALCULATE_ECDF
-                        Calculate the Empirical Cumulative Density Function of the solution and extrapolate solutions at user-defined
-                        exceedance probabilities. True/False (default: False)
+                        Calculate the Empirical Cumulative Density Function of the solution and extrapolate solutions at
+                        user-defined exceedance probabilities. True/False (default: False)
   -PER PERSISTENCE, --persistence PERSISTENCE
-                        Calculate the persistence of the gas specie, i.e. the probability to be exposed to a gas species above specified
-                        concentration thresholds for times longer than the specified exposure times for those thresholds. Concentration
-                        thresholds and exposure times should be provided in gas_properties.csv. True/False (default: False)
+                        Calculate the persistence of the gas specie, i.e. the probability to be exposed to a gas species
+                        above specified concentration thresholds for times longer than the specified exposure times for
+                        those thresholds. Concentration thresholds and exposure times should be provided in
+                        gas_properties.csv. True/False (default: False)
   -EX EX_PROB, --ex_prob EX_PROB
                         List of exceedance probabilities to be used for graphical output (default: )
   -T TIME_STEPS, --time_steps TIME_STEPS
@@ -155,35 +91,37 @@ usage: post_process.py [-h] [-P PLOT] [-ECDF CALCULATE_ECDF] [-PER PERSISTENCE] 
   -D DAYS_PLOT, --days_plot DAYS_PLOT
                         List of days to plot (YYYYMMDD). Type all to plot all the days (default: )
   -C CONVERT, --convert CONVERT
-                        If True, convert output concentration into other species listed with the command -S (--species) (default: False)
+                        If True, convert output concentration into other species listed with the command -S (--species)
+                        (default: False)
   -S SPECIES, --species SPECIES
                         List of gas species (e.g. CO2) (default: )
   -TS TRACKING_SPECIE, --tracking_specie TRACKING_SPECIE
                         The original emitted specie that is tracked in the simulation (default: None)
   -N NPROC, --nproc NPROC
                         Maximum number of allowed simultaneous processes (default: 1)
-  -M MODELS, --models MODELS
-                        Model outputs to post-process. Options: disgas, twodee, all (default: all)
   -U UNITS, --units UNITS
                         Gas concentration units. Possible options are: ppm, kg/m3 (default: None)
   -PL PLOT_LIMITS, --plot_limits PLOT_LIMITS
-                        Minimum and maximum value of concentration to display. If unspecified, they are obtained from all the outputs (default:
-                        )
+                        Minimum and maximum value of concentration to display. If unspecified, they are obtained from all
+                        the outputs (default: )
   -PI PLOT_ISOLINES, --plot_isolines PLOT_ISOLINES
                         List of gas concentrations values to be used to draw isolines. Optional (default: )
   -TA TIME_AV, --time_av TIME_AV
-                        Generate time-averaged outputs. Specify the time-averaging interval (in hours), or 0 for averaging over the whole
-                        duration (default: None)
+                        Generate time-averaged outputs. Specify the time-averaging interval (in hours), or 0 for averaging
+                        over the whole duration (default: None)
   -OF OUTPUT_FORMAT, --output_format OUTPUT_FORMAT
                         Select format of the processed output files. Valid options are: GRD (default: GRD)
   -PT PLOT_TOPOGRAPHY, --plot_topography PLOT_TOPOGRAPHY
                         Plot topography layer (True or False). Warning, it can be time-consuming! (default: False)
   -TI TOPOGRAPHY_ISOLINES, --topography_isolines TOPOGRAPHY_ISOLINES
-                        Topography height contour lines spatial resolution (in m a.s.l.). Used only if -PT True (default: 100)
+                        Topography height contour lines spatial resolution (in m a.s.l.). Used only if -PT True (default:
+                        100)
   -PR PLOT_RESOLUTION, --plot_resolution PLOT_RESOLUTION
                         Specify plot resolution in dpi (default: 600)
   -TP TRACKING_POINTS, --tracking_points TRACKING_POINTS
-                        Extrapolate gas concentration at locations specified in the file tracking_points.txt (default: False)
+                        Extrapolate gas concentration at locations specified in the file tracking_points.txt (default:
+                        False)
+
 
 ```
 
@@ -196,9 +134,9 @@ $PATH):
 
 Gas modelling software:
 
-- DIAGNO v1.1.6: the diagnostic wind model (Douglas et al., 1990)
+- DIAGNO v1.2.3: the diagnostic wind model (Douglas et al., 1990)
   Link: http://datasim.ov.ingv.it/models/diagno.html
-- DISGAS v2.3: the dilute gas dispersion simulation tool (Costa et al., 2005; Costa and Macedonio, 2016)
+- DISGAS v2.5.1: the dilute gas dispersion simulation tool (Costa et al., 2005; Costa and Macedonio, 2016)
   Link: http://datasim.ov.ingv.it/models/disgas.html
 - TWODEE v2.6: the dense gas dispersion simulation tool (Hankin and Britter, 1999; Folch et al., 2009)
   Link: http://datasim.ov.ingv.it/models/twodee.html

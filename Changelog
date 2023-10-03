@@ -1,3 +1,6 @@
+03/10/2023 Fabio Dioguardi <fabio.dioguardi@uniba.it>
+Version 1.3.6 released
+
 12/07/2023 Fabio Dioguardi <fabio.dioguardi@uniba.it>
 Related to the new automatic scenario, implemented the run splitting to manage situations in which some gas sources in the domain require disgas and other twodee
 

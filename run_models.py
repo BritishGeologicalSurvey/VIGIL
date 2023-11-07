@@ -47,7 +47,8 @@ def read_arguments():
     parser.add_argument('-PDEM', '--prob_distr_emission', default='', help='Probability distribution function to '
                         'randomly sample the emission rate. Options: uniform, normal, ecdf')
     parser.add_argument('-PDPAR', '--prob_distr_params', default='', help='If -PDEM=uniform: minimum, maximum. '
-                        'If -PDEM=gaussian: median, standard deviation')
+                        'If -PDEM=gaussian: median, standard deviation. If -PDEM=ecdf, a flux.txt file should be '
+                        'provided')
     parser.add_argument('-RD', '--run_duration', default=24, help='Run duration (hours). Currently fractions of hours '
                         'or duration > 24 hours are not allowed')
     parser.add_argument('-OI', '--output_interval', default=1, help='Output interval (hours). Currently fractions of '

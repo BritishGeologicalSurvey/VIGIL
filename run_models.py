@@ -6,6 +6,7 @@ import argparse
 import numpy as np
 import sys
 import utm
+from pathos.multiprocessing import ThreadingPool
 
 
 def read_arguments():
@@ -39,10 +40,14 @@ def read_arguments():
                         'the number of grid cells along the x-direction must be provided',)
     parser.add_argument('-DY', '--dy', default=-1, help='Grid spacing (in m) along the y-direction. If not provided, '
                         'the number of grid cells along the y-direction must be provided',)
-    parser.add_argument('-SEM', '--source_emission', default='999', help='Source emission rate [kg/s]. If specified, '
+    parser.add_argument('-SEM', '--source_emission', default='', help='Source emission rate [kg/s]. If specified, '
                         'it is assigned to all the sources in the domain',)
     parser.add_argument('-RER', '--random_emission', default='off', help='on: randomly assign emission rate for each '
-                        'source in the domain sampled from a flux.txt file. off: use specified emission rate',)
+                        'source in the domain. off: use specified emission rate',)
+    parser.add_argument('-PDEM', '--prob_distr_emission', default='', help='Probability distribution function to '
+                        'randomly sample the emission rate. Options: uniform, normal, ecdf')
+    parser.add_argument('-PDPAR', '--prob_distr_params', default='', help='If -PDEM=uniform: minimum, maximum. '
+                        'If -PDEM=gaussian: median, standard deviation')
     parser.add_argument('-RD', '--run_duration', default=24, help='Run duration (hours). Currently fractions of hours '
                         'or duration > 24 hours are not allowed')
     parser.add_argument('-OI', '--output_interval', default=1, help='Output interval (hours). Currently fractions of '
@@ -72,6 +77,10 @@ def read_arguments():
     dy_in = args.dy
     source_emission_in = args.source_emission
     random_emission_in = args.random_emission
+    prob_distr_params_in = args.prob_distr_params
+    prob_distr_params_in = prob_distr_params_in.split(',')
+    prob_distr_emission_in = args.prob_distr_emission
+    prob_distr_emission_in = prob_distr_emission_in.lower()
     tracking_specie_in = args.tracking_specie
     try:
         max_number_processes_in = int(nproc)
@@ -102,11 +111,6 @@ def read_arguments():
         continuous_simulation_in = False
     else:
         print('ERROR. Wrong value for variable -CS --continuous_simulation')
-        sys.exit()
-    try:
-        source_emission_in = float(source_emission_in)
-    except ValueError:
-        print('Please provide a valid number for the emission rate of the source')
         sys.exit()
     if len(domain) != 5:
         print('ERROR. Please provide valid entries for -D --domain')
@@ -234,7 +238,7 @@ def read_arguments():
             except ValueError:
                 print('Please provide a valid integer for -NS --nsources')
                 sys.exit()
-        if random_emission_in == 'off' and source_emission_in == 999:
+        if random_emission_in == 'off' and source_emission_in == '':
             print('ERROR. random_sources set to on requires either random_emission set to on or a specified '
                   'source_emission')
             sys.exit()
@@ -279,13 +283,34 @@ def read_arguments():
                     else:
                         source_el_in = float(source_location[2])
     if random_emission_in == 'on':
-        try:
-            sources_file = open('flux.txt', 'r')
-            sources_file.close()
-        except FileNotFoundError:
-            print('ERROR. File flux.txt not found')
+        if prob_distr_emission_in == '':
+            print('ERROR. Random emission rate activated but no probability distribution function provided')
             sys.exit()
-    elif random_emission_in != 'off':
+        else:
+            if prob_distr_emission_in != 'uniform' and prob_distr_emission_in != 'normal' \
+                    and prob_distr_emission_in != 'ecdf':
+                print('ERROR. Wrong probability distribution function specified')
+                sys.exit()
+            elif prob_distr_emission_in == 'ecdf':
+                try:
+                    sources_file = open('flux.txt', 'r')
+                    sources_file.close()
+                except FileNotFoundError:
+                    print('ERROR. File flux.txt not found')
+                    sys.exit()
+            else:
+                if len(prob_distr_params_in) == 0:
+                    print('ERROR. No parameters for the emission rate probability distribution function provided')
+                    sys.exit()
+                else:
+                    prob_distr_params_in = [float(prob_distr_params_in[i]) for i in range(0, len(prob_distr_params_in))]
+    elif random_emission_in == 'off':
+        try:
+            source_emission_in = float(source_emission_in)
+        except ValueError:
+            print('Please provide a valid number for the emission rate of the source')
+            sys.exit()
+    else:
         print('ERROR. Valid options for -RER --random_sources are on and off')
         sys.exit()
     if model.lower() == 'twodee':
@@ -391,6 +416,8 @@ def read_arguments():
         source_el_in,
         source_emission_in,
         random_emission_in,
+        prob_distr_emission_in,
+        prob_distr_params_in,
         bottom_left_northing_in,
         bottom_left_easting_in,
         top_right_northing_in,
@@ -557,7 +584,7 @@ def pre_process(run_mode):
             random_temperatures,
         )
 
-    def fluxes():
+    def sample_ecdf_fluxes():
         fluxes_in = []
         with open('flux.txt') as flux_file:
             for line_flux in flux_file:
@@ -655,13 +682,22 @@ def pre_process(run_mode):
         n_sources = len(easting)
 
     for j_source in range(0, n_sources):
-        if source_emission != 999:
-            gas_fluxes.append(source_emission)
-        else:
-            if fluxes_input[j_source] == 99999999 and random_emission == 'on':
-                gas_fluxes.append(fluxes()[0])
+        if random_emission == 'off':
+            if fluxes_input[j_source] == 99999999:
+                gas_fluxes.append([source_emission for day in days])
             else:
-                gas_fluxes.append(fluxes_input[j_source])
+                gas_fluxes.append([fluxes_input[j_source] for day in days])
+        else:
+            if prob_distr_emission == 'ecdf':
+                fluxes = [sample_ecdf_fluxes()[0] for day in days]
+            elif prob_distr_emission == 'uniform':
+                fluxes = [np.random.uniform(prob_distr_params[0], prob_distr_params[1]) for day in days]
+            else:
+                fluxes = [np.random.normal(prob_distr_params[0], prob_distr_params[1]) for day in days]
+                for i_flux in range(0, len(fluxes)):
+                    while fluxes[i_flux] <= 0:
+                        fluxes[i_flux] = np.random.uniform(prob_distr_params[0], prob_distr_params[1])
+            gas_fluxes.append(fluxes)
     simulations = os.path.join(root, 'simulations')
     diagno = os.path.join(simulations, 'diagno')
     runs_folder = os.path.join(simulations, 'runs')
@@ -763,7 +799,7 @@ def pre_process(run_mode):
                         ny_source = int(dy_src[j_source] / dy) + 1
                         x_or_source = easting[j_source] - dx_src[j_source] / 2
                         y_or_source = northing[j_source] - dy_src[j_source] / 2
-                        splitted_flux = gas_fluxes[j_source] / (nx_source * ny_source)
+                        splitted_flux = gas_fluxes[j_source][i_day] / (nx_source * ny_source)
                         y_source = y_or_source
                         for jj_source in range(0, ny_source):
                             x_source = x_or_source
@@ -776,8 +812,8 @@ def pre_process(run_mode):
                     else:
                         source_file.write('{0:7.3f}'.format(easting[j_source]) + ' ' +
                                           '{0:7.3f}'.format(northing[j_source]) + ' ' +
-                                          '{0:7.2f}'.format(elevations[j_source]) + ' ' + str(gas_fluxes[j_source]) +
-                                          '\n')
+                                          '{0:7.2f}'.format(elevations[j_source]) + ' ' +
+                                          str(gas_fluxes[j_source][i_day]) + '\n')
             source_file.close()
             roughness_file_exist = True
             try:
@@ -899,8 +935,9 @@ def pre_process(run_mode):
                     source_file:
                 for j in range(0, n_sources):
                     source_file.write('{0:7.3f}'.format(easting[j]) + ' ' + '{0:7.3f}'.format(northing[j]) + ' '
-                                      + '{0:7.3f}'.format(gas_fluxes[j]) + ' ' + '{0:7.2f}'.format(dx_src[j]) + ' '
-                                      + '{0:7.2f}'.format(dy_src[j]) + ' KG_SEC 0 ' + '{0:7.3f}'.format(dur[j]) + '\n')
+                                      + '{0:7.3f}'.format(gas_fluxes[j][i_day]) + ' ' + '{0:7.2f}'.format(dx_src[j])
+                                      + ' ' + '{0:7.2f}'.format(dy_src[j]) + ' KG_SEC 0 ' + '{0:7.3f}'.format(dur[j])
+                                      + '\n')
             source_file.close()
             # read and memorize twodee.inp file. First read and memorize the domain properties of diagno, since
             # twodee's domain must coincide with it
@@ -999,8 +1036,8 @@ def pre_process(run_mode):
                     else:
                         twodee_input_file.write(record)
             shutil.copy(twodee_input, twodee_original)
-    return easting, northing, elevations, dx_src, dy_src, dur, gas_fluxes, source_temperatures, gas_density, \
-        gas_constant, gas_molar_weight, gas_background_concentration
+    return easting, northing, elevations, dx_src, dy_src, dur, gas_fluxes, n_sources, source_temperatures, \
+        gas_density, gas_constant, gas_molar_weight, gas_background_concentration
 
 
 def run_diagno(max_np):
@@ -1027,6 +1064,12 @@ def run_diagno(max_np):
                     print('File ' + f + ' already present in ' + diagno)
             shutil.copy(topography, os.path.join(diagno_daily, 'topography.grd'))
             shutil.rmtree(path)
+            # FABIO: create tracking_points.txt for diagno
+            with open(os.path.join(diagno_daily, 'tracking_points.txt'), 'w') as diagno_tracking_points:
+                diagno_tracking_points.write(str(len(easting_sources)) + '\n')
+                for i_source in range(0, len(easting_sources)):
+                    diagno_tracking_points.write(str(easting_sources[i_source]) + ' ' + str(northing_sources[i_source])
+                                                 + ' 10.0\n')
 
     prepare_diagno()
     n_elaborated_days = 0
@@ -1115,215 +1158,147 @@ def run_diagno(max_np):
 
 
 def read_diagno_outputs():
-    from scipy.io import FortranFile
 
-    def prepare_temporary_simulations(day_simulation):
-        try:
-            os.remove(os.path.join(runs_folder, day_simulation, 'source.dat'))
-        except FileNotFoundError:
-            pass
-        disgas_folder = os.path.join(runs_folder, day_simulation, 'disgas')
-        twodee_folder = os.path.join(runs_folder, day_simulation, 'twodee')
-        runs_disgas.append(disgas_folder)
-        runs_twodee.append(twodee_folder)
-        disgas_inp = os.path.join(disgas_folder, 'disgas.inp')
-        twodee_inp = os.path.join(twodee_folder, 'twodee.inp')
-        disgas_inp_new = os.path.join(disgas_folder, 'disgas.inp_new')
-        twodee_inp_new = os.path.join(twodee_folder, 'twodee.inp_new')
-        disgas_input_records = []
-        twodee_input_records = []
-        try:
-            os.mkdir(os.path.join(disgas_folder, 'outfiles'))
-        except FileExistsError:
-            print('Folder ' + os.path.join(disgas_folder, 'outfiles') + ' already exists')
-        # Copy the necessary files into the temporary twodee folder
-        try:
-            os.mkdir(os.path.join(twodee_folder, 'outfiles'))
-        except FileExistsError:
-            print('Folder ' + os.path.join(twodee_folder, 'outfiles') + ' already exists')
-        with open(os.path.join(disgas_folder, 'source.dat'), 'w', encoding='utf-8', errors='surrogateescape',) \
-                as source_file:
-            for j_source in index_sources_disgas:
-                source_file.write(
-                    '{0:7.3f}'.format(easting_sources[j_source])
-                    + ' '
-                    + '{0:7.3f}'.format(northing_sources[j_source])
-                    + ' '
-                    + '{0:7.2f}'.format(elevation_sources[j_source])
-                    + ' '
-                    + str(gas_fluxes_sources[j_source])
-                    + '\n')
-        with open(os.path.join(twodee_folder, 'source.dat'), 'w', encoding='utf-8', errors='surrogateescape',) \
-                as source_file:
-            for j_source in index_sources_twodee:
-                source_file.write(
-                    '{0:7.3f}'.format(easting_sources[j_source])
-                    + ' '
-                    + '{0:7.3f}'.format(northing_sources[j_source])
-                    + ' '
-                    + '{0:7.3f}'.format(gas_fluxes_sources[j_source])
-                    + ' '
-                    + '{0:7.2f}'.format(dx_sources[j_source])
-                    + ' '
-                    + '{0:7.2f}'.format(dy_sources[j_source])
-                    + ' KG_SEC 0 '
-                    + '{0:7.3f}'.format(dur_sources[j_source])
-                    + '\n')
-        # Update the input files where necessary
-        with open(disgas_inp, 'r', encoding='utf-8', errors='surrogateescape') as disgas_or_input:
-            for line_input in disgas_or_input:
-                disgas_input_records.append(line_input)
-        with open(twodee_inp, 'r', encoding='utf-8', errors='surrogateescape') as twodee_or_input:
-            for line_input in twodee_or_input:
-                twodee_input_records.append(line_input)
-        with open(disgas_inp_new, 'w', encoding='utf-8', errors='surrogateescape') as disgas_input_file:
-            for record in disgas_input_records:
-                if 'ROUGHNESS_FILE_PATH' in record:
-                    disgas_input_file.write('   ROUGHNESS_FILE_PATH   = ' +
-                                            os.path.join(disgas_folder, 'roughness.grd') + ' \n')
-                elif 'RESTART_FILE_PATH' in record:
-                    disgas_input_file.write('   RESTART_FILE_PATH   = ' + os.path.join(disgas_folder, 'restart.dat') +
-                                            ' \n')
-                elif 'SOURCE_FILE_PATH' in record:
-                    disgas_input_file.write('   SOURCE_FILE_PATH   = ' + os.path.join(disgas_folder, 'source.dat')
-                        + ' \n')
-                elif 'WIND_FILE_PATH' in record:
-                    disgas_input_file.write('   WIND_FILE_PATH   = ' + os.path.join(disgas_folder, 'winds.dat') + ' \n')
-                elif 'OUTPUT_DIRECTORY' in record:
-                    disgas_input_file.write('   OUTPUT_DIRECTORY    = ' + os.path.join(disgas_folder, 'outfiles') +
-                                            ' \n')
-                else:
-                    disgas_input_file.write(record)
-        with open(twodee_inp_new, 'w', encoding='utf-8', errors='surrogateescape') as twodee_input_file:
-            for record in twodee_input_records:
-                if 'NX' in record:
-                    twodee_input_file.write('  NX     = ' + str(nx_diagno) + '\n')
-                elif 'NY' in record:
-                    twodee_input_file.write('  NY     = ' + str(ny_diagno) + '\n')
-                elif 'X_ORIGIN_(UTM_M)' in record:
-                    twodee_input_file.write('  X_ORIGIN_(UTM_M) = ' + str(xor_diagno) + '\n')
-                elif 'Y_ORIGIN_(UTM_M)' in record:
-                    twodee_input_file.write('  Y_ORIGIN_(UTM_M) = ' + str(yor_diagno) + '\n')
-                elif 'OUTPUT_DIRECTORY' in record:
-                    twodee_input_file.write('   OUTPUT_DIRECTORY   = ' + os.path.join(twodee_folder, 'outfiles') +
-                                            ' \n')
-                elif 'ROUGHNESS_FILE' in record and 'ROUGHNESS_FILE_FORMAT' not in record:
-                    twodee_input_file.write('   ROUGHNESS_FILE   = ' + os.path.join(twodee_folder, 'roughness.grd') +
-                                            ' \n')
-                elif 'SOURCE_FILE' in record:
-                    twodee_input_file.write('   SOURCE_FILE   = ' + os.path.join(twodee_folder, 'source.dat') + ' \n')
-                elif 'RESTART_FILE' in record:
-                    twodee_input_file.write('   RESTART_FILE   = ' + os.path.join(twodee_folder, 'restart.dat') + ' \n')
-                else:
-                    twodee_input_file.write(record)
-        os.rename(disgas_inp_new, disgas_inp)
-        os.rename(twodee_inp_new, twodee_inp)
+    def calculate_richardson(day_simulation):
 
-    runs_folder = os.path.join(root, 'simulations', 'runs')
-    tz0 = 298
-    p_air = 101325
-    r_air = 287
-    for day in days:
+        def prepare_temporary_simulations(day_simulation_in):
+            try:
+                os.remove(os.path.join(runs_folder, day_simulation_in, 'source.dat'))
+            except FileNotFoundError:
+                pass
+            disgas_folder = os.path.join(runs_folder, day_simulation_in, 'disgas')
+            twodee_folder = os.path.join(runs_folder, day_simulation_in, 'twodee')
+            runs_disgas.append(disgas_folder)
+            runs_twodee.append(twodee_folder)
+            disgas_inp = os.path.join(disgas_folder, 'disgas.inp')
+            twodee_inp = os.path.join(twodee_folder, 'twodee.inp')
+            disgas_inp_new = os.path.join(disgas_folder, 'disgas.inp_new')
+            twodee_inp_new = os.path.join(twodee_folder, 'twodee.inp_new')
+            disgas_input_records = []
+            twodee_input_records = []
+            ii_day = days.index(day_simulation_in)
+            try:
+                os.mkdir(os.path.join(disgas_folder, 'outfiles'))
+            except FileExistsError:
+                print('Folder ' + os.path.join(disgas_folder, 'outfiles') + ' already exists')
+            # Copy the necessary files into the temporary twodee folder
+            try:
+                os.mkdir(os.path.join(twodee_folder, 'outfiles'))
+            except FileExistsError:
+                print('Folder ' + os.path.join(twodee_folder, 'outfiles') + ' already exists')
+            with open(os.path.join(disgas_folder, 'source.dat'), 'w', encoding='utf-8', errors='surrogateescape', ) \
+                    as source_file:
+                for j_source in index_sources_disgas:
+                    source_file.write(
+                        '{0:7.3f}'.format(easting_sources[j_source])
+                        + ' '
+                        + '{0:7.3f}'.format(northing_sources[j_source])
+                        + ' '
+                        + '{0:7.2f}'.format(elevation_sources[j_source])
+                        + ' '
+                        + str(gas_fluxes_sources[j_source][ii_day])
+                        + '\n')
+            with open(os.path.join(twodee_folder, 'source.dat'), 'w', encoding='utf-8', errors='surrogateescape', ) \
+                    as source_file:
+                for j_source in index_sources_twodee:
+                    source_file.write(
+                        '{0:7.3f}'.format(easting_sources[j_source])
+                        + ' '
+                        + '{0:7.3f}'.format(northing_sources[j_source])
+                        + ' '
+                        + '{0:7.3f}'.format(gas_fluxes_sources[j_source][ii_day])
+                        + ' '
+                        + '{0:7.2f}'.format(dx_sources[j_source])
+                        + ' '
+                        + '{0:7.2f}'.format(dy_sources[j_source])
+                        + ' KG_SEC 0 '
+                        + '{0:7.3f}'.format(dur_sources[j_source])
+                        + '\n')
+            # Update the input files where necessary
+            with open(disgas_inp, 'r', encoding='utf-8', errors='surrogateescape') as disgas_or_input:
+                for line_input in disgas_or_input:
+                    disgas_input_records.append(line_input)
+            with open(twodee_inp, 'r', encoding='utf-8', errors='surrogateescape') as twodee_or_input:
+                for line_input in twodee_or_input:
+                    twodee_input_records.append(line_input)
+            with open(disgas_inp_new, 'w', encoding='utf-8', errors='surrogateescape') as disgas_input_file:
+                for record in disgas_input_records:
+                    if 'ROUGHNESS_FILE_PATH' in record:
+                        disgas_input_file.write('   ROUGHNESS_FILE_PATH   = ' +
+                                                os.path.join(disgas_folder, 'roughness.grd') + ' \n')
+                    elif 'RESTART_FILE_PATH' in record:
+                        disgas_input_file.write(
+                            '   RESTART_FILE_PATH   = ' + os.path.join(disgas_folder, 'restart.dat') +
+                            ' \n')
+                    elif 'SOURCE_FILE_PATH' in record:
+                        disgas_input_file.write('   SOURCE_FILE_PATH   = ' + os.path.join(disgas_folder, 'source.dat')
+                                                + ' \n')
+                    elif 'WIND_FILE_PATH' in record:
+                        disgas_input_file.write(
+                            '   WIND_FILE_PATH   = ' + os.path.join(disgas_folder, 'winds.dat') + ' \n')
+                    elif 'OUTPUT_DIRECTORY' in record:
+                        disgas_input_file.write('   OUTPUT_DIRECTORY    = ' + os.path.join(disgas_folder, 'outfiles') +
+                                                ' \n')
+                    else:
+                        disgas_input_file.write(record)
+            with open(twodee_inp_new, 'w', encoding='utf-8', errors='surrogateescape') as twodee_input_file:
+                for record in twodee_input_records:
+                    if 'NX' in record:
+                        twodee_input_file.write('  NX     = ' + str(nx_diagno) + '\n')
+                    elif 'NY' in record:
+                        twodee_input_file.write('  NY     = ' + str(ny_diagno) + '\n')
+                    elif 'X_ORIGIN_(UTM_M)' in record:
+                        twodee_input_file.write('  X_ORIGIN_(UTM_M) = ' + str(xor_diagno) + '\n')
+                    elif 'Y_ORIGIN_(UTM_M)' in record:
+                        twodee_input_file.write('  Y_ORIGIN_(UTM_M) = ' + str(yor_diagno) + '\n')
+                    elif 'OUTPUT_DIRECTORY' in record:
+                        twodee_input_file.write('   OUTPUT_DIRECTORY   = ' + os.path.join(twodee_folder, 'outfiles') +
+                                                ' \n')
+                    elif 'ROUGHNESS_FILE' in record and 'ROUGHNESS_FILE_FORMAT' not in record:
+                        twodee_input_file.write(
+                            '   ROUGHNESS_FILE   = ' + os.path.join(twodee_folder, 'roughness.grd') +
+                            ' \n')
+                    elif 'SOURCE_FILE' in record:
+                        twodee_input_file.write(
+                            '   SOURCE_FILE   = ' + os.path.join(twodee_folder, 'source.dat') + ' \n')
+                    elif 'RESTART_FILE' in record:
+                        twodee_input_file.write(
+                            '   RESTART_FILE   = ' + os.path.join(twodee_folder, 'restart.dat') + ' \n')
+                    else:
+                        twodee_input_file.write(record)
+            os.rename(disgas_inp_new, disgas_inp)
+            os.rename(twodee_inp_new, twodee_inp)
+
+        i_day = days.index(day_simulation)
         g_prime_sources = []
         rho_gas_sources = []
-        twodee_sources = []
-        disgas_sources = []
         index_sources_twodee = []
         index_sources_disgas = []
-        diagno_output_file = os.path.join(root, 'simulations', 'diagno', day, 'diagno.out')
-        diagno_input_file = os.path.join(root, 'simulations', 'diagno', day, 'diagno.inp')
+        wind_time_average_sources = []
+        # diagno_output_file = os.path.join(root, 'simulations', 'diagno', day_simulation, 'diagno.out')
+        diagno_input_file = os.path.join(root, 'simulations', 'diagno', day_simulation, 'diagno.inp')
         with open(diagno_input_file, 'r') as diagno_input_data:
             for line in diagno_input_data:
                 if 'NX\n' in line:
                     nx_diagno = int(line.split('NX')[0])
                 if 'NY\n' in line:
                     ny_diagno = int(line.split('NY')[0])
-                elif 'NZ\n' in line:
-                    nz_diagno = int(line.split('NZ')[0])
+                elif 'UTMXOR' in line:
+                    xor_diagno = float(line.split('UTMXOR')[0]) * 1000
+                elif 'UTMYOR' in line:
+                    yor_diagno = float(line.split('UTMYOR')[0]) * 1000
                 elif 'TINF\n' in line:
                     tz0 = float(line.split('TINF')[0])
         rho_air = p_air / (r_air * tz0)
-        for i_source in range(0, len(gas_fluxes_sources)):
+        for i_source in range(0, sources_number):
             t_source = temperatures_sources[i_source]
             rho_gas_sources.append(p_air / (r_tracking_specie * t_source))
             g_prime_sources.append((9.81 * (rho_gas_sources[-1] - rho_air)) / rho_air)
-        f = FortranFile(diagno_output_file, 'r')
-        vx_time_average_sources = [0 for flux in gas_fluxes_sources]
-        vy_time_average_sources = [0 for flux in gas_fluxes_sources]
-        n_times_source_counted = [0 for flux in gas_fluxes_sources]
-        n_steps = 0
-        while True:
-            try:
-                vx_average_sources = [0 for flux in gas_fluxes_sources]
-                vy_average_sources = [0 for flux in gas_fluxes_sources]
-                for nline in range(0, 2):
-                    f.read_reals(dtype='float32')
-                n_steps += 1
-                xor_diagno, yor_diagno = f.read_reals(dtype='float32')
-                f.read_reals(dtype='float32')
-                dx_diagno, dy_diagno = f.read_reals(dtype='float32')
-                z_diagno = f.read_reals(dtype='float32')
-                min_diff = 100000000
-                k_z = 0
-                for k in range(0, len(z_diagno)):
-                    z_diff = abs(10 - z_diagno[k])
-                    if z_diff <= min_diff:
-                        min_diff = z_diff
-                        k_z = k
-                if k_z == 0:
-                    print('WARNING. Unable to find level z = 10 m in diagno.out. Reading the wind output from the '
-                          'first level above the ground')
-                for nline in range(0, 3):
-                    f.read_reals(dtype='float32')
-                for k in range(0, nz_diagno):
-                    for j in range(0, ny_diagno):
-                        y_domain = yor_diagno + j * dy_diagno
-                        vx_vector = f.read_reals(dtype='float32')
-                        for i_v in range(0, len(vx_vector)):
-                            x_domain = xor_diagno + i_v * dx_diagno
-                            for i_source in range(0, len(gas_fluxes_sources)):
-                                x_source = easting_sources[i_source]
-                                y_source = northing_sources[i_source]
-                                if k == k_z and x_domain - dx_diagno < x_source < x_domain + dx_diagno and \
-                                        y_domain - dy_diagno < y_source < y_domain + dy_diagno:
-                                    vx_average_sources[i_source] += vx_vector[i_v]
-                                    n_times_source_counted[i_source] += 1
-                vx_time_average_sources = [vx_time_average_sources[i_source] + vx_average_sources[i_source] /
-                                           n_times_source_counted[i_source]
-                                           for i_source in range(0, len(gas_fluxes_sources))]
-                n_times_source_counted = [0 for flux in gas_fluxes_sources]
-                for k in range(0, nz_diagno):
-                    for j in range(0, ny_diagno):
-                        y_domain = yor_diagno + j * dy_diagno
-                        vy_vector = f.read_reals(dtype='float32')
-                        for i_v in range(0, len(vy_vector)):
-                            x_domain = xor_diagno + i_v * dx_diagno
-                            for i_source in range(0, len(gas_fluxes_sources)):
-                                x_source = easting_sources[i_source]
-                                y_source = northing_sources[i_source]
-                                if k == k_z and x_domain - dx_diagno < x_source < x_domain + dx_diagno and \
-                                        y_domain - dy_diagno < y_source < y_domain + dy_diagno:
-                                    vy_average_sources[i_source] += vy_vector[i_v]
-                                    n_times_source_counted[i_source] += 1
-                vy_time_average_sources = [vy_time_average_sources[i_source] + vy_average_sources[i_source] /
-                                           n_times_source_counted[i_source] for i_source in
-                                           range(0, len(gas_fluxes_sources))]
-                n_times_source_counted = [0 for flux in gas_fluxes_sources]
-                # Skip vz
-                for k in range(0, nz_diagno):
-                    for j in range(0, ny_diagno):
-                        f.read_reals(dtype='float32')
-            except BaseException:
-                break
-        vx_time_average_sources = [vx_time_average_sources[i_source] / n_steps
-                                   for i_source in range(0, len(vx_time_average_sources))]
-        vy_time_average_sources = [vy_time_average_sources[i_source] / n_steps
-                                   for i_source in range(0, len(vy_time_average_sources))]
-        wind_time_average_sources = [(vx_time_average_sources[i_source] ** 2 +
-                                      vy_time_average_sources[i_source] ** 2) ** 0.5
-                                     for i_source in range(0, len(vx_time_average_sources))]
-        q_average_sources = [gas_fluxes_sources[i_source] / rho_gas_sources[i_source]
-                             for i_source in range(0, len(gas_fluxes_sources))]
+            tracking_point_file = os.path.join(root, 'simulations', 'diagno', day_simulation, 'tracking_point_' +
+                                               "{:02d}".format(i_source + 1) + '.out')
+            wind_time_average_sources.append(np.average(np.loadtxt(tracking_point_file)[:, 2]))
+        q_average_sources = [gas_fluxes_sources[i_source][i_day] / rho_gas_sources[i_source]
+                             for i_source in range(0, sources_number)]
         for i_source in range(0, len(wind_time_average_sources)):
             if twodee_on:
                 area_source = dx_sources[i_source] * dy_sources[i_source]
@@ -1336,31 +1311,45 @@ def read_diagno_outputs():
             except ValueError:  # When gprime <0, for the moment we set Ri = 0.01 (small number)
                 ri_source = 0.01
             if ri_source > 0.25:
-                twodee_sources.append(ri_source)
                 index_sources_twodee.append(i_source)
             else:
-                disgas_sources.append(ri_source)
                 index_sources_disgas.append(i_source)
         if len(index_sources_twodee) != 0 and len(index_sources_disgas) != 0:  # The run needs to be split
             for run in runs_disgas:
-                if day in run:
+                if days[i_day] in run:
                     runs_disgas.remove(run)
                     break
             for run in runs_twodee:
-                if day in run:
+                if days[i_day] in run:
                     runs_twodee.remove(run)
                     break
-            prepare_temporary_simulations(day)
+            prepare_temporary_simulations(days[i_day])
         elif len(index_sources_twodee) == 0 and len(index_sources_disgas) != 0:
             for run in runs_twodee:
-                if day in run:
+                if days[i_day] in run:
                     runs_twodee.remove(run)
                     break
         else:
             for run in runs_disgas:
-                if day in run:
+                if days[i_day] in run:
                     runs_disgas.remove(run)
                     break
+
+    runs_folder = os.path.join(root, 'simulations', 'runs')
+    # tz0 = 298
+    p_air = 101325
+    r_air = 287
+    n_elaborated_days = 0
+    while n_elaborated_days < len(days):
+        start_day = n_elaborated_days
+        end_day = n_elaborated_days + max_number_processes
+        if end_day > len(days):
+            end_day = len(days)
+        pool_days = ThreadingPool(max_number_processes)
+        pool_days.map(calculate_richardson, days[start_day:end_day])
+        n_elaborated_days = end_day
+        if n_elaborated_days == len(days):
+            break
 
 
 def run_simulations(max_np):
@@ -1659,6 +1648,8 @@ topography = os.path.join(root, 'topography.grd')
     source_el,
     source_emission,
     random_emission,
+    prob_distr_emission,
+    prob_distr_params,
     bottom_left_northing,
     bottom_left_easting,
     top_right_northing,
@@ -1742,8 +1733,8 @@ runs_disgas = []
 runs_twodee = []
 
 easting_sources, northing_sources, elevation_sources, dx_sources, dy_sources, dur_sources, gas_fluxes_sources, \
-    temperatures_sources, rho_tracking_specie, r_tracking_specie, m_tracking_specie, bg_conc_tracking_specie = \
-    pre_process(run_type)
+    sources_number, temperatures_sources, rho_tracking_specie, r_tracking_specie, m_tracking_specie, \
+    bg_conc_tracking_specie = pre_process(run_type)
 
 if diagno_on:
     max_height_diagno = run_diagno(max_number_processes)

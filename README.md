@@ -66,7 +66,92 @@ Input data optional arguments:
 
 ```bash
 Python script to run Diagno and DISGAS for the days sampled with weather.py. 
-The following flags control the execution of hazard_fumaroles.py:
+The following flags control the execution of run_models.py:
+usage: run_models.py [-h] [-N NPROC] [-RT RUN_TYPE] [-CS CONTINUOUS_SIMULATION] [-RS RANDOM_SOURCES] [-NS NSOURCES]
+                     [-SINT SOURCES_INTERVAL] [-SLOC SOURCE_LOCATION] [-SDX SOURCE_DX] [-SDY SOURCE_DY]
+                     [-SDUR SOURCE_DUR] [-D DOMAIN] [-NX NX] [-NY NY] [-DX DX] [-DY DY] [-SEM SOURCE_EMISSION]
+                     [-RER RANDOM_EMISSION] [-PDEM PROB_DISTR_EMISSION] [-PDPAR PROB_DISTR_PARAMS] [-RD RUN_DURATION]
+                     [-OI OUTPUT_INTERVAL] [-OH OUTPUT_HEIGHTS] [-DI DIAGNO] [-DM DISPERSION_MODEL] [-US USE_SLURM]
+                     [-SP SLURM_PARTITION] [-TS TRACKING_SPECIE]
+
+Input data
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -N NPROC, --nproc NPROC
+                        Maximum number of allowed simultaneous processes (default: 1)
+  -RT RUN_TYPE, --run_type RUN_TYPE
+                        Specify if the simulation is a new one or a restart.Possible options are: new, restart
+                        (default: new)
+  -CS CONTINUOUS_SIMULATION, --continuous_simulation CONTINUOUS_SIMULATION
+                        Specify if the simulation is continuous between the specified start and end dates. Possible
+                        options are True or False (default: False)
+  -RS RANDOM_SOURCES, --random_sources RANDOM_SOURCES
+                        on: randomly select NS locations from a probability map. off: fixed source locations from file
+                        sources_input.txt (default: off)
+  -NS NSOURCES, --nsources NSOURCES
+                        Specify a number for a fixed number of sources. If random, then randomly select the number of
+                        sources from an interval (default: random)
+  -SINT SOURCES_INTERVAL, --sources_interval SOURCES_INTERVAL
+                        Type the minimum and maximum number of sources (default: )
+  -SLOC SOURCE_LOCATION, --source_location SOURCE_LOCATION
+                        Coordinate type (UTM/GEO), latitude/northing, longitude/easting, elevation (above ground in m)
+                        of 1 fixed source (default: )
+  -SDX SOURCE_DX, --source_dx SOURCE_DX
+                        Extension [m] along the X direction of 1 single source. Option valid for Twodee only (default:
+                        999999)
+  -SDY SOURCE_DY, --source_dy SOURCE_DY
+                        Extension [m] along the Y direction of 1 single source. Option valid for Twodee only (default:
+                        999999)
+  -SDUR SOURCE_DUR, --source_dur SOURCE_DUR
+                        Emission duration [s] of 1 single source. Option valid for Twodee only (default: 0)
+  -D DOMAIN, --domain DOMAIN
+                        Coordinates type (UTM/GEO), coordinates (latitude/northing, longitude/easting) of the bottom
+                        left corner and top right corner of the domain (default: )
+  -NX NX, --nx NX       Number of grid cells along the x-direction. If not provided, the grid spacing along the
+                        x-direction must be provided (default: -1)
+  -NY NY, --ny NY       Number of grid cells along the y-direction. If not provided, the grid spacing along the
+                        y-direction must be provided (default: -1)
+  -DX DX, --dx DX       Grid spacing (in m) along the x-direction. If not provided, the number of grid cells along the
+                        x-direction must be provided (default: -1)
+  -DY DY, --dy DY       Grid spacing (in m) along the y-direction. If not provided, the number of grid cells along the
+                        y-direction must be provided (default: -1)
+  -SEM SOURCE_EMISSION, --source_emission SOURCE_EMISSION
+                        Source emission rate [kg/s]. If specified, it is assigned to all the sources in the domain
+                        (default: )
+  -RER RANDOM_EMISSION, --random_emission RANDOM_EMISSION
+                        on: randomly assign emission rate for each source in the domain. off: use specified emission
+                        rate (default: off)
+  -PDEM PROB_DISTR_EMISSION, --prob_distr_emission PROB_DISTR_EMISSION
+                        Probability distribution function to randomly sample the emission rate. Options: uniform,
+                        normal, ecdf (default: )
+  -PDPAR PROB_DISTR_PARAMS, --prob_distr_params PROB_DISTR_PARAMS
+                        If -PDEM=uniform: minimum, maximum. If -PDEM=gaussian: median, standard deviation (default: )
+  -RD RUN_DURATION, --run_duration RUN_DURATION
+                        Run duration (hours). Currently fractions of hours or duration > 24 hours are not allowed
+                        (default: 24)
+  -OI OUTPUT_INTERVAL, --output_interval OUTPUT_INTERVAL
+                        Output interval (hours). Currently fractions of hours are not allowed (default: 1)
+  -OH OUTPUT_HEIGHTS, --output_heights OUTPUT_HEIGHTS
+                        List of output heights (comma separated) in m above the ground (default: )
+  -DI DIAGNO, --diagno DIAGNO
+                        on or off, to run Diagno. Turn it off only if Diagno has already been run (default: on)
+  -DM DISPERSION_MODEL, --dispersion_model DISPERSION_MODEL
+                        Twodee, Disgas, Automatic, None (default: off)
+  -US USE_SLURM, --use_slurm USE_SLURM
+                        True or False, to use SLURM Workload Manager (default: False)
+  -SP SLURM_PARTITION, --slurm_partition SLURM_PARTITION
+                        Name of the cluster partition to run the Slurm jobs (default: )
+  -TS TRACKING_SPECIE, --tracking_specie TRACKING_SPECIE
+                        The original emitted specie that is tracked in the simulation (default: )
+
+```
+
+- post_process.py
+
+```bash
+Python script to process the outputs of run_models.py to produce plots, statistical outputs and tracking points. 
+The following flags control the execution of post_process.py:
 usage: post_process.py [-h] [-P PLOT] [-ECDF CALCULATE_ECDF] [-PER PERSISTENCE] [-EX EX_PROB] [-T TIME_STEPS] [-L LEVELS]
                        [-D DAYS_PLOT] [-C CONVERT] [-S SPECIES] [-TS TRACKING_SPECIE] [-N NPROC] [-U UNITS]
                        [-PL PLOT_LIMITS] [-PI PLOT_ISOLINES] [-TA TIME_AV] [-OF OUTPUT_FORMAT] [-PT PLOT_TOPOGRAPHY]
@@ -136,7 +221,7 @@ Gas modelling software:
 
 - DIAGNO v1.2.3: the diagnostic wind model (Douglas et al., 1990)
   Link: http://datasim.ov.ingv.it/models/diagno.html
-- DISGAS v2.5.1: the dilute gas dispersion simulation tool (Costa et al., 2005; Costa and Macedonio, 2016)
+- DISGAS v2.5.3: the dilute gas dispersion simulation tool (Costa et al., 2005; Costa and Macedonio, 2016)
   Link: http://datasim.ov.ingv.it/models/disgas.html
 - TWODEE v2.6: the dense gas dispersion simulation tool (Hankin and Britter, 1999; Folch et al., 2009)
   Link: http://datasim.ov.ingv.it/models/twodee.html

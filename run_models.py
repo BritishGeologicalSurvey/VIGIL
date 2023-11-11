@@ -1065,12 +1065,12 @@ def run_diagno(max_np):
                     print('File ' + f + ' already present in ' + diagno)
             shutil.copy(topography, os.path.join(diagno_daily, 'topography.grd'))
             shutil.rmtree(path)
-            # FABIO: create tracking_points.txt for diagno
-            with open(os.path.join(diagno_daily, 'tracking_points.txt'), 'w') as diagno_tracking_points:
+            # FABIO: create tracking_points.dat for diagno
+            with open(os.path.join(diagno_daily, 'tracking_points.dat'), 'w') as diagno_tracking_points:
                 diagno_tracking_points.write(str(len(easting_sources)) + '\n')
                 for i_source in range(0, len(easting_sources)):
-                    diagno_tracking_points.write(str(easting_sources[i_source]) + ' ' + str(northing_sources[i_source])
-                                                 + ' 10.0\n')
+                    diagno_tracking_points.write(str(i_source + 1) + ' ' + str(easting_sources[i_source]) + ' ' +
+                                                 str(northing_sources[i_source]) + ' 10.0\n')
 
     prepare_diagno()
     n_elaborated_days = 0
@@ -1296,7 +1296,7 @@ def read_diagno_outputs():
             rho_gas_sources.append(p_air / (r_tracking_specie * t_source))
             g_prime_sources.append((9.81 * (rho_gas_sources[-1] - rho_air)) / rho_air)
             tracking_point_file = os.path.join(root, 'simulations', 'diagno', day_simulation, 'tracking_point_' +
-                                               "{:02d}".format(i_source + 1) + '.out')
+                                               str(i_source + 1) + '.dat')
             wind_time_average_sources.append(np.average(np.loadtxt(tracking_point_file)[:, 2]))
         q_average_sources = [gas_fluxes_sources[i_source][i_day] / rho_gas_sources[i_source]
                              for i_source in range(0, sources_number)]

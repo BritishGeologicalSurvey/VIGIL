@@ -422,7 +422,6 @@ def gas_properties():
         global persistence
         data = pd.read_csv(gas_properties_file, on_bad_lines='skip')
         molar_ratio = None
-        bg_conc = None
         conc_thresholds = []
         exp_times = []
         if convert:
@@ -431,6 +430,7 @@ def gas_properties():
             else:
                 try:
                     x = np.sort(data[specie_in + '/' + original_specie])
+                    x = x[~np.isnan(x)]
                     list_x = list(x)
                     samples = random.sample(list_x, 1)
                     molar_ratio = samples[0]

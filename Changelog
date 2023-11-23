@@ -1,3 +1,9 @@
+23/11/2023 Fabio Dioguardi <fabio.dioguardi@uniba.it>
+Improved conversion of specie, if the outputs are converted the background concentration is discarded
+
+16/11/2023 Fabio Dioguardi <fabio.dioguardi@uniba.it>
+Added a control on possible NaN in the array of the gas properties
+
 11/11/2023 Fabio Dioguardi <fabio.dioguardi@uniba.it>
 Version 1.3.7 released
 

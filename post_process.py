@@ -1421,7 +1421,7 @@ def save_plots(min_con_in, max_con_in):
             top_cbar.set_label('m a.s.l.')
         if 'persistence' in input_file.split(os.sep)[-1]:
             cmap = plt.get_cmap('viridis', 10)
-            field = plt.contourf(x, y, prob, prob_levels, cmap=cmap, alpha=0.9, extend='max')
+            field = plt.contourf(x, y, prob, prob_levels, cmap=cmap, alpha=0.9)
         else:
             field = plt.contourf(x, y, conc_inp, conc_levels, cmap='Reds', alpha=0.9, extend='max')
         if len(plot_isolines) != 0:

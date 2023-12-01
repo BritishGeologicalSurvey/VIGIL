@@ -307,10 +307,14 @@ def read_arguments():
                     prob_distr_params_in = [float(prob_distr_params_in[i]) for i in range(0, len(prob_distr_params_in))]
     elif random_emission_in == 'off':
         try:
-            source_emission_in = float(source_emission_in)
-        except ValueError:
-            print('Please provide a valid number for the emission rate of the source')
-            sys.exit()
+            sources_file = open('sources_input.txt', 'r')
+            sources_file.close()
+        except FileNotFoundError:
+            try:
+                source_emission_in = float(source_emission_in)
+            except ValueError:
+                print('Please provide a valid number for the emission rate of the source')
+                sys.exit()
     else:
         print('ERROR. Valid options for -RER --random_sources are on and off')
         sys.exit()
@@ -741,6 +745,8 @@ def pre_process(run_mode):
             new_record_string = ''
             old_record = ''
             heights = []
+            nintrp_record = ''
+            fextrp_record = ''
             for record in diagno_input_records:
                 if 'CELLZB' in record:
                     old_record = record
@@ -756,7 +762,12 @@ def pre_process(run_mode):
                     heights = sorted(heights)
                     for height in heights:
                         new_record_string += str(height) + ' '
+                        nintrp_record += '5' + ' '
+                        fextrp_record += '2.0' + ' '
+                    fextrp_record = fextrp_record[:-4]
                     new_record_string += ' CELLZB(1:NZ+1) (m) ' + '\n'
+                    nintrp_record += ' NINTRP\n'
+                    fextrp_record += ' FEXTRP\n'
             if new_record_string != '':
                 diagno_input_records = [new_record_string if item == old_record else item for item in
                                         diagno_input_records]
@@ -778,6 +789,10 @@ def pre_process(run_mode):
                     elif 'UTMYOR' in record:
                         diagno_input_file.write('{0:7.3f}'.format(bottom_left_northing / 1000) + '      '
                                                                                                  'UTMYOR  (km)\n')
+                    elif 'NINTRP' in record:
+                        diagno_input_file.write(nintrp_record)
+                    elif 'FEXTRP' in record:
+                        diagno_input_file.write(fextrp_record)
                     else:
                         diagno_input_file.write(record)
         # Set DISGAS folder

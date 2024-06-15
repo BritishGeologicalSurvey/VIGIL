@@ -352,22 +352,22 @@ def domain():
     twodee_inputs = False
     inp_file = ''
     for input_file in inp_files:
-        if 'disgas' in input_file:
+        if 'disgas.inp' in input_file:
             disgas_inputs = True
-        if 'twodee' in input_file:
+        if 'twodee.inp' in input_file:
             twodee_inputs = True
     for input_file in inp_files:
         if twodee_inputs:
             if disgas_inputs:
-                if 'disgas' in input_file:
+                if 'disgas.inp' in input_file:
                     inp_file = input_file
                     break
             else:
-                if 'twodee' in input_file:
+                if 'twodee.inp' in input_file:
                     inp_file = input_file
                     break
         else:
-            if 'disgas' in input_file:
+            if 'disgas.inp' in input_file:
                 inp_file = input_file
                 break
     output_levels_inp = []

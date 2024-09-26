@@ -57,7 +57,7 @@ def read_arguments():
     twodee = args.twodee
     disgas = args.disgas
     mode_in = mode_in.lower()
-    if mode_in != 'reanalysis' and mode_in != 'forecast':
+    if mode_in != 'reanalysis' and mode_in != 'forecast' and mode_in != 'inversion':
         print('ERROR. Wrong value for variable -M --mode')
         sys.exit()
     run_type_in = run_type_in.lower()
@@ -70,6 +70,8 @@ def read_arguments():
     else:
         print('ERROR. Wrong value for variable -CS --continuous_simulation')
         sys.exit()
+    if mode_in == 'inversion':
+        continuous_simulation_in = True
     if era5_on_in.lower() == 'true':
         era5_on_in = True
     elif era5_on_in.lower() == 'false':
@@ -84,7 +86,7 @@ def read_arguments():
     else:
         print('ERROR. Wrong value for variable --station')
         sys.exit()
-    if mode_in == 'reanalysis':
+    if mode_in == 'reanalysis' or mode_in == 'inversion':
         if not era5_on_in and not weather_station_on_in:
             print('ERROR. Either ERA5 or weather station data should be activated in reanalysis mode')
             sys.exit()

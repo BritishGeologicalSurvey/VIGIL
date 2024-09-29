@@ -1,3 +1,4 @@
+from csv import excel
 from random import sample
 import os
 import shutil
@@ -16,6 +17,9 @@ def read_arguments():
                         'Possible options are: new, restart')
     parser.add_argument('-CS', '--continuous_simulation', default='False', help='Specify if the simulation is '
                         'continuous between the specified start and end dates. Possible options are True or False')
+    parser.add_argument('-I', '--inversion', default='False', help='Specify if we are running an inversion simulation. '
+                                                                   'Possible options are True or False')
+    parser.add_argument('-ESI', '--emission_search_iterations', default='', help='Specify number of iterations')
     parser.add_argument('-RS', '--random_sources', default='off', help='on: randomly select NS locations from a '
                         'probability map. off: fixed source locations from file sources_input.txt',)
     parser.add_argument('-NS', '--nsources', default='random', help='Specify a number for a fixed number of sources. '
@@ -43,7 +47,8 @@ def read_arguments():
     parser.add_argument('-SEM', '--source_emission', default='', help='Source emission rate [kg/s]. If specified, '
                         'it is assigned to all the sources in the domain',)
     parser.add_argument('-RER', '--random_emission', default='off', help='on: randomly assign emission rate for each '
-                        'source in the domain. off: use specified emission rate',)
+                        'source in the domain. off: use specified emission rate. '
+                        'Activated by default in inversion mode',)
     parser.add_argument('-PDEM', '--prob_distr_emission', default='', help='Probability distribution function to '
                         'randomly sample the emission rate. Options: uniform, normal, ecdf')
     parser.add_argument('-PDPAR', '--prob_distr_params', default='', help='If -PDEM=uniform: minimum, maximum. '
@@ -67,6 +72,8 @@ def read_arguments():
     nproc = args.nproc
     run_type_in = args.run_type
     continuous_simulation_in = args.continuous_simulation
+    inversion_in = args.inversion
+    emission_rate_iterations_in = args.emission_rate_iterations
     random_sources_in = args.random_sources
     nsources_in = args.nsources
     source_location_in = args.source_location
@@ -327,9 +334,9 @@ def read_arguments():
     elif model.lower() == 'automatic':
         twodee = True
         disgas = True
-        if continuous_simulation_in:
+        if continuous_simulation_in or inversion_in.lower() == 'true':
             print('ERROR. Option Automatic for -DM --dispersion_model is currently not compatible with the continuous '
-                  'simulation mode')
+                  'simulation or the inversion mode')
             sys.exit()
     elif model.lower() == 'none':  # DIAGNO only mode if diagno is activated
         twodee = False
@@ -409,9 +416,58 @@ def read_arguments():
     except IndexError:
         print('ERROR. Please provide a valid entry for the variable -OH --output_heights')
         sys.exit()
+    if inversion_in.lower() == 'true':
+        try:
+            emission_rate_iterations_in = int(emission_rate_iterations_in)
+        except ValueError:
+            print('ERROR. Invalid argument for -ERI --emission_rate_iterations')
+        if emission_rate_iterations_in <= 0:
+            print('ERROR. Inversion mode but no valid numbers of search iterations provided')
+            sys.exit()
+        measuring_stations_list = []
+        inversion_in = True
+        if not os.path.exists(os.path.join(os.getcwd(), 'inversion')):
+            print('ERROR. Folder with files necessary to run in inversion mode missing')
+            sys.exit()
+        try:
+            with open(os.path.join(os.getcwd(), 'inversion', 'stations_list.csv'), 'r') as stations_list:
+                for line in stations_list:
+                    try:
+                        station_x = float(line.split(',')[1])
+                        station_y = float(line.split(',')[2])
+                        station_z = float(line.split(',')[3])
+                        if station_x < bottom_left_easting_in or station_x > top_right_easting_in or \
+                                station_y < bottom_left_northing_in or station_y > top_right_northing_in or \
+                                station_z < min(output_heights_in) or station_z > max(output_heights_in):
+                            print('WARNING. Location of + ' + os.path.join(os.getcwd(), 'inversion',
+                                    line.split(',')[0]) + ' outside computational domain. Station ignored.')
+                        else:
+                            measuring_stations_list.append(os.path.join(os.getcwd(), 'inversion', line.split(',')[0]))
+                    except ValueError:
+                        continue
+        except FileNotFoundError:
+            print('ERROR. File stations_list.csv missing in the inversion folder')
+            sys.exit()
+        if len(measuring_stations_list) == 0:
+            print('ERROR. Inversion mode activated but no station files listed in ' + os.path.join(os.getcwd(),
+                  'inversion', 'stations_list.csv'))
+            sys.exit()
+        for station_file in measuring_stations_list:
+            try:
+                open(station_file, 'r')
+            except FileNotFoundError:
+                print('ERROR. File ' + station_file + ' not found')
+                sys.exit()
+    elif inversion_in.lower() == 'false':
+        inversion_in = False
+    else:
+        print('ERROR. Wrong value for variable -I --inversion')
+        sys.exit()
     return (
         run_type_in,
         continuous_simulation_in,
+        inversion_in,
+        emission_rate_iterations_in,
         max_number_processes_in,
         random_sources_in,
         nsources_in,
@@ -1655,6 +1711,8 @@ topography = os.path.join(root, 'topography.grd')
 (
     run_type,
     continuous_simulation,
+    inversion,
+    emission_rate_iterations,
     max_number_processes,
     random_sources,
     nsources,

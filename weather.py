@@ -14,7 +14,7 @@ def read_arguments():
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-M', '--mode', default='reanalysis', help='Possible options: reanalysis, forecast, inversion. '
                         'If reanalysis or inversion, either ERA5 or WST options should be on. \n If forecast, GFS data '
-                        'will be downloaded and processed') # FABIO: da qui, nuova modalità "inversion"
+                        'will be downloaded and processed')
     parser.add_argument('-RT', '--run_type', default='new', help='Specify if the simulation is a new one or a restart. '
                         'Possible options are: new, restart')
     parser.add_argument('-CS', '--continuous_simulation', default='False', help='Specify if the simulation is '

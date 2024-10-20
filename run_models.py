@@ -1,4 +1,3 @@
-from csv import excel
 from random import sample
 import os
 import shutil
@@ -20,8 +19,8 @@ def read_arguments():
     parser.add_argument('-I', '--inversion', default='False', help='Specify if we are running an inversion simulation. '
                                                                    'Possible options are True or False')
     parser.add_argument('-ESI', '--emission_search_iterations', default='', help='Specify number of iterations')
-    parser.add_argument('-RS', '--random_sources', default='off', help='on: randomly select NS locations from a '
-                        'probability map. off: fixed source locations from file sources_input.txt',)
+    parser.add_argument('-RS', '--random_sources', default='False', help='True: randomly select NS locations from a '
+                        'probability map. False: fixed source locations from file sources_input.txt',)
     parser.add_argument('-NS', '--nsources', default='random', help='Specify a number for a fixed number of sources. '
                         'If random, then randomly select the number of sources from an interval',)
     parser.add_argument('-SINT', '--sources_interval', default='', help='Type the minimum and maximum number of '
@@ -46,9 +45,9 @@ def read_arguments():
                         'the number of grid cells along the y-direction must be provided',)
     parser.add_argument('-SEM', '--source_emission', default='', help='Source emission rate [kg/s]. If specified, '
                         'it is assigned to all the sources in the domain',)
-    parser.add_argument('-RER', '--random_emission', default='off', help='on: randomly assign emission rate for each '
-                        'source in the domain. off: use specified emission rate. '
-                        'Activated by default in inversion mode',)
+    parser.add_argument('-RER', '--random_emission', default='False', help='True: randomly assign emission rate '
+                        'for each source in the domain. False: use specified emission rate. Activated by default in '
+                        'inversion mode',)
     parser.add_argument('-PDEM', '--prob_distr_emission', default='', help='Probability distribution function to '
                         'randomly sample the emission rate. Options: uniform, normal, ecdf')
     parser.add_argument('-PDPAR', '--prob_distr_params', default='', help='If -PDEM=uniform: minimum, maximum. '
@@ -73,7 +72,7 @@ def read_arguments():
     run_type_in = args.run_type
     continuous_simulation_in = args.continuous_simulation
     inversion_in = args.inversion
-    emission_rate_iterations_in = args.emission_rate_iterations
+    emission_search_iterations_in = args.emission_search_iterations
     random_sources_in = args.random_sources
     nsources_in = args.nsources
     source_location_in = args.source_location
@@ -230,11 +229,12 @@ def read_arguments():
         top_right_easting_in = bottom_left_easting_in + dx_in * nx_in
     if bottom_left_northing_in + dy_in * ny_in != top_right_northing_in:
         top_right_northing_in = bottom_left_northing_in + dy_in * ny_in
-    if random_sources_in == 'on':
+    if random_sources_in.lower == 'true':
+        random_sources_in = True
         try:
             np.loadtxt('probability_map.grd', skiprows=5)
         except ValueError:
-            print('Please provide a valid probability_map.grd file when random_sources option is on')
+            print('Please provide a valid probability_map.grd file when random_sources option is True')
             sys.exit()
         if nsources_in == 'random':
             if len(sources_interval_in) != 2:
@@ -246,15 +246,16 @@ def read_arguments():
             except ValueError:
                 print('Please provide a valid integer for -NS --nsources')
                 sys.exit()
-        if random_emission_in == 'off' and source_emission_in == '':
-            print('ERROR. random_sources set to on requires either random_emission set to on or a specified '
+        if random_emission_in.lower() == 'false' and source_emission_in == '':
+            print('ERROR. random_sources set to True requires either random_emission activated or a specified '
                   'source_emission')
             sys.exit()
     else:
-        if random_sources_in != 'off':
-            print('ERROR. Valid options for -RS --random_sources are on and off')
+        if random_sources_in.lower() != 'false':
+            print('ERROR. Valid options for -RS --random_sources are True and False')
             sys.exit()
         else:
+            random_sources_in = False
             try:
                 sources_file = open('sources_input.txt', 'r')
                 sources_file.close()
@@ -290,41 +291,6 @@ def read_arguments():
                         sys.exit()
                     else:
                         source_el_in = float(source_location[2])
-    if random_emission_in == 'on':
-        if prob_distr_emission_in == '':
-            print('ERROR. Random emission rate activated but no probability distribution function provided')
-            sys.exit()
-        else:
-            if prob_distr_emission_in != 'uniform' and prob_distr_emission_in != 'normal' \
-                    and prob_distr_emission_in != 'ecdf':
-                print('ERROR. Wrong probability distribution function specified')
-                sys.exit()
-            elif prob_distr_emission_in == 'ecdf':
-                try:
-                    sources_file = open('flux.txt', 'r')
-                    sources_file.close()
-                except FileNotFoundError:
-                    print('ERROR. File flux.txt not found')
-                    sys.exit()
-            else:
-                if len(prob_distr_params_in) == 0:
-                    print('ERROR. No parameters for the emission rate probability distribution function provided')
-                    sys.exit()
-                else:
-                    prob_distr_params_in = [float(prob_distr_params_in[i]) for i in range(0, len(prob_distr_params_in))]
-    elif random_emission_in == 'off':
-        try:
-            sources_file = open('sources_input.txt', 'r')
-            sources_file.close()
-        except FileNotFoundError:
-            try:
-                source_emission_in = float(source_emission_in)
-            except ValueError:
-                print('Please provide a valid number for the emission rate of the source')
-                sys.exit()
-    else:
-        print('ERROR. Valid options for -RER --random_sources are on and off')
-        sys.exit()
     if model.lower() == 'twodee':
         twodee = True
         disgas = False
@@ -417,11 +383,12 @@ def read_arguments():
         print('ERROR. Please provide a valid entry for the variable -OH --output_heights')
         sys.exit()
     if inversion_in.lower() == 'true':
+        #        random_emission_in = True  # FABIO: cambio di approccio
         try:
-            emission_rate_iterations_in = int(emission_rate_iterations_in)
+            emission_search_iterations_in = int(emission_search_iterations_in)
         except ValueError:
-            print('ERROR. Invalid argument for -ERI --emission_rate_iterations')
-        if emission_rate_iterations_in <= 0:
+            print('ERROR. Invalid argument for -ESI --emission_search_iterations')
+        if emission_search_iterations_in <= 0:
             print('ERROR. Inversion mode but no valid numbers of search iterations provided')
             sys.exit()
         measuring_stations_list = []
@@ -460,14 +427,52 @@ def read_arguments():
                 sys.exit()
     elif inversion_in.lower() == 'false':
         inversion_in = False
+        emission_search_iterations_in = 0
     else:
         print('ERROR. Wrong value for variable -I --inversion')
+        sys.exit()
+    if random_emission_in.lower == 'true':
+        random_emission_in = True
+        if prob_distr_emission_in == '':
+            print('ERROR. Random emission rate activated but no probability distribution function provided')
+            sys.exit()
+        else:
+            if prob_distr_emission_in != 'uniform' and prob_distr_emission_in != 'normal' \
+                    and prob_distr_emission_in != 'ecdf':
+                print('ERROR. Wrong probability distribution function specified')
+                sys.exit()
+            elif prob_distr_emission_in == 'ecdf':
+                try:
+                    sources_file = open('flux.txt', 'r')
+                    sources_file.close()
+                except FileNotFoundError:
+                    print('ERROR. File flux.txt not found')
+                    sys.exit()
+            else:
+                if len(prob_distr_params_in) == 0:
+                    print('ERROR. No parameters for the emission rate probability distribution function provided')
+                    sys.exit()
+                else:
+                    prob_distr_params_in = [float(prob_distr_params_in[i]) for i in range(0, len(prob_distr_params_in))]
+    elif random_emission_in.lower() == 'false':
+        random_emission_in = False
+        try:
+            sources_file = open('sources_input.txt', 'r')
+            sources_file.close()
+        except FileNotFoundError:
+            try:
+                source_emission_in = float(source_emission_in)
+            except ValueError:
+                print('Please provide a valid number for the emission rate of the source')
+                sys.exit()
+    else:
+        print('ERROR. Valid options for -RER --random_sources are True and False')
         sys.exit()
     return (
         run_type_in,
         continuous_simulation_in,
         inversion_in,
-        emission_rate_iterations_in,
+        emission_search_iterations_in,
         max_number_processes_in,
         random_sources_in,
         nsources_in,
@@ -674,7 +679,7 @@ def pre_process(run_mode):
     dur_max = 86400
     source_size_min = 0.1
     source_size_max = 100
-    if random_sources == 'on':
+    if random_sources:
         if nsources == 'random':
             n_sources = [*range(int(sources_interval[0]), int(sources_interval[1]) + 1)]
         else:
@@ -729,7 +734,7 @@ def pre_process(run_mode):
                     print('ERROR. Badly formatted sources_input.txt file (probably one or more data are missing')
                     sys.exit()
     except FileNotFoundError:
-        if random_sources != 'on':
+        if not random_sources:
             easting.append(source_easting)
             northing.append(source_northing)
             elevations.append(source_el)
@@ -743,22 +748,36 @@ def pre_process(run_mode):
         n_sources = len(easting)
 
     for j_source in range(0, n_sources):
-        if random_emission == 'off':
-            if fluxes_input[j_source] == 99999999:
-                gas_fluxes.append([source_emission for day in days])
-            else:
-                gas_fluxes.append([fluxes_input[j_source] for day in days])
-        else:
+        if inversion:
             if prob_distr_emission == 'ecdf':
-                fluxes = [sample_ecdf_fluxes()[0] for day in days]
+                fluxes = [sample_ecdf_fluxes()[0] for iteration in range(1, emission_search_iterations + 1)]
             elif prob_distr_emission == 'uniform':
-                fluxes = [np.random.uniform(prob_distr_params[0], prob_distr_params[1]) for day in days]
+                fluxes = [np.random.uniform(prob_distr_params[0], prob_distr_params[1]) for iteration
+                          in range(1, emission_search_iterations + 1)]
             else:
-                fluxes = [np.random.normal(prob_distr_params[0], prob_distr_params[1]) for day in days]
+                fluxes = [np.random.normal(prob_distr_params[0], prob_distr_params[1]) for iteration
+                          in range(1, emission_search_iterations + 1)]
                 for i_flux in range(0, len(fluxes)):
                     while fluxes[i_flux] <= 0:
                         fluxes[i_flux] = np.random.uniform(prob_distr_params[0], prob_distr_params[1])
             gas_fluxes.append(fluxes)
+        else:
+            if not random_emission:
+                if fluxes_input[j_source] == 99999999:
+                    gas_fluxes.append([source_emission for day in days])
+                else:
+                    gas_fluxes.append([fluxes_input[j_source] for day in days])
+            else:
+                if prob_distr_emission == 'ecdf':
+                    fluxes = [sample_ecdf_fluxes()[0] for day in days]
+                elif prob_distr_emission == 'uniform':
+                    fluxes = [np.random.uniform(prob_distr_params[0], prob_distr_params[1]) for day in days]
+                else:
+                    fluxes = [np.random.normal(prob_distr_params[0], prob_distr_params[1]) for day in days]
+                    for i_flux in range(0, len(fluxes)):
+                        while fluxes[i_flux] <= 0:
+                            fluxes[i_flux] = np.random.uniform(prob_distr_params[0], prob_distr_params[1])
+                gas_fluxes.append(fluxes)
     simulations = os.path.join(root, 'simulations')
     diagno = os.path.join(simulations, 'diagno')
     runs_folder = os.path.join(simulations, 'runs')
@@ -774,340 +793,372 @@ def pre_process(run_mode):
         if not diagno_on:
             shutil.rmtree(runs_folder)
             os.mkdir(runs_folder)
-    for i_day in range(0, len(days)):
-        day = days[i_day]
-        diagno_daily = os.path.join(diagno, str(day))
-        if diagno_on:
-            met_data = os.path.join(simulations, str(day))
-        else:
-            met_data = os.path.join(simulations, 'diagno', str(day))
-        run = os.path.join(runs_folder, str(day))
-        try:
-            os.mkdir(run)
-        except FileExistsError:
-            print('Folder ' + run + ' already exists')
-        if continuous_simulation:
-            if i_day == 0:
-                run_mode = 'new'
+    # In inversion mode create a new level of folders in which to store the various simulations with changing fluxes
+    for iteration in range(0, emission_search_iterations + 1):
+        if inversion and iteration == 0:
+            iteration += 1
+            continue
+        run_folder = runs_folder
+        if iteration > 0:
+            it_run_folder = os.path.join(runs_folder, '{:02d}'.format(iteration))
+            try:
+                os.mkdir(it_run_folder)
+            except FileExistsError:
+                print('Folder ' + it_run_folder + ' already exists')
+                if not diagno_on:
+                    shutil.rmtree(it_run_folder)
+                    os.mkdir(it_run_folder)
+            run_folder = it_run_folder
+        for i_day in range(0, len(days)):
+            day = days[i_day]
+            diagno_daily = os.path.join(diagno, str(day))
+            if diagno_on:
+                met_data = os.path.join(simulations, str(day))
             else:
-                run_mode = 'restart'
-        if diagno_on:
-            # Set diagno.inp file
-            diagno_input_records = []
-            diagno_input = os.path.join(met_data, 'diagno.inp')
-            with open(diagno_input, 'r', encoding='utf-8', errors='surrogateescape') as diagno_or_input:
-                for line in diagno_or_input:
-                    diagno_input_records.append(line)
-            new_record_string = ''
-            old_record = ''
-            heights = []
-            nintrp_record = ''
-            fextrp_record = ''
-            for record in diagno_input_records:
-                if 'CELLZB' in record:
-                    old_record = record
-                    new_record_string = ''
-                    str_heights = record.split('CELLZB(1:NZ+1)')[0].split(' ')
-                    for height in str_heights:
-                        try:
-                            heights.append(float(height))
-                        except ValueError:
-                            continue
-                    if 10. not in heights:
-                        heights.append(10.)
-                    heights = sorted(heights)
-                    for height in heights:
-                        new_record_string += str(height) + ' '
-                        nintrp_record += '5' + ' '
-                        fextrp_record += '2.0' + ' '
-                    fextrp_record = fextrp_record[:-4]
-                    new_record_string += ' CELLZB(1:NZ+1) (m) ' + '\n'
-                    nintrp_record += ' NINTRP\n'
-                    fextrp_record += ' FEXTRP\n'
-            if new_record_string != '':
-                diagno_input_records = [new_record_string if item == old_record else item for item in
-                                        diagno_input_records]
-            with open(diagno_input, 'w', encoding='utf-8', errors='surrogateescape') as diagno_input_file:
+                met_data = os.path.join(simulations, 'diagno', str(day))
+            run = os.path.join(run_folder, str(day))
+            try:
+                os.mkdir(run)
+            except FileExistsError:
+                print('Folder ' + run + ' already exists')
+            if continuous_simulation:
+                if i_day == 0:
+                    run_mode = 'new'
+                else:
+                    run_mode = 'restart'
+            if (inversion and iteration == 1) or not inversion: #Set diagno file only once, no need to repeat across
+            # iterations
+                # Set diagno.inp file
+                diagno_input_records = []
+                diagno_input = os.path.join(met_data, 'diagno.inp')
+                with open(diagno_input, 'r', encoding='utf-8', errors='surrogateescape') as diagno_or_input:
+                    for line in diagno_or_input:
+                        diagno_input_records.append(line)
+                new_record_string = ''
+                old_record = ''
+                heights = []
+                nintrp_record = ''
+                fextrp_record = ''
                 for record in diagno_input_records:
-                    if 'NX' in record:
-                        diagno_input_file.write(str(nx) + '          NX\n')
-                    elif 'NY' in record:
-                        diagno_input_file.write(str(ny) + '          NY\n')
-                    elif 'NZ' in record and ('CELLZB' not in record and 'NZPRNT' not in record):
-                        diagno_input_file.write(str(len(heights) - 1) + '          NZ\n')
-                    elif 'DXK' in record:
-                        diagno_input_file.write('{0:7.3f}'.format(dx / 1000) + '          DXK (km)\n')
-                    elif 'DYK' in record:
-                        diagno_input_file.write('{0:7.3f}'.format(dy / 1000) + '          DYK (km)\n')
-                    elif 'UTMXOR' in record:
-                        diagno_input_file.write('{0:7.3f}'.format(bottom_left_easting / 1000) + '      '
-                                                                                                'UTMXOR (km)\n')
-                    elif 'UTMYOR' in record:
-                        diagno_input_file.write('{0:7.3f}'.format(bottom_left_northing / 1000) + '      '
-                                                                                                 'UTMYOR  (km)\n')
-                    elif 'NINTRP' in record:
-                        diagno_input_file.write(nintrp_record)
-                    elif 'FEXTRP' in record:
-                        diagno_input_file.write(fextrp_record)
-                    else:
-                        diagno_input_file.write(record)
-        # Set DISGAS folder
-        if disgas_on:
-            disgas_daily = os.path.join(run, 'disgas')
-            runs_disgas.append(disgas_daily)
-            outfiles_disgas = os.path.join(disgas_daily, 'outfiles')
-            try:
-                os.mkdir(disgas_daily)
-            except FileExistsError:
-                print('Folder ' + disgas_daily + ' already exists')
-            disgas_input = os.path.join(disgas_daily, 'disgas.inp')
-            with open(os.path.join(disgas_daily, 'source.dat'), 'w', encoding='utf-8', errors='surrogateescape',) as \
-                    source_file:
-                for j_source in range(0, n_sources):
-                    if dx_src[j_source] * dy_src[j_source] > dx * dy:
-                        # Split the source across the computational cells, since currently DISGAS does only allow point
-                        # sources
-                        nx_source = int(dx_src[j_source] / dx) + 1
-                        ny_source = int(dy_src[j_source] / dy) + 1
-                        x_or_source = easting[j_source] - dx_src[j_source] / 2
-                        y_or_source = northing[j_source] - dy_src[j_source] / 2
-                        splitted_flux = gas_fluxes[j_source][i_day] / (nx_source * ny_source)
-                        y_source = y_or_source
-                        for jj_source in range(0, ny_source):
-                            x_source = x_or_source
-                            for ii_source in range(0, nx_source):
-                                source_file.write('{0:7.3f}'.format(x_source) + ' ' + '{0:7.3f}'.format(y_source) + ' '
-                                                  + '{0:7.2f}'.format(elevations[j_source]) + ' ' + str(splitted_flux) +
-                                                  '\n')
-                                x_source += dx
-                            y_source += dy
-                    else:
-                        source_file.write('{0:7.3f}'.format(easting[j_source]) + ' ' +
-                                          '{0:7.3f}'.format(northing[j_source]) + ' ' +
-                                          '{0:7.2f}'.format(elevations[j_source]) + ' ' +
-                                          str(gas_fluxes[j_source][i_day]) + '\n')
-            source_file.close()
-            roughness_file_exist = True
-            try:
-                shutil.copyfile(os.path.join(root, 'roughness.grd'), os.path.join(disgas_daily, 'roughness.grd'),)
-            except (FileExistsError, FileNotFoundError):
-                roughness_file_exist = False
-            try:
-                shutil.copyfile(os.path.join(met_data, 'surface_data.txt'), os.path.join(disgas_daily,
-                                                                                         'surface_data.txt'),)
-            except (FileExistsError, FileNotFoundError):
-                print('ERROR with surface_data.txt')
-            # read and memorize disgas.inp file
-            disgas_input_records = []
-            with open(disgas_original, 'r', encoding='utf-8', errors='surrogateescape') as disgas_or_input:
-                for line in disgas_or_input:
-                    disgas_input_records.append(line)
-            with open(disgas_input, 'w', encoding='utf-8', errors='surrogateescape') as disgas_input_file:
-                for record in disgas_input_records:
-                    if 'ROUGHNESS_MODEL' in record:
-                        roughness_command = record.split('=')[1]
-                        roughness_command = roughness_command.split('(')[0]
-                        if 'MATRIX' in roughness_command:
-                            if not roughness_file_exist:
-                                print('Warning! ROUGHNESS_MODEL set to MATRIX in disgas.inp and roughness file '
-                                    'does not exist')
-                                print('Setting ROUGHNESS_MODEL to UNIFORM')
-                    if 'YEAR' in record:
-                        disgas_input_file.write('  YEAR   = ' + day[0:4] + '\n')
-                    elif 'MONTH' in record:
-                        disgas_input_file.write('  MONTH  = ' + day[4:6] + '\n')
-                    elif 'DAY' in record:
-                        disgas_input_file.write('  DAY    = ' + day[6:8] + '\n')
-                    elif 'HOUR' in record:
-                        try:
-                            hour_start = float(record.split('=')[1])
-                        except ValueError:
-                            hour_start = record.split('=')[1].strip()
-                            hour_start = float(hour_start.split(' ')[0])
-                        if continuous_simulation:
-                            if i_day > 0:
-                                hour_start = 0
-                        disgas_input_file.write('  HOUR   = ' + '{0:2.0f}'.format(hour_start) + '\n')
-                    elif 'SIMULATION_INTERVAL_(SEC)' in record:
-                        simulation_interval = run_duration * 3600
-                        disgas_input_file.write('  SIMULATION_INTERVAL_(SEC) = ' +
-                                                '{0:7.0f}'.format(simulation_interval) + '\n')
-                    elif 'NX' in record:
-                        disgas_input_file.write('  NX     = ' + str(nx - 2) + '\n')
-                    elif 'NY' in record:
-                        disgas_input_file.write('  NY     = ' + str(ny - 2) + '\n')
-                    elif 'NZ' in record:
-                        disgas_input_file.write('  NZ     = ' + str(nz) + '\n')
-                    elif 'Z_LAYERS' in record:
-                        disgas_input_file.write('  Z_LAYERS_(M) = ' + output_heights + '\n')
-                    elif 'DX_(M)' in record:
-                        disgas_input_file.write('  DX_(M) = ' + str(dx) + '\n')
-                    elif 'DY_(M)' in record:
-                        disgas_input_file.write('  DY_(M) = ' + str(dy) + '\n')
-                    elif 'X_ORIGIN_(UTM_M)' in record:
-                        disgas_input_file.write('  X_ORIGIN_(UTM_M) = ' + str(bottom_left_easting + dx) + '\n')
-                    elif 'Y_ORIGIN_(UTM_M)' in record:
-                        disgas_input_file.write('  Y_ORIGIN_(UTM_M) = ' + str(bottom_left_northing + dy) + '\n')
-                    elif 'RESTART_RUN' in record:
-                        if run_mode == 'restart':
-                            disgas_input_file.write('  RESTART_RUN = YES\n')
+                    if 'CELLZB' in record:
+                        old_record = record
+                        new_record_string = ''
+                        str_heights = record.split('CELLZB(1:NZ+1)')[0].split(' ')
+                        for height in str_heights:
+                            try:
+                                heights.append(float(height))
+                            except ValueError:
+                                continue
+                        if 10. not in heights:
+                            heights.append(10.)
+                        heights = sorted(heights)
+                        for height in heights:
+                            new_record_string += str(height) + ' '
+                            nintrp_record += '5' + ' '
+                            fextrp_record += '2.0' + ' '
+                        fextrp_record = fextrp_record[:-4]
+                        new_record_string += ' CELLZB(1:NZ+1) (m) ' + '\n'
+                        nintrp_record += ' NINTRP\n'
+                        fextrp_record += ' FEXTRP\n'
+                if new_record_string != '':
+                    diagno_input_records = [new_record_string if item == old_record else item for item in
+                                            diagno_input_records]
+                with open(diagno_input, 'w', encoding='utf-8', errors='surrogateescape') as diagno_input_file:
+                    for record in diagno_input_records:
+                        if 'NX' in record:
+                            diagno_input_file.write(str(nx) + '          NX\n')
+                        elif 'NY' in record:
+                            diagno_input_file.write(str(ny) + '          NY\n')
+                        elif 'NZ' in record and ('CELLZB' not in record and 'NZPRNT' not in record):
+                            diagno_input_file.write(str(len(heights) - 1) + '          NZ\n')
+                        elif 'DXK' in record:
+                            diagno_input_file.write('{0:7.3f}'.format(dx / 1000) + '          DXK (km)\n')
+                        elif 'DYK' in record:
+                            diagno_input_file.write('{0:7.3f}'.format(dy / 1000) + '          DYK (km)\n')
+                        elif 'UTMXOR' in record:
+                            diagno_input_file.write('{0:7.3f}'.format(bottom_left_easting / 1000) + '      '
+                                                                                                    'UTMXOR (km)\n')
+                        elif 'UTMYOR' in record:
+                            diagno_input_file.write('{0:7.3f}'.format(bottom_left_northing / 1000) + '      '
+                                                                                                     'UTMYOR  (km)\n')
+                        elif 'NINTRP' in record:
+                            diagno_input_file.write(nintrp_record)
+                        elif 'FEXTRP' in record:
+                            diagno_input_file.write(fextrp_record)
                         else:
-                            disgas_input_file.write('  RESTART_RUN = NO\n')
-                    elif 'RESET_TIME' in record:
-                        if run_mode == 'restart':
-                            disgas_input_file.write('  RESET_TIME = YES\n')
+                            diagno_input_file.write(record)
+            # Set DISGAS folder
+            if disgas_on:
+                disgas_daily = os.path.join(run, 'disgas')
+                runs_disgas.append(disgas_daily)
+                outfiles_disgas = os.path.join(disgas_daily, 'outfiles')
+                try:
+                    os.mkdir(disgas_daily)
+                except FileExistsError:
+                    print('Folder ' + disgas_daily + ' already exists')
+                disgas_input = os.path.join(disgas_daily, 'disgas.inp')
+                with open(os.path.join(disgas_daily, 'source.dat'), 'w', encoding='utf-8', errors='surrogateescape',) as \
+                        source_file:
+                    for j_source in range(0, n_sources):
+                        if dx_src[j_source] * dy_src[j_source] > dx * dy:
+                            # Split the source across the computational cells, since currently DISGAS does only allow
+                            # point sources
+                            nx_source = int(dx_src[j_source] / dx) + 1
+                            ny_source = int(dy_src[j_source] / dy) + 1
+                            x_or_source = easting[j_source] - dx_src[j_source] / 2
+                            y_or_source = northing[j_source] - dy_src[j_source] / 2
+                            if inversion:
+                                splitted_flux = gas_fluxes[j_source][iteration - 1] / (nx_source * ny_source)
+                            else:
+                                splitted_flux = gas_fluxes[j_source][i_day] / (nx_source * ny_source)
+                            y_source = y_or_source
+                            for jj_source in range(0, ny_source):
+                                x_source = x_or_source
+                                for ii_source in range(0, nx_source):
+                                    source_file.write('{0:7.3f}'.format(x_source) + ' ' + '{0:7.3f}'.format(y_source)
+                                                      + ' ' + '{0:7.2f}'.format(elevations[j_source]) + ' '
+                                                      + str(splitted_flux) + '\n')
+                                    x_source += dx
+                                y_source += dy
                         else:
-                            disgas_input_file.write('  RESET_TIME = NO\n')
-                    elif 'TOPOGRAPHY_FILE_PATH' in record:
-                        disgas_input_file.write('   TOPOGRAPHY_FILE_PATH   = ' +
-                                                os.path.join(diagno_daily, 'topography.grd') + ' \n')
-                    elif 'ROUGHNESS_FILE_PATH' in record:
-                        disgas_input_file.write('   ROUGHNESS_FILE_PATH   = ' +
-                                                os.path.join(disgas_daily, 'roughness.grd') + ' \n')
-                    elif 'RESTART_FILE_PATH' in record:
-                        disgas_input_file.write('   RESTART_FILE_PATH   = ' +
-                                                os.path.join(disgas_daily, 'restart.dat') + ' \n')
-                    elif 'SOURCE_FILE_PATH' in record:
-                        disgas_input_file.write('   SOURCE_FILE_PATH   = ' +
-                                                os.path.join(disgas_daily, 'source.dat') + ' \n')
-                    elif 'WIND_FILE_PATH' in record:
-                        disgas_input_file.write('   WIND_FILE_PATH   = ' +
-                                                os.path.join(disgas_daily, 'winds.dat') + ' \n')
-                    elif 'DIAGNO_FILE_PATH' in record:
-                        disgas_input_file.write('   DIAGNO_FILE_PATH   = ' +
-                                                os.path.join(diagno_daily, 'diagno.out') + ' \n')
-                    elif 'OUTPUT_DIRECTORY' in record:
-                        disgas_input_file.write('   OUTPUT_DIRECTORY    = ' + outfiles_disgas + ' \n')
-                    elif 'OUTPUT_INTERVAL' in record:
-                        output_interval_sec = output_interval * 3600
-                        disgas_input_file.write('  OUTPUT_INTERVAL_(SEC) = ' + str(output_interval_sec) + '\n')
-                    else:
-                        disgas_input_file.write(record)
-            shutil.copy(disgas_input, disgas_original)
-        if twodee_on:
-            twodee_daily = os.path.join(run, 'twodee')
-            runs_twodee.append(twodee_daily)
-            outfiles_twodee = os.path.join(twodee_daily, 'outfiles')
-            try:
-                os.mkdir(twodee_daily)
-            except FileExistsError:
-                print('Folder ' + twodee_daily + ' already exists')
-            twodee_input = os.path.join(twodee_daily, 'twodee.inp')
-            try:
-                shutil.copyfile(os.path.join(root, 'roughness.grd'), os.path.join(twodee_daily, 'roughness.grd'),)
-            except FileNotFoundError:
-                print('Unable to find a valid roughness file for TWODEE')
-                sys.exit()
-            try:
-                shutil.copyfile(os.path.join(met_data, 'surface_data.txt'), os.path.join(twodee_daily,
-                                'surface_data.txt'),)
-            except (FileExistsError, FileNotFoundError):
-                print('ERROR with surface_data.txt')
-            with open(os.path.join(twodee_daily, 'source.dat'), 'w', encoding='utf-8', errors='surrogateescape',) as \
-                    source_file:
-                for j in range(0, n_sources):
-                    source_file.write('{0:7.3f}'.format(easting[j]) + ' ' + '{0:7.3f}'.format(northing[j]) + ' '
-                                      + '{0:7.3f}'.format(gas_fluxes[j][i_day]) + ' ' + '{0:7.2f}'.format(dx_src[j])
-                                      + ' ' + '{0:7.2f}'.format(dy_src[j]) + ' KG_SEC 0 ' + '{0:7.3f}'.format(dur[j])
-                                      + '\n')
-            source_file.close()
-            # read and memorize twodee.inp file. First read and memorize the domain properties of diagno, since
-            # twodee's domain must coincide with it
-            with open(os.path.join(met_data, 'diagno.inp'), 'r') as diagno_input_data:
-                for line in diagno_input_data:
-                    if 'NX\n' in line:
-                        nx_diagno = int(line.split('NX')[0])
-                    elif 'NY\n' in line:
-                        ny_diagno = int(line.split('NY')[0])
-                    elif 'UTMXOR' in line:
-                        xor_diagno = float(line.split('UTMXOR')[0]) * 1000
-                    elif 'UTMYOR' in line:
-                        yor_diagno = float(line.split('UTMYOR')[0]) * 1000
-            twodee_input_records = []
-            with open(twodee_original, 'r', encoding='utf-8', errors='surrogateescape') as twodee_or_input:
-                for line in twodee_or_input:
-                    twodee_input_records.append(line)
-            with open(twodee_input, 'w', encoding='utf-8', errors='surrogateescape') as twodee_input_file:
-                for record in twodee_input_records:
-                    if 'YEAR' in record:
-                        twodee_input_file.write('  YEAR   = ' + day[0:4] + '\n')
-                    elif 'MONTH' in record:
-                        twodee_input_file.write('  MONTH  = ' + day[4:6] + '\n')
-                    elif 'DAY' in record:
-                        twodee_input_file.write('  DAY    = ' + day[6:8] + '\n')
-                    elif 'HOUR' in record and 'NC_VAR_HOUR_NAME' not in record:
-                        try:
-                            hour_start = float(record.split('=')[1])
-                        except ValueError:
-                            hour_start = record.split('=')[1].strip()
-                            hour_start = float(hour_start.split(' ')[0])
-                        if continuous_simulation:
-                            if i_day > 0:
-                                hour_start = 0
-                        twodee_input_file.write('  HOUR   = ' + '{0:2.0f}'.format(hour_start) + '\n')
-                    elif 'SIMULATION_INTERVAL_(SEC)' in record:
-                        # for the moment this is managed exactly like DISGAS, but would require the RESET_TIME option to
-                        # be implemented in TWODEE as well
-                        simulation_interval = run_duration * 3600
-                        twodee_input_file.write('  SIMULATION_INTERVAL_(SEC) = ' +
-                                                '{0:7.0f}'.format(simulation_interval) + '\n')
-                    elif 'NX' in record:
-                        twodee_input_file.write('  NX     = ' + str(nx_diagno) + '\n')
-                    elif 'NY' in record:
-                        twodee_input_file.write('  NY     = ' + str(ny_diagno) + '\n')
-                    elif 'DX_(M)' in record:
-                        twodee_input_file.write('  DX_(M) = ' + str(dx) + '\n')
-                    elif 'DY_(M)' in record:
-                        twodee_input_file.write('  DY_(M) = ' + str(dy) + '\n')
-                    elif 'X_ORIGIN_(UTM_M)' in record:
-                        twodee_input_file.write('  X_ORIGIN_(UTM_M) = ' + str(xor_diagno) + '\n')
-                    elif 'Y_ORIGIN_(UTM_M)' in record:
-                        twodee_input_file.write('  Y_ORIGIN_(UTM_M) = ' + str(yor_diagno) + '\n')
-                    elif 'AMBIENT_GAS_DENSITY_20C_(KG/M3)' in record:
-                        twodee_input_file.write('  AMBIENT_GAS_DENSITY_20C_(KG/M3) = 1.204\n')
-                    elif 'DENSE_GAS_DENSITY_20C_(KG/M3)' in record:
-                        twodee_input_file.write('  DENSE_GAS_DENSITY_20C_(KG/M3) = ' +
-                                                '{0:6.3f}'.format(gas_density_20) + '\n')
-                    elif 'AVERAGED_TEMPERATURE_(C)' in record:
-                        twodee_input_file.write('  AVERAGED_TEMPERATURE_(C) = ' + str(gas_temperature) + '\n')
-                        # Average temperature initialized with the temperature specified in gas_properties.csv.
-                        # If T for each source is provided in sources_input.txt, this will be reassigned
-                    elif 'RESTART_RUN' in record:
-                        if run_mode == 'restart':
-                            twodee_input_file.write('  RESTART_RUN = YES\n')
+                            if inversion:
+                                source_file.write('{0:7.3f}'.format(easting[j_source]) + ' ' +
+                                                  '{0:7.3f}'.format(northing[j_source]) + ' ' +
+                                                  '{0:7.2f}'.format(elevations[j_source]) + ' ' +
+                                                  str(gas_fluxes[j_source][iteration - 1]) + '\n')
+                            else:
+                                source_file.write('{0:7.3f}'.format(easting[j_source]) + ' ' +
+                                              '{0:7.3f}'.format(northing[j_source]) + ' ' +
+                                              '{0:7.2f}'.format(elevations[j_source]) + ' ' +
+                                              str(gas_fluxes[j_source][i_day]) + '\n')
+                source_file.close()
+                roughness_file_exist = True
+                try:
+                    shutil.copyfile(os.path.join(root, 'roughness.grd'), os.path.join(disgas_daily, 'roughness.grd'),)
+                except (FileExistsError, FileNotFoundError):
+                    roughness_file_exist = False
+                try:
+                    shutil.copyfile(os.path.join(met_data, 'surface_data.txt'), os.path.join(disgas_daily,
+                                                                                             'surface_data.txt'),)
+                except (FileExistsError, FileNotFoundError):
+                    print('ERROR with surface_data.txt')
+                # read and memorize disgas.inp file
+                disgas_input_records = []
+                with open(disgas_original, 'r', encoding='utf-8', errors='surrogateescape') as disgas_or_input:
+                    for line in disgas_or_input:
+                        disgas_input_records.append(line)
+                with open(disgas_input, 'w', encoding='utf-8', errors='surrogateescape') as disgas_input_file:
+                    for record in disgas_input_records:
+                        if 'ROUGHNESS_MODEL' in record:
+                            roughness_command = record.split('=')[1]
+                            roughness_command = roughness_command.split('(')[0]
+                            if 'MATRIX' in roughness_command:
+                                if not roughness_file_exist:
+                                    print('Warning! ROUGHNESS_MODEL set to MATRIX in disgas.inp and roughness file '
+                                        'does not exist')
+                                    print('Setting ROUGHNESS_MODEL to UNIFORM')
+                        if 'YEAR' in record:
+                            disgas_input_file.write('  YEAR   = ' + day[0:4] + '\n')
+                        elif 'MONTH' in record:
+                            disgas_input_file.write('  MONTH  = ' + day[4:6] + '\n')
+                        elif 'DAY' in record:
+                            disgas_input_file.write('  DAY    = ' + day[6:8] + '\n')
+                        elif 'HOUR' in record:
+                            try:
+                                hour_start = float(record.split('=')[1])
+                            except ValueError:
+                                hour_start = record.split('=')[1].strip()
+                                hour_start = float(hour_start.split(' ')[0])
+                            if continuous_simulation:
+                                if i_day > 0:
+                                    hour_start = 0
+                            disgas_input_file.write('  HOUR   = ' + '{0:2.0f}'.format(hour_start) + '\n')
+                        elif 'SIMULATION_INTERVAL_(SEC)' in record:
+                            simulation_interval = run_duration * 3600
+                            disgas_input_file.write('  SIMULATION_INTERVAL_(SEC) = ' +
+                                                    '{0:7.0f}'.format(simulation_interval) + '\n')
+                        elif 'NX' in record:
+                            disgas_input_file.write('  NX     = ' + str(nx - 2) + '\n')
+                        elif 'NY' in record:
+                            disgas_input_file.write('  NY     = ' + str(ny - 2) + '\n')
+                        elif 'NZ' in record:
+                            disgas_input_file.write('  NZ     = ' + str(nz) + '\n')
+                        elif 'Z_LAYERS' in record:
+                            disgas_input_file.write('  Z_LAYERS_(M) = ' + output_heights + '\n')
+                        elif 'DX_(M)' in record:
+                            disgas_input_file.write('  DX_(M) = ' + str(dx) + '\n')
+                        elif 'DY_(M)' in record:
+                            disgas_input_file.write('  DY_(M) = ' + str(dy) + '\n')
+                        elif 'X_ORIGIN_(UTM_M)' in record:
+                            disgas_input_file.write('  X_ORIGIN_(UTM_M) = ' + str(bottom_left_easting + dx) + '\n')
+                        elif 'Y_ORIGIN_(UTM_M)' in record:
+                            disgas_input_file.write('  Y_ORIGIN_(UTM_M) = ' + str(bottom_left_northing + dy) + '\n')
+                        elif 'RESTART_RUN' in record:
+                            if run_mode == 'restart':
+                                disgas_input_file.write('  RESTART_RUN = YES\n')
+                            else:
+                                disgas_input_file.write('  RESTART_RUN = NO\n')
+                        elif 'RESET_TIME' in record:
+                            if run_mode == 'restart':
+                                disgas_input_file.write('  RESET_TIME = YES\n')
+                            else:
+                                disgas_input_file.write('  RESET_TIME = NO\n')
+                        elif 'TOPOGRAPHY_FILE_PATH' in record:
+                            disgas_input_file.write('   TOPOGRAPHY_FILE_PATH   = ' +
+                                                    os.path.join(diagno_daily, 'topography.grd') + ' \n')
+                        elif 'ROUGHNESS_FILE_PATH' in record:
+                            disgas_input_file.write('   ROUGHNESS_FILE_PATH   = ' +
+                                                    os.path.join(disgas_daily, 'roughness.grd') + ' \n')
+                        elif 'RESTART_FILE_PATH' in record:
+                            disgas_input_file.write('   RESTART_FILE_PATH   = ' +
+                                                    os.path.join(disgas_daily, 'restart.dat') + ' \n')
+                        elif 'SOURCE_FILE_PATH' in record:
+                            disgas_input_file.write('   SOURCE_FILE_PATH   = ' +
+                                                    os.path.join(disgas_daily, 'source.dat') + ' \n')
+                        elif 'WIND_FILE_PATH' in record:
+                            disgas_input_file.write('   WIND_FILE_PATH   = ' +
+                                                    os.path.join(disgas_daily, 'winds.dat') + ' \n')
+                        elif 'DIAGNO_FILE_PATH' in record:
+                            disgas_input_file.write('   DIAGNO_FILE_PATH   = ' +
+                                                    os.path.join(diagno_daily, 'diagno.out') + ' \n')
+                        elif 'OUTPUT_DIRECTORY' in record:
+                            disgas_input_file.write('   OUTPUT_DIRECTORY    = ' + outfiles_disgas + ' \n')
+                        elif 'OUTPUT_INTERVAL' in record:
+                            output_interval_sec = output_interval * 3600
+                            disgas_input_file.write('  OUTPUT_INTERVAL_(SEC) = ' + str(output_interval_sec) + '\n')
                         else:
-                            twodee_input_file.write('  RESTART_RUN = NO\n')
-                    elif 'OUTPUT_INTERVAL' in record:
-                        output_interval_sec = output_interval * 3600
-                        twodee_input_file.write('  OUTPUT_INTERVAL_(SEC) = ' + str(output_interval_sec) + '\n')
-                    elif 'OUTPUT_DIRECTORY' in record:
-                        twodee_input_file.write('   OUTPUT_DIRECTORY   = ' + outfiles_twodee + ' \n')
-                    elif 'HEIGHTS_(M)' in record:
-                        twodee_input_file.write('     HEIGHTS_(M)          = ' + output_heights + '\n')
-                    elif 'CONCENTRATION_BG' in record:
-                        twodee_input_file.write('     CONCENTRATION_BG     = ' + str(gas_background_concentration) +
-                                                '\n')
-                    elif 'TOPOGRAPHY_FILE' in record and 'TOPOGRAPHY_FILE_FORMAT' not in record:
-                        twodee_input_file.write('   TOPOGRAPHY_FILE   = ' +
-                                                os.path.join(diagno_daily, 'topography.grd') + ' \n')
-                    elif 'ROUGHNESS_FILE' in record and 'ROUGHNESS_FILE_FORMAT' not in record:
-                        twodee_input_file.write('   ROUGHNESS_FILE   = ' +
-                                                os.path.join(twodee_daily, 'roughness.grd') + ' \n')
-                    elif 'SOURCE_FILE' in record:
-                        twodee_input_file.write('   SOURCE_FILE   = ' + os.path.join(twodee_daily, 'source.dat') +
-                                                ' \n')
-                    elif 'SURF_DATA_FILE' in record:
-                        twodee_input_file.write('   SURF_DATA_FILE   = ' +
-                                                os.path.join(diagno_daily, 'surface_data.txt') + ' \n')
-                    elif 'DIAGNO_FILE' in record:
-                        twodee_input_file.write('   DIAGNO_FILE   = ' + os.path.join(diagno_daily, 'diagno.out') +
-                                                ' \n')
-                    elif 'RESTART_FILE' in record:
-                        twodee_input_file.write('   RESTART_FILE   = ' + os.path.join(twodee_daily, 'restart.dat') +
-                                                ' \n')
-                    else:
-                        twodee_input_file.write(record)
-            shutil.copy(twodee_input, twodee_original)
+                            disgas_input_file.write(record)
+                shutil.copy(disgas_input, disgas_original)
+            if twodee_on:
+                twodee_daily = os.path.join(run, 'twodee')
+                runs_twodee.append(twodee_daily)
+                outfiles_twodee = os.path.join(twodee_daily, 'outfiles')
+                try:
+                    os.mkdir(twodee_daily)
+                except FileExistsError:
+                    print('Folder ' + twodee_daily + ' already exists')
+                twodee_input = os.path.join(twodee_daily, 'twodee.inp')
+                try:
+                    shutil.copyfile(os.path.join(root, 'roughness.grd'), os.path.join(twodee_daily, 'roughness.grd'),)
+                except FileNotFoundError:
+                    print('Unable to find a valid roughness file for TWODEE')
+                    sys.exit()
+                try:
+                    shutil.copyfile(os.path.join(met_data, 'surface_data.txt'), os.path.join(twodee_daily,
+                                    'surface_data.txt'),)
+                except (FileExistsError, FileNotFoundError):
+                    print('ERROR with surface_data.txt')
+                with open(os.path.join(twodee_daily, 'source.dat'), 'w', encoding='utf-8', errors='surrogateescape',) \
+                              as source_file:
+                    for j in range(0, n_sources):
+                        if inversion:
+                            source_file.write('{0:7.3f}'.format(easting[j]) + ' ' + '{0:7.3f}'.format(northing[j]) + ' '
+                                          + '{0:7.3f}'.format(gas_fluxes[j][iteration - 1]) + ' '
+                                          + '{0:7.2f}'.format(dx_src[j]) + ' ' + '{0:7.2f}'.format(dy_src[j])
+                                          + ' KG_SEC 0 ' + '{0:7.3f}'.format(dur[j]) + '\n')
+                        else:
+                            source_file.write('{0:7.3f}'.format(easting[j]) + ' ' + '{0:7.3f}'.format(northing[j]) + ' '
+                                          + '{0:7.3f}'.format(gas_fluxes[j][i_day]) + ' ' + '{0:7.2f}'.format(dx_src[j])
+                                          + ' ' + '{0:7.2f}'.format(dy_src[j]) + ' KG_SEC 0 '
+                                          + '{0:7.3f}'.format(dur[j]) + '\n')
+                source_file.close()
+                # read and memorize twodee.inp file. First read and memorize the domain properties of diagno, since
+                # twodee's domain must coincide with it
+                with open(os.path.join(met_data, 'diagno.inp'), 'r') as diagno_input_data:
+                    for line in diagno_input_data:
+                        if 'NX\n' in line:
+                            nx_diagno = int(line.split('NX')[0])
+                        elif 'NY\n' in line:
+                            ny_diagno = int(line.split('NY')[0])
+                        elif 'UTMXOR' in line:
+                            xor_diagno = float(line.split('UTMXOR')[0]) * 1000
+                        elif 'UTMYOR' in line:
+                            yor_diagno = float(line.split('UTMYOR')[0]) * 1000
+                twodee_input_records = []
+                with open(twodee_original, 'r', encoding='utf-8', errors='surrogateescape') as twodee_or_input:
+                    for line in twodee_or_input:
+                        twodee_input_records.append(line)
+                with open(twodee_input, 'w', encoding='utf-8', errors='surrogateescape') as twodee_input_file:
+                    for record in twodee_input_records:
+                        if 'YEAR' in record:
+                            twodee_input_file.write('  YEAR   = ' + day[0:4] + '\n')
+                        elif 'MONTH' in record:
+                            twodee_input_file.write('  MONTH  = ' + day[4:6] + '\n')
+                        elif 'DAY' in record:
+                            twodee_input_file.write('  DAY    = ' + day[6:8] + '\n')
+                        elif 'HOUR' in record and 'NC_VAR_HOUR_NAME' not in record:
+                            try:
+                                hour_start = float(record.split('=')[1])
+                            except ValueError:
+                                hour_start = record.split('=')[1].strip()
+                                hour_start = float(hour_start.split(' ')[0])
+                            if continuous_simulation:
+                                if i_day > 0:
+                                    hour_start = 0
+                            twodee_input_file.write('  HOUR   = ' + '{0:2.0f}'.format(hour_start) + '\n')
+                        elif 'SIMULATION_INTERVAL_(SEC)' in record:
+                            # for the moment this is managed exactly like DISGAS, but would require the RESET_TIME option to
+                            # be implemented in TWODEE as well
+                            simulation_interval = run_duration * 3600
+                            twodee_input_file.write('  SIMULATION_INTERVAL_(SEC) = ' +
+                                                    '{0:7.0f}'.format(simulation_interval) + '\n')
+                        elif 'NX' in record:
+                            twodee_input_file.write('  NX     = ' + str(nx_diagno) + '\n')
+                        elif 'NY' in record:
+                            twodee_input_file.write('  NY     = ' + str(ny_diagno) + '\n')
+                        elif 'DX_(M)' in record:
+                            twodee_input_file.write('  DX_(M) = ' + str(dx) + '\n')
+                        elif 'DY_(M)' in record:
+                            twodee_input_file.write('  DY_(M) = ' + str(dy) + '\n')
+                        elif 'X_ORIGIN_(UTM_M)' in record:
+                            twodee_input_file.write('  X_ORIGIN_(UTM_M) = ' + str(xor_diagno) + '\n')
+                        elif 'Y_ORIGIN_(UTM_M)' in record:
+                            twodee_input_file.write('  Y_ORIGIN_(UTM_M) = ' + str(yor_diagno) + '\n')
+                        elif 'AMBIENT_GAS_DENSITY_20C_(KG/M3)' in record:
+                            twodee_input_file.write('  AMBIENT_GAS_DENSITY_20C_(KG/M3) = 1.204\n')
+                        elif 'DENSE_GAS_DENSITY_20C_(KG/M3)' in record:
+                            twodee_input_file.write('  DENSE_GAS_DENSITY_20C_(KG/M3) = ' +
+                                                    '{0:6.3f}'.format(gas_density_20) + '\n')
+                        elif 'AVERAGED_TEMPERATURE_(C)' in record:
+                            twodee_input_file.write('  AVERAGED_TEMPERATURE_(C) = ' + str(gas_temperature) + '\n')
+                            # Average temperature initialized with the temperature specified in gas_properties.csv.
+                            # If T for each source is provided in sources_input.txt, this will be reassigned
+                        elif 'RESTART_RUN' in record:
+                            if run_mode == 'restart':
+                                twodee_input_file.write('  RESTART_RUN = YES\n')
+                            else:
+                                twodee_input_file.write('  RESTART_RUN = NO\n')
+                        elif 'OUTPUT_INTERVAL' in record:
+                            output_interval_sec = output_interval * 3600
+                            twodee_input_file.write('  OUTPUT_INTERVAL_(SEC) = ' + str(output_interval_sec) + '\n')
+                        elif 'OUTPUT_DIRECTORY' in record:
+                            twodee_input_file.write('   OUTPUT_DIRECTORY   = ' + outfiles_twodee + ' \n')
+                        elif 'HEIGHTS_(M)' in record:
+                            twodee_input_file.write('     HEIGHTS_(M)          = ' + output_heights + '\n')
+                        elif 'CONCENTRATION_BG' in record:
+                            twodee_input_file.write('     CONCENTRATION_BG     = ' + str(gas_background_concentration) +
+                                                    '\n')
+                        elif 'TOPOGRAPHY_FILE' in record and 'TOPOGRAPHY_FILE_FORMAT' not in record:
+                            twodee_input_file.write('   TOPOGRAPHY_FILE   = ' +
+                                                    os.path.join(diagno_daily, 'topography.grd') + ' \n')
+                        elif 'ROUGHNESS_FILE' in record and 'ROUGHNESS_FILE_FORMAT' not in record:
+                            twodee_input_file.write('   ROUGHNESS_FILE   = ' +
+                                                    os.path.join(twodee_daily, 'roughness.grd') + ' \n')
+                        elif 'SOURCE_FILE' in record:
+                            twodee_input_file.write('   SOURCE_FILE   = ' + os.path.join(twodee_daily, 'source.dat') +
+                                                    ' \n')
+                        elif 'SURF_DATA_FILE' in record:
+                            twodee_input_file.write('   SURF_DATA_FILE   = ' +
+                                                    os.path.join(diagno_daily, 'surface_data.txt') + ' \n')
+                        elif 'DIAGNO_FILE' in record:
+                            twodee_input_file.write('   DIAGNO_FILE   = ' + os.path.join(diagno_daily, 'diagno.out') +
+                                                    ' \n')
+                        elif 'RESTART_FILE' in record:
+                            twodee_input_file.write('   RESTART_FILE   = ' + os.path.join(twodee_daily, 'restart.dat') +
+                                                    ' \n')
+                        else:
+                            twodee_input_file.write(record)
+                shutil.copy(twodee_input, twodee_original)
     return easting, northing, elevations, dx_src, dy_src, dur, gas_fluxes, n_sources, source_temperatures, \
         gas_density, gas_constant, gas_molar_weight, gas_background_concentration
 
@@ -1703,6 +1754,10 @@ def elaborate_outputs():
         shutil.rmtree(twodee_outfiles_folder)
 
 
+def find_best_match():
+    print('Ciao')
+
+
 root = os.getcwd()
 disgas_original = os.path.join(root, 'disgas.inp')
 twodee_original = os.path.join(root, 'twodee.inp')
@@ -1712,7 +1767,7 @@ topography = os.path.join(root, 'topography.grd')
     run_type,
     continuous_simulation,
     inversion,
-    emission_rate_iterations,
+    emission_search_iterations,
     max_number_processes,
     random_sources,
     nsources,
@@ -1842,3 +1897,6 @@ if twodee_on:
 
 elaborate_outputs()  # To copy each outfiles folder into the general outfiles folder and to merge simulation outputs
 # when runs have been split
+
+if inversion:
+    best_match, rmse = find_best_match()

@@ -7,7 +7,7 @@ import utm
 import argparse
 import pandas as pd
 import sys
-
+import urllib.request
 
 def read_arguments():
     parser = argparse.ArgumentParser(description='Input data', 
@@ -119,7 +119,26 @@ def read_arguments():
         except NameError:
             print('Unable to retrieve volcano information from the ESPs database and no location information have been '
                   'provided')
-            raise
+        except Exception as e:
+            print("An error occurred:", e)
+            try:
+                urllib.request.urlretrieve('https://volcano.si.edu/database/list_volcano_holocene_excel.cfm',
+                                           'GVP_Volcano_List_Holocene.xml')
+                url_volc_id = '"https://volcano.si.edu/volcano.cfm?vn=' + str(volc_id) + '"'
+                with open('GVP_Volcano_List_Holocene.xml', 'r') as GVP_file:
+                    for line in GVP_file:
+                        if url_volc_id in line:
+                            data_to_read = line.split(url_volc_id)[1]
+                            data_to_read = data_to_read.split('</Data></Cell><Cell>')
+                            volc_lat_in = data_to_read[9]
+                            volc_lat_in = float(volc_lat_in.split('<Data ss:Type="Number">')[1])
+                            volc_lon_in = data_to_read[10]
+                            volc_lon_in = float(volc_lon_in.split('<Data ss:Type="Number">')[1])
+                            elevation_in = data_to_read[11]
+                            elevation_in = float(elevation_in.split('<Data ss:Type="Number">')[1])
+            except Exception as e:
+                print("An error occurred:", e)
+                sys.exit()
     sampled_days_in = []
     sampled_months_in = []
     sampled_years_in = []
@@ -858,7 +877,7 @@ def automatic_weather(analysis_start_in):
                 records1.append(line_sl.split(':'))
                 records2.append(line_sl.split('val='))
             i_sl = 0
-            if mode == 'reanalysis':
+            if mode == 'reanalysis' or mode == 'inversion':
                 while i_sl < nrecords:
                     if records1[i_sl][3] == 'UGRD':
                         u_sl = float(records2[i_sl][1])
@@ -985,7 +1004,7 @@ def automatic_weather(analysis_start_in):
             vm_string_2 = ''
             vm_string_3 = ''
             tinf = 0
-            if mode == 'reanalysis':
+            if mode == 'reanalysis' or mode == 'inversion':
                 files_to_iterate = surface_data_files
                 file_keyword = 'data_location_'
             else:
@@ -1514,7 +1533,7 @@ else:
     while attempt < 10:
         days_to_reelaborate = []
         simulation_folders = os.listdir(simulations)
-        if mode == 'reanalysis' and weather_station_on and not era5_on:
+        if (mode == 'reanalysis' or mode == 'inversion') and weather_station_on and not era5_on:
             n_expected_weather_files = 4
         else:
             n_expected_weather_files = 5

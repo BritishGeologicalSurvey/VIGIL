@@ -383,7 +383,7 @@ def read_arguments():
         print('ERROR. Please provide a valid entry for the variable -OH --output_heights')
         sys.exit()
     if inversion_in.lower() == 'true':
-        #        random_emission_in = True  # FABIO: cambio di approccio
+        measuring_stations_in = []
         try:
             emission_search_iterations_in = int(emission_search_iterations_in)
         except ValueError:
@@ -398,6 +398,7 @@ def read_arguments():
             sys.exit()
         try:
             with open(os.path.join(os.getcwd(), 'inversion', 'stations_list.csv'), 'r') as stations_list:
+                station_index = 0
                 for line in stations_list:
                     try:
                         station_x = float(line.split(',')[1])
@@ -410,6 +411,9 @@ def read_arguments():
                                     line.split(',')[0]) + ' outside computational domain. Station ignored.')
                         else:
                             measuring_stations_list.append(os.path.join(os.getcwd(), 'inversion', line.split(',')[0]))
+                            station_index += 1
+                            measuring_stations_in.append({'station_#': str(station_index), 'station_X': station_x,
+                                                          'station_Y': station_y, 'station_z': station_z})
                     except ValueError:
                         continue
         except FileNotFoundError:
@@ -473,6 +477,7 @@ def read_arguments():
         continuous_simulation_in,
         inversion_in,
         emission_search_iterations_in,
+        measuring_stations_in,
         max_number_processes_in,
         random_sources_in,
         nsources_in,
@@ -1540,7 +1545,7 @@ def run_simulations(max_np):
             print('Unable to run the simulations')
             sys.exit()
         n_elaborated_runs = end_run
-        if n_elaborated_runs == len(days):
+        if n_elaborated_runs == len(days) or n_elaborated_runs == emission_search_iterations:
             break
         for p in ps:
             p.wait()
@@ -1755,7 +1760,26 @@ def elaborate_outputs():
 
 
 def find_best_match():
-    print('Ciao')
+    def extract_simulated_outputs(x_station, y_station, z_station):
+        print('Ciao')
+        return c_sim_time_series
+
+    def calculate_error(simulated_ts, observed_ts):
+        print('Ciao')
+        return error
+
+    c_simulated_time_series = []
+    c_observed_time_series = []
+    for i_station in range(len(measuring_stations)):
+        c_simulated_time_series.append(extract_simulated_outputs(measuring_stations[i_station]['station_X'],
+                                                       measuring_stations[i_station]['station_Y'],
+                                                       measuring_stations[i_station]['station_z']))
+
+    for iteration in emission_search_iterations:
+        calculate_error(c_simulated_time_series, c_observed_time_series)
+
+
+
 
 
 root = os.getcwd()
@@ -1768,6 +1792,7 @@ topography = os.path.join(root, 'topography.grd')
     continuous_simulation,
     inversion,
     emission_search_iterations,
+    measuring_stations,
     max_number_processes,
     random_sources,
     nsources,

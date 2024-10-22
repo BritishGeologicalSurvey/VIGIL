@@ -830,8 +830,8 @@ def pre_process(run_mode):
                     run_mode = 'new'
                 else:
                     run_mode = 'restart'
-            if (inversion and iteration == 1) or not inversion: #Set diagno file only once, no need to repeat across
-            # iterations
+            if (inversion and iteration == 1) or not inversion:  # Set diagno file only once, no need to repeat across
+                # iterations
                 # Set diagno.inp file
                 diagno_input_records = []
                 diagno_input = os.path.join(met_data, 'diagno.inp')
@@ -1759,9 +1759,9 @@ def elaborate_outputs():
 
 
 def find_best_match():
-    def extract_observed_concentrations(station_file):
-        import datetime
+    import datetime
 
+    def extract_observed_concentrations(station_file):
         with open(station_file) as c_observed_file:
             time_steps = []
             c_observations = []
@@ -1775,25 +1775,64 @@ def find_best_match():
                     continue
         return time_steps, c_observations
 
+    def calculate_error(c_simulated_ts, t_simulated_ts, c_observed_ts, t_observed_ts):
+        def extract_simulated_outputs(x_station, y_station, z_station):
+            def interpolate(x, y, z, levels_interpolation, files):
+                from scipy import interpolate
+                x_array = np.linspace(bottom_left_easting, bottom_left_easting + nx * dx, nx, endpoint=True)
+                y_array = np.linspace(bottom_left_northing, bottom_left_northing + ny * dy, ny, endpoint=True)
+                conc1 = np.loadtxt(files[0], skiprows=5)
+                if len(levels_interpolation) == 2:
+                    z_array = np.linspace(levels_interpolation[0], levels_interpolation[1], 2)
+                    conc2 = np.loadtxt(files[1], skiprows=5)
+                    conc = np.array([conc1, conc2])
+                    my_interpolating_function = interpolate.RegularGridInterpolator((x_array, y_array, z_array), conc.T)
+                    pt = np.array([x, y, z])
+                else:
+                    conc = conc1
+                    my_interpolating_function = interpolate.RegularGridInterpolator((x_array, y_array), conc.T)
+                    pt = np.array([x, y])
+                return my_interpolating_function(pt)
 
-    def extract_simulated_outputs(x_station, y_station, z_station):
-        print('Ciao')
-        return c_sim_time_series
+            c_interpolated = interpolate(x_station, y_station, z_station,
+                                         files_levels,
+                                         files_to_use)
 
-    def calculate_error(simulated_ts, observed_ts):
+            return c_sim_time_series
+
         print('Ciao')
         return error
 
     c_simulated_time_series = []
     c_observed_time_series = []
+
+    time_simulated_time_series = []
+    if len(days) > 1:
+        effective_run_duration = len(days) * 24 - 1  # Currently for simulations longer than 1 day, each day is
+        # simulated for 24 hours, to be generalized
+    else:
+        effective_run_duration = run_duration
+    time = datetime.datetime.strptime(days[0], '%Y%m%d')
+    for i_t in range(effective_run_duration):
+        time += datetime.timedelta(hours=1)
+        time_simulated_time_series.append(time)
+
+
     for i_station in range(len(measuring_stations)):
-        time_observed_time_series, c_observed_time_series = extract_observed_concentrations(measuring_stations[i_station]['station_file_path'])
+        time_observed_time_series, c_observed_time_series = \
+            (extract_observed_concentrations(measuring_stations[i_station]['station_file_path']))
+
+
+    for iteration in emission_search_iterations:
+        calculate_error(c_simulated_time_series, time_simulated_time_series, c_observed_time_series,
+                        time_observed_time_series)
+
+
         c_simulated_time_series.append(extract_simulated_outputs(measuring_stations[i_station]['station_X'],
                                                        measuring_stations[i_station]['station_Y'],
                                                        measuring_stations[i_station]['station_z']))
 
-    for iteration in emission_search_iterations:
-        calculate_error(c_simulated_time_series, c_observed_time_series)
+
 
 
 

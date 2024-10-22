@@ -391,14 +391,12 @@ def read_arguments():
         if emission_search_iterations_in <= 0:
             print('ERROR. Inversion mode but no valid numbers of search iterations provided')
             sys.exit()
-        measuring_stations_list = []
         inversion_in = True
         if not os.path.exists(os.path.join(os.getcwd(), 'inversion')):
             print('ERROR. Folder with files necessary to run in inversion mode missing')
             sys.exit()
         try:
             with open(os.path.join(os.getcwd(), 'inversion', 'stations_list.csv'), 'r') as stations_list:
-                station_index = 0
                 for line in stations_list:
                     try:
                         station_x = float(line.split(',')[1])
@@ -410,20 +408,20 @@ def read_arguments():
                             print('WARNING. Location of + ' + os.path.join(os.getcwd(), 'inversion',
                                     line.split(',')[0]) + ' outside computational domain. Station ignored.')
                         else:
-                            measuring_stations_list.append(os.path.join(os.getcwd(), 'inversion', line.split(',')[0]))
-                            station_index += 1
-                            measuring_stations_in.append({'station_#': str(station_index), 'station_X': station_x,
-                                                          'station_Y': station_y, 'station_z': station_z})
+                            measuring_stations_in.append({'station_file_path': os.path.join(os.getcwd(), 'inversion',
+                                                        line.split(',')[0]), 'station_X': station_x,
+                                                        'station_Y': station_y, 'station_z': station_z})
                     except ValueError:
                         continue
         except FileNotFoundError:
             print('ERROR. File stations_list.csv missing in the inversion folder')
             sys.exit()
-        if len(measuring_stations_list) == 0:
+        if len(measuring_stations_in) == 0:
             print('ERROR. Inversion mode activated but no station files listed in ' + os.path.join(os.getcwd(),
                   'inversion', 'stations_list.csv'))
             sys.exit()
-        for station_file in measuring_stations_list:
+        for i in range(len(measuring_stations_in)):
+            station_file = measuring_stations_in[i]['station_file_path']
             try:
                 open(station_file, 'r')
             except FileNotFoundError:
@@ -432,6 +430,7 @@ def read_arguments():
     elif inversion_in.lower() == 'false':
         inversion_in = False
         emission_search_iterations_in = 0
+        measuring_stations_in = []
     else:
         print('ERROR. Wrong value for variable -I --inversion')
         sys.exit()
@@ -1760,6 +1759,23 @@ def elaborate_outputs():
 
 
 def find_best_match():
+    def extract_observed_concentrations(station_file):
+        import datetime
+
+        with open(station_file) as c_observed_file:
+            time_steps = []
+            c_observations = []
+            for line in c_observed_file:
+                try:
+                    time_steps.append(datetime.datetime.strptime(line.split(',')[0], '%Y%m%d HH:mm'))
+                    c_observations.append(float(line.split(',')[1]))
+                except ValueError:
+                    continue
+                except IndexError:
+                    continue
+        return time_steps, c_observations
+
+
     def extract_simulated_outputs(x_station, y_station, z_station):
         print('Ciao')
         return c_sim_time_series
@@ -1771,6 +1787,7 @@ def find_best_match():
     c_simulated_time_series = []
     c_observed_time_series = []
     for i_station in range(len(measuring_stations)):
+        time_observed_time_series, c_observed_time_series = extract_observed_concentrations(measuring_stations[i_station]['station_file_path'])
         c_simulated_time_series.append(extract_simulated_outputs(measuring_stations[i_station]['station_X'],
                                                        measuring_stations[i_station]['station_Y'],
                                                        measuring_stations[i_station]['station_z']))

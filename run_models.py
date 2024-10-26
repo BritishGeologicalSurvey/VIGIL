@@ -1762,9 +1762,9 @@ def find_best_match():
     import datetime
 
     def extract_observed_concentrations(station_file):
+        time_steps = []
+        c_observations = []
         with open(station_file) as c_observed_file:
-            time_steps = []
-            c_observations = []
             for line in c_observed_file:
                 try:
                     time_steps.append(datetime.datetime.strptime(line.split(',')[0], '%Y%m%d HH:mm'))
@@ -1775,7 +1775,7 @@ def find_best_match():
                     continue
         return time_steps, c_observations
 
-    def calculate_error(c_simulated_ts, t_simulated_ts, c_observed_ts, t_observed_ts):
+    def calculate_error(it, c_observed_ts, t_observed_ts):
         def extract_simulated_outputs(x_station, y_station, z_station):
             def interpolate(x, y, z, levels_interpolation, files):
                 from scipy import interpolate
@@ -1794,18 +1794,23 @@ def find_best_match():
                     pt = np.array([x, y])
                 return my_interpolating_function(pt)
 
-            c_interpolated = interpolate(x_station, y_station, z_station,
-                                         files_levels,
-                                         files_to_use)
+            files_levels = []
+            files_to_use = []
+            for i_level in range(1, len(output_heights)):
+                if output_heights[i_level - 1] <= z_station <= output_heights[i_level]:
+                    files_levels.append(output_heights[i_level - 1])
+                    files_to_use.append(root, 'simulations', 'runs', '{:02d}'.format(it), 'outfiles', 'c_' + '_{:03d}'.format(TEMPO) + '_{:06d}'.format(i_level - 1) + '.grd')
+                    # FABIO: da rigo sopra, capire come gestire le simulazioni più lunghe di un giorno
+                    files_levels.append(output_heights[i_level])
+            c_interpolated = interpolate(x_station, y_station, z_station, files_levels, files_to_use)
 
-            return c_sim_time_series
-
-        print('Ciao')
-        return error
+        for j_station in range(len(measuring_stations)):
+            c_simulated_time_series.append(extract_simulated_outputs(measuring_stations[j_station]['station_X'],
+                                                                 measuring_stations[j_station]['station_Y'],
+                                                                 measuring_stations[j_station]['station_z']))
 
     c_simulated_time_series = []
     c_observed_time_series = []
-
     time_simulated_time_series = []
     if len(days) > 1:
         effective_run_duration = len(days) * 24 - 1  # Currently for simulations longer than 1 day, each day is
@@ -1817,20 +1822,14 @@ def find_best_match():
         time += datetime.timedelta(hours=1)
         time_simulated_time_series.append(time)
 
-
     for i_station in range(len(measuring_stations)):
         time_observed_time_series, c_observed_time_series = \
-            (extract_observed_concentrations(measuring_stations[i_station]['station_file_path']))
+            extract_observed_concentrations(measuring_stations[i_station]['station_file_path'])
+
+    for iteration in range(len(emission_search_iterations)):
+        calculate_error(iteration, c_observed_time_series, time_observed_time_series)
 
 
-    for iteration in emission_search_iterations:
-        calculate_error(c_simulated_time_series, time_simulated_time_series, c_observed_time_series,
-                        time_observed_time_series)
-
-
-        c_simulated_time_series.append(extract_simulated_outputs(measuring_stations[i_station]['station_X'],
-                                                       measuring_stations[i_station]['station_Y'],
-                                                       measuring_stations[i_station]['station_z']))
 
 
 

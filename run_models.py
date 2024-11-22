@@ -374,8 +374,6 @@ def read_arguments():
             output_heights_in.append(10.0)  # 10.0 is the reference level for wind measurements in diagno.inp. This
             # can be generalized, at the moment ZSWIND in diagno.inp is not changed in VIGIL
         nz_in = len(output_heights_in)
-        for height in sorted(output_heights_in):
-            output_heights_in_str += str(height) + ' '
     except ValueError:
         print('ERROR. Please provide a valid entry for the variable -OH --output_heights')
         sys.exit()
@@ -411,6 +409,8 @@ def read_arguments():
                             measuring_stations_in.append({'station_file_path': os.path.join(os.getcwd(), 'inversion',
                                                         line.split(',')[0]), 'station_X': station_x,
                                                         'station_Y': station_y, 'station_z': station_z})
+                            if station_z not in output_heights_in:
+                                output_heights_in.append(station_z)
                     except ValueError:
                         continue
         except FileNotFoundError:
@@ -471,6 +471,8 @@ def read_arguments():
     else:
         print('ERROR. Valid options for -RER --random_sources are True and False')
         sys.exit()
+    for height in sorted(output_heights_in):
+        output_heights_in_str += str(height) + ' '
     return (
         run_type_in,
         continuous_simulation_in,
@@ -1775,59 +1777,63 @@ def find_best_match():
                     continue
         return time_steps, c_observations
 
-    def calculate_error(it, c_observed_ts, t_observed_ts):
-        def extract_simulated_outputs(x_station, y_station, z_station):
-            def interpolate(x, y, z, levels_interpolation, files):
-                from scipy import interpolate
-                x_array = np.linspace(bottom_left_easting, bottom_left_easting + nx * dx, nx, endpoint=True)
-                y_array = np.linspace(bottom_left_northing, bottom_left_northing + ny * dy, ny, endpoint=True)
-                conc1 = np.loadtxt(files[0], skiprows=5)
-                if len(levels_interpolation) == 2:
-                    z_array = np.linspace(levels_interpolation[0], levels_interpolation[1], 2)
-                    conc2 = np.loadtxt(files[1], skiprows=5)
-                    conc = np.array([conc1, conc2])
-                    my_interpolating_function = interpolate.RegularGridInterpolator((x_array, y_array, z_array), conc.T)
-                    pt = np.array([x, y, z])
-                else:
-                    conc = conc1
-                    my_interpolating_function = interpolate.RegularGridInterpolator((x_array, y_array), conc.T)
-                    pt = np.array([x, y])
-                return my_interpolating_function(pt)
+    def extract_simulated_outputs(it, x_station, y_station, z_station):
+        def interpolate(x, y, file_to_interpolate):
+            from scipy import interpolate
+            x_array = np.linspace(bottom_left_easting, bottom_left_easting + nx * dx, nx, endpoint=True)
+            y_array = np.linspace(bottom_left_northing, bottom_left_northing + ny * dy, ny, endpoint=True)
+            conc = np.loadtxt(file_to_interpolate, skiprows=5)
+            my_interpolating_function = interpolate.RegularGridInterpolator((x_array, y_array), conc.T)
+            pt = np.array([x, y])
+            return my_interpolating_function(pt)
 
-            files_levels = []
-            files_to_use = []
-            for i_level in range(1, len(output_heights)):
-                if output_heights[i_level - 1] <= z_station <= output_heights[i_level]:
-                    files_levels.append(output_heights[i_level - 1])
-                    files_to_use.append(root, 'simulations', 'runs', '{:02d}'.format(it), 'outfiles', 'c_' + '_{:03d}'.format(TEMPO) + '_{:06d}'.format(i_level - 1) + '.grd')
-                    # FABIO: da rigo sopra, capire come gestire le simulazioni più lunghe di un giorno
-                    files_levels.append(output_heights[i_level])
-            c_interpolated = interpolate(x_station, y_station, z_station, files_levels, files_to_use)
+        c_interpolated_time_series_station = []
+        for i_day in range(len(days)):
+            for output_file in all_output_files_sl[i_day]:
+                i_time = output_file.split('c_001')[1]
+                i_time = int(i_time.split('.grd')[0])
+                for i_level in range(0, len(output_heights)):
+                    if output_heights[i_level] == z_station:
+                        file_to_use = os.path.join(root, 'simulations', 'runs', '{:02d}'.format(it), days[i_day],
+                                                'outfiles', 'c_' + '_{:03d}'.format(i_level + 1) +
+                                                '_{:06d}'.format(i_time) + '.grd')
+                        c_interpolated_time_series_station.append(interpolate(x_station, y_station, file_to_use))
+        return c_interpolated_time_series_station
 
-        for j_station in range(len(measuring_stations)):
-            c_simulated_time_series.append(extract_simulated_outputs(measuring_stations[j_station]['station_X'],
-                                                                 measuring_stations[j_station]['station_Y'],
-                                                                 measuring_stations[j_station]['station_z']))
+    def calculate_error(it, c_observed_ts, t_observed_ts, c_simulated_ts, t_simulated_ts):
+        print('Ciao')
 
     c_simulated_time_series = []
-    c_observed_time_series = []
     time_simulated_time_series = []
-    if len(days) > 1:
-        effective_run_duration = len(days) * 24 - 1  # Currently for simulations longer than 1 day, each day is
-        # simulated for 24 hours, to be generalized
-    else:
-        effective_run_duration = run_duration
+    c_observed_time_series = []
+    time_observed_time_series = []
     time = datetime.datetime.strptime(days[0], '%Y%m%d')
-    for i_t in range(effective_run_duration):
-        time += datetime.timedelta(hours=1)
-        time_simulated_time_series.append(time)
+    all_output_files_sl = []
+    for day in days:
+        output_files_sl = []
+        sample_output_files_sl = os.listdir(os.path.join(root, 'simulations', 'runs', '{:02d}'.format(1), day,
+                                                         'outfiles'))
+        for output_file_sl in sample_output_files_sl:
+            if 'c_001' in output_file_sl:
+                output_files_sl.append(output_file_sl)
+        output_files_sl = sorted(output_files_sl)
+        all_output_files_sl.append(output_files_sl)
+        for _ in output_files_sl:
+            time += datetime.timedelta(hours=1)
+            time_simulated_time_series.append(time)
 
     for i_station in range(len(measuring_stations)):
         time_observed_time_series, c_observed_time_series = \
             extract_observed_concentrations(measuring_stations[i_station]['station_file_path'])
 
     for iteration in range(len(emission_search_iterations)):
-        calculate_error(iteration, c_observed_time_series, time_observed_time_series)
+        for j_station in range(len(measuring_stations)):
+            c_simulated_time_series.append(extract_simulated_outputs(iteration,
+                                                                    measuring_stations[j_station]['station_X'],
+                                                                    measuring_stations[j_station]['station_Y'],
+                                                                    measuring_stations[j_station]['station_z']))
+        calculate_error(iteration, c_observed_time_series, time_observed_time_series, c_simulated_time_series,
+                        time_simulated_time_series)
 
 
 

@@ -1843,7 +1843,7 @@ def find_best_match():
         time_observed_time_series, c_observed_time_series = \
             extract_observed_concentrations(measuring_stations[i_station]['station_file_path'])
 
-    for iteration in range(len(emission_search_iterations)):
+    for iteration in range(emission_search_iterations):
         rmse_stations = []
         for j_station in range(len(measuring_stations)):
             c_simulated_time_series.append(extract_simulated_outputs(iteration,
@@ -2000,4 +2000,4 @@ elaborate_outputs()  # To copy each outfiles folder into the general outfiles fo
 
 if inversion:
     best_match_iteration, rmse = find_best_match()
-print(best_match_iteration, rmse)
+    print(best_match_iteration, rmse)

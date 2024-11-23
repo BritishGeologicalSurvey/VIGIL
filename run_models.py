@@ -373,7 +373,6 @@ def read_arguments():
         if 10.0 > max(output_heights_in):
             output_heights_in.append(10.0)  # 10.0 is the reference level for wind measurements in diagno.inp. This
             # can be generalized, at the moment ZSWIND in diagno.inp is not changed in VIGIL
-        nz_in = len(output_heights_in)
     except ValueError:
         print('ERROR. Please provide a valid entry for the variable -OH --output_heights')
         sys.exit()
@@ -471,6 +470,7 @@ def read_arguments():
     else:
         print('ERROR. Valid options for -RER --random_sources are True and False')
         sys.exit()
+    nz_in = len(output_heights_in)
     for height in sorted(output_heights_in):
         output_heights_in_str += str(height) + ' '
     return (
@@ -1769,7 +1769,7 @@ def find_best_match():
         with open(station_file) as c_observed_file:
             for line in c_observed_file:
                 try:
-                    time_steps.append(datetime.datetime.strptime(line.split(',')[0], '%Y%m%d HH:mm'))
+                    time_steps.append(datetime.datetime.strptime(line.split(',')[0], '%d/%m/%Y %H:%M'))
                     c_observations.append(float(line.split(',')[1]))
                 except ValueError:
                     continue
@@ -1780,8 +1780,14 @@ def find_best_match():
     def extract_simulated_outputs(it, x_station, y_station, z_station):
         def interpolate(x, y, file_to_interpolate):
             from scipy import interpolate
-            x_array = np.linspace(bottom_left_easting, bottom_left_easting + nx * dx, nx, endpoint=True)
-            y_array = np.linspace(bottom_left_northing, bottom_left_northing + ny * dy, ny, endpoint=True)
+            if disgas_on and not twodee_on:
+                x_array = np.linspace(bottom_left_easting + dx + dx / 2, top_right_easting - dx - dx / 2, nx - 2,
+                                      endpoint=True)
+                y_array = np.linspace(bottom_left_northing + dy + dy / 2, top_right_northing - dy - dy / 2, ny - 2,
+                                      endpoint=True)
+            else:
+                x_array = np.linspace(bottom_left_easting, bottom_left_easting + nx * dx, nx, endpoint=True)
+                y_array = np.linspace(bottom_left_northing, bottom_left_northing + ny * dy, ny, endpoint=True)
             conc = np.loadtxt(file_to_interpolate, skiprows=5)
             my_interpolating_function = interpolate.RegularGridInterpolator((x_array, y_array), conc.T)
             pt = np.array([x, y])
@@ -1790,10 +1796,10 @@ def find_best_match():
         c_interpolated_time_series_station = []
         for i_day in range(len(days)):
             for output_file in all_output_files_sl[i_day]:
-                i_time = output_file.split('c_001')[1]
+                i_time = output_file.split('c_001_')[1]
                 i_time = int(i_time.split('.grd')[0])
-                for i_level in range(0, len(output_heights)):
-                    if output_heights[i_level] == z_station:
+                for i_level in range(0, len(output_heights_list)):
+                    if output_heights_list[i_level] == z_station:
                         file_to_use = os.path.join(root, 'simulations', 'runs', '{:02d}'.format(it), days[i_day],
                                                 'outfiles', 'c_' + '_{:03d}'.format(i_level + 1) +
                                                 '_{:06d}'.format(i_time) + '.grd')
@@ -1819,6 +1825,9 @@ def find_best_match():
                 it_min_rmse = i_it
         return it_min_rmse
 
+    output_heights_list = output_heights.split(' ')
+    output_heights_list = output_heights_list[0:len(output_heights_list)-1]
+    output_heights_list = [float(height) for height in output_heights_list]
     rmse_iterations = []
     c_simulated_time_series = []
     time_simulated_time_series = []
@@ -1840,13 +1849,15 @@ def find_best_match():
             time_simulated_time_series.append(time)
 
     for i_station in range(len(measuring_stations)):
-        time_observed_time_series, c_observed_time_series = \
+        time_observed_time_series_station, c_observed_time_series_station = \
             extract_observed_concentrations(measuring_stations[i_station]['station_file_path'])
+        time_observed_time_series.append(time_observed_time_series_station)
+        c_observed_time_series.append(c_observed_time_series_station)
 
     for iteration in range(emission_search_iterations):
         rmse_stations = []
         for j_station in range(len(measuring_stations)):
-            c_simulated_time_series.append(extract_simulated_outputs(iteration,
+            c_simulated_time_series.append(extract_simulated_outputs(iteration + 1,
                                                                     measuring_stations[j_station]['station_X'],
                                                                     measuring_stations[j_station]['station_Y'],
                                                                     measuring_stations[j_station]['station_z']))

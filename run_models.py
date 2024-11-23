@@ -1800,9 +1800,26 @@ def find_best_match():
                         c_interpolated_time_series_station.append(interpolate(x_station, y_station, file_to_use))
         return c_interpolated_time_series_station
 
-    def calculate_error(it, c_observed_ts, t_observed_ts, c_simulated_ts, t_simulated_ts):
-        print('Ciao')
+    def calculate_error(c_observed_ts, t_observed_ts, c_simulated_ts, t_simulated_ts):
+        import pandas as pd
+        c_simulated_ts_df = pd.DataFrame({"Time": t_simulated_ts, "Value": c_simulated_ts})
+        c_observed_ts_df = pd.DataFrame({"Time": t_observed_ts, "Value": c_observed_ts})
+        c_simulated_ts_df, c_observed_ts_df = c_simulated_ts_df.align(c_observed_ts_df)
+        c_simulated_ts_df.interpolate(method='time')
+        rmse_it = ((c_simulated_ts_df.interpolate(method='time') - c_observed_ts_df.interpolate(method='time')) ** 2 /
+                c_simulated_ts_df.size) ** 0.5
+        return rmse_it
 
+    def find_minimum_rmse():
+        min_rmse = 1000000000
+        it_min_rmse = 0
+        for i_it in range(len(rmse_iterations)):
+            if rmse_iterations[i_it] <= min_rmse:
+                min_rmse = rmse_iterations[i_it]
+                it_min_rmse = i_it
+        return it_min_rmse
+
+    rmse_iterations = []
     c_simulated_time_series = []
     time_simulated_time_series = []
     c_observed_time_series = []
@@ -1827,20 +1844,17 @@ def find_best_match():
             extract_observed_concentrations(measuring_stations[i_station]['station_file_path'])
 
     for iteration in range(len(emission_search_iterations)):
+        rmse_stations = []
         for j_station in range(len(measuring_stations)):
             c_simulated_time_series.append(extract_simulated_outputs(iteration,
                                                                     measuring_stations[j_station]['station_X'],
                                                                     measuring_stations[j_station]['station_Y'],
                                                                     measuring_stations[j_station]['station_z']))
-        calculate_error(iteration, c_observed_time_series, time_observed_time_series, c_simulated_time_series,
-                        time_simulated_time_series)
-
-
-
-
-
-
-
+            rmse_stations.append(calculate_error(c_observed_time_series, time_observed_time_series,
+                                               c_simulated_time_series, time_simulated_time_series))
+        rmse_iterations.append(np.average(rmse_stations))
+    it_lowest_rmse = find_minimum_rmse()
+    return it_lowest_rmse, rmse_iterations[it_lowest_rmse]
 
 
 root = os.getcwd()
@@ -1985,4 +1999,5 @@ elaborate_outputs()  # To copy each outfiles folder into the general outfiles fo
 # when runs have been split
 
 if inversion:
-    best_match, rmse = find_best_match()
+    best_match_iteration, rmse = find_best_match()
+print(best_match_iteration, rmse)

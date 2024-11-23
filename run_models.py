@@ -399,10 +399,18 @@ def read_arguments():
                         station_x = float(line.split(',')[1])
                         station_y = float(line.split(',')[2])
                         station_z = float(line.split(',')[3])
-                        if station_x < bottom_left_easting_in or station_x > top_right_easting_in or \
-                                station_y < bottom_left_northing_in or station_y > top_right_northing_in or \
+                        x_min = bottom_left_easting_in
+                        x_max = top_right_easting_in
+                        y_min = bottom_left_northing_in
+                        y_max = top_right_northing_in
+                        if disgas and not twodee:
+                            x_min += dx_in + dx_in / 2
+                            x_max -= (dx_in + dx_in / 2)
+                            y_min += dy_in + dy_in / 2
+                            y_max -= (dy_in + dy_in / 2)
+                        if station_x < x_min or station_x > x_max or station_y < y_min or station_y > y_max or \
                                 station_z < min(output_heights_in) or station_z > max(output_heights_in):
-                            print('WARNING. Location of + ' + os.path.join(os.getcwd(), 'inversion',
+                            print('WARNING. Location of ' + os.path.join(os.getcwd(), 'inversion',
                                     line.split(',')[0]) + ' outside computational domain. Station ignored.')
                         else:
                             measuring_stations_in.append({'station_file_path': os.path.join(os.getcwd(), 'inversion',
@@ -756,12 +764,12 @@ def pre_process(run_mode):
     for j_source in range(0, n_sources):
         if inversion:
             if prob_distr_emission == 'ecdf':
-                fluxes = [sample_ecdf_fluxes()[0] for iteration in range(1, emission_search_iterations + 1)]
+                fluxes = [sample_ecdf_fluxes()[0] for _ in range(1, emission_search_iterations + 1)]
             elif prob_distr_emission == 'uniform':
-                fluxes = [np.random.uniform(prob_distr_params[0], prob_distr_params[1]) for iteration
+                fluxes = [np.random.uniform(prob_distr_params[0], prob_distr_params[1]) for _
                           in range(1, emission_search_iterations + 1)]
             else:
-                fluxes = [np.random.normal(prob_distr_params[0], prob_distr_params[1]) for iteration
+                fluxes = [np.random.normal(prob_distr_params[0], prob_distr_params[1]) for _
                           in range(1, emission_search_iterations + 1)]
                 for i_flux in range(0, len(fluxes)):
                     while fluxes[i_flux] <= 0:
@@ -770,16 +778,16 @@ def pre_process(run_mode):
         else:
             if not random_emission:
                 if fluxes_input[j_source] == 99999999:
-                    gas_fluxes.append([source_emission for day in days])
+                    gas_fluxes.append([source_emission for _ in days])
                 else:
-                    gas_fluxes.append([fluxes_input[j_source] for day in days])
+                    gas_fluxes.append([fluxes_input[j_source] for _ in days])
             else:
                 if prob_distr_emission == 'ecdf':
-                    fluxes = [sample_ecdf_fluxes()[0] for day in days]
+                    fluxes = [sample_ecdf_fluxes()[0] for _ in days]
                 elif prob_distr_emission == 'uniform':
-                    fluxes = [np.random.uniform(prob_distr_params[0], prob_distr_params[1]) for day in days]
+                    fluxes = [np.random.uniform(prob_distr_params[0], prob_distr_params[1]) for _ in days]
                 else:
-                    fluxes = [np.random.normal(prob_distr_params[0], prob_distr_params[1]) for day in days]
+                    fluxes = [np.random.normal(prob_distr_params[0], prob_distr_params[1]) for _ in days]
                     for i_flux in range(0, len(fluxes)):
                         while fluxes[i_flux] <= 0:
                             fluxes[i_flux] = np.random.uniform(prob_distr_params[0], prob_distr_params[1])
@@ -903,8 +911,8 @@ def pre_process(run_mode):
                 except FileExistsError:
                     print('Folder ' + disgas_daily + ' already exists')
                 disgas_input = os.path.join(disgas_daily, 'disgas.inp')
-                with open(os.path.join(disgas_daily, 'source.dat'), 'w', encoding='utf-8', errors='surrogateescape',) as \
-                        source_file:
+                with open(os.path.join(disgas_daily, 'source.dat'), 'w', encoding='utf-8', errors='surrogateescape',) \
+                        as source_file:
                     for j_source in range(0, n_sources):
                         if dx_src[j_source] * dy_src[j_source] > dx * dy:
                             # Split the source across the computational cells, since currently DISGAS does only allow
@@ -1055,7 +1063,7 @@ def pre_process(run_mode):
                 except (FileExistsError, FileNotFoundError):
                     print('ERROR with surface_data.txt')
                 with open(os.path.join(twodee_daily, 'source.dat'), 'w', encoding='utf-8', errors='surrogateescape',) \
-                              as source_file:
+                    as source_file:
                     for j in range(0, n_sources):
                         if inversion:
                             source_file.write('{0:7.3f}'.format(easting[j]) + ' ' + '{0:7.3f}'.format(northing[j]) + ' '
@@ -1103,8 +1111,8 @@ def pre_process(run_mode):
                                     hour_start = 0
                             twodee_input_file.write('  HOUR   = ' + '{0:2.0f}'.format(hour_start) + '\n')
                         elif 'SIMULATION_INTERVAL_(SEC)' in record:
-                            # for the moment this is managed exactly like DISGAS, but would require the RESET_TIME option to
-                            # be implemented in TWODEE as well
+                            # for the moment this is managed exactly like DISGAS, but would require the RESET_TIME
+                            # option to be implemented in TWODEE as well
                             simulation_interval = run_duration * 3600
                             twodee_input_file.write('  SIMULATION_INTERVAL_(SEC) = ' +
                                                     '{0:7.0f}'.format(simulation_interval) + '\n')
@@ -1791,7 +1799,7 @@ def find_best_match():
             conc = np.loadtxt(file_to_interpolate, skiprows=5)
             my_interpolating_function = interpolate.RegularGridInterpolator((x_array, y_array), conc.T)
             pt = np.array([x, y])
-            return my_interpolating_function(pt)
+            return my_interpolating_function(pt).tolist()[0]
 
         c_interpolated_time_series_station = []
         for i_day in range(len(days)):
@@ -1801,19 +1809,22 @@ def find_best_match():
                 for i_level in range(0, len(output_heights_list)):
                     if output_heights_list[i_level] == z_station:
                         file_to_use = os.path.join(root, 'simulations', 'runs', '{:02d}'.format(it), days[i_day],
-                                                'outfiles', 'c_' + '_{:03d}'.format(i_level + 1) +
+                                                'outfiles', 'c_' + '{:03d}'.format(i_level + 1) +
                                                 '_{:06d}'.format(i_time) + '.grd')
                         c_interpolated_time_series_station.append(interpolate(x_station, y_station, file_to_use))
+                        break
         return c_interpolated_time_series_station
 
     def calculate_error(c_observed_ts, t_observed_ts, c_simulated_ts, t_simulated_ts):
         import pandas as pd
         c_simulated_ts_df = pd.DataFrame({"Time": t_simulated_ts, "Value": c_simulated_ts})
         c_observed_ts_df = pd.DataFrame({"Time": t_observed_ts, "Value": c_observed_ts})
+        c_simulated_ts_df.set_index('Time', inplace=True) 
+        c_observed_ts_df.set_index('Time', inplace=True) 
         c_simulated_ts_df, c_observed_ts_df = c_simulated_ts_df.align(c_observed_ts_df)
-        c_simulated_ts_df.interpolate(method='time')
-        rmse_it = ((c_simulated_ts_df.interpolate(method='time') - c_observed_ts_df.interpolate(method='time')) ** 2 /
-                c_simulated_ts_df.size) ** 0.5
+        c_simulated_ts_df = c_simulated_ts_df.interpolate(method='time')
+        sq_diff = (c_simulated_ts_df.interpolate(method='time') - c_observed_ts_df.interpolate(method='time')) ** 2 
+        rmse_it = (sq_diff['Value'].sum() / sq_diff.shape[0]) ** 0.5
         return rmse_it
 
     def find_minimum_rmse():
@@ -1829,7 +1840,6 @@ def find_best_match():
     output_heights_list = output_heights_list[0:len(output_heights_list)-1]
     output_heights_list = [float(height) for height in output_heights_list]
     rmse_iterations = []
-    c_simulated_time_series = []
     time_simulated_time_series = []
     c_observed_time_series = []
     time_observed_time_series = []
@@ -1853,16 +1863,16 @@ def find_best_match():
             extract_observed_concentrations(measuring_stations[i_station]['station_file_path'])
         time_observed_time_series.append(time_observed_time_series_station)
         c_observed_time_series.append(c_observed_time_series_station)
-
     for iteration in range(emission_search_iterations):
         rmse_stations = []
         for j_station in range(len(measuring_stations)):
-            c_simulated_time_series.append(extract_simulated_outputs(iteration + 1,
-                                                                    measuring_stations[j_station]['station_X'],
-                                                                    measuring_stations[j_station]['station_Y'],
-                                                                    measuring_stations[j_station]['station_z']))
-            rmse_stations.append(calculate_error(c_observed_time_series, time_observed_time_series,
-                                               c_simulated_time_series, time_simulated_time_series))
+            c_simulated_time_series = extract_simulated_outputs(iteration + 1,
+                                                                measuring_stations[j_station]['station_X'],
+                                                                measuring_stations[j_station]['station_Y'],
+                                                                measuring_stations[j_station]['station_z'])
+            rmse_stations.append(calculate_error(c_observed_time_series[j_station],
+                                                 time_observed_time_series[j_station],
+                                                 c_simulated_time_series, time_simulated_time_series))
         rmse_iterations.append(np.average(rmse_stations))
     it_lowest_rmse = find_minimum_rmse()
     return it_lowest_rmse, rmse_iterations[it_lowest_rmse]
@@ -2008,7 +2018,7 @@ if twodee_on:
 
 elaborate_outputs()  # To copy each outfiles folder into the general outfiles folder and to merge simulation outputs
 # when runs have been split
-
+disgas_on = True
 if inversion:
     best_match_iteration, rmse = find_best_match()
     print(best_match_iteration, rmse)

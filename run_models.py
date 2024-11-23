@@ -2018,7 +2018,7 @@ if twodee_on:
 
 elaborate_outputs()  # To copy each outfiles folder into the general outfiles folder and to merge simulation outputs
 # when runs have been split
-disgas_on = True
+
 if inversion:
     best_match_iteration, rmse = find_best_match()
     print(best_match_iteration, rmse)

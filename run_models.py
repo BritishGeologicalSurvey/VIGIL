@@ -1819,12 +1819,23 @@ def find_best_match():
         import pandas as pd
         c_simulated_ts_df = pd.DataFrame({"Time": t_simulated_ts, "Value": c_simulated_ts})
         c_observed_ts_df = pd.DataFrame({"Time": t_observed_ts, "Value": c_observed_ts})
-        c_simulated_ts_df.set_index('Time', inplace=True) 
-        c_observed_ts_df.set_index('Time', inplace=True) 
+        c_simulated_ts_df.set_index('Time', inplace=True)
+        c_observed_ts_df.set_index('Time', inplace=True)
         c_simulated_ts_df, c_observed_ts_df = c_simulated_ts_df.align(c_observed_ts_df)
         c_simulated_ts_df = c_simulated_ts_df.interpolate(method='time')
-        sq_diff = (c_simulated_ts_df.interpolate(method='time') - c_observed_ts_df.interpolate(method='time')) ** 2 
+        sq_diff = (c_simulated_ts_df.interpolate(method='time') - c_observed_ts_df.interpolate(method='time')) ** 2
         rmse_it = (sq_diff['Value'].sum() / sq_diff.shape[0]) ** 0.5
+        c_simulated_ts_records = c_simulated_ts_df.to_records()
+        c_observed_ts_records = c_observed_ts_df.to_records()
+        station_output_file = open(stations_output_files[j_station], 'a')
+        for i_time in range(len(c_observed_ts_records)):
+            time_stamp = str(c_simulated_ts_records[i_time][0]).split('.')[0]
+            time_stamp = datetime.datetime.strptime(time_stamp, '%Y-%m-%dT%H:%M:%S')
+            time_stamp_str = datetime.datetime.strftime(time_stamp, '%Y%m%dT%H:%M:%S')
+            c_observed_step = float(c_observed_ts_records[i_time][1])
+            c_simulated_step = float(c_simulated_ts_records[i_time][1])
+            station_output_file.write(time_stamp_str + ',{0:7.3f}'.format(c_observed_step)
+                                      + ',{0:7.3f}'.format(c_simulated_step) + '\n')
         return rmse_it
 
     def find_minimum_rmse():
@@ -1873,6 +1884,7 @@ def find_best_match():
             rmse_stations.append(calculate_error(c_observed_time_series[j_station],
                                                  time_observed_time_series[j_station],
                                                  c_simulated_time_series, time_simulated_time_series))
+        inversion_result.write('{:0>2}'.format(iteration + 1) + ',{0:7.3f}'.format(np.average(rmse_stations)) + '\n')
         rmse_iterations.append(np.average(rmse_stations))
     it_lowest_rmse = find_minimum_rmse()
     return it_lowest_rmse, rmse_iterations[it_lowest_rmse]
@@ -2020,5 +2032,20 @@ elaborate_outputs()  # To copy each outfiles folder into the general outfiles fo
 # when runs have been split
 
 if inversion:
+    stations_output_files = []
+    for ii_station in range(len(measuring_stations)):
+        station_time_series_file = os.path.join(root, 'inversion', 'station_' + '{:0>2}'.format(ii_station + 1) +
+                                                '_time_series.csv')
+        stations_time_series = open(station_time_series_file, 'w')
+        stations_output_files.append(station_time_series_file)
+        stations_time_series_header = 'Time,Observed_C [ppm],'
+        for emission_search_it in range(emission_search_iterations):
+            stations_time_series_header += ('Iteration_' + '{:0>2}'.format(emission_search_it + 1) +
+                                            '_Simulated_C [ppm],')
+        stations_time_series.write(stations_time_series_header)
+    inversion_result = open(os.path.join(root, 'inversion', 'inversion_result.csv'), 'w')
+    inversion_result.write('Iteration,RMSE\n')
+    inversion_best_match = open(os.path.join(root, 'inversion', 'best_match.txt'), 'w')
+    inversion_best_match.write('Iteration,RMSE\n')
     best_match_iteration, rmse = find_best_match()
-    print(best_match_iteration, rmse)
+    inversion_best_match.write('{:0>2}'.format(best_match_iteration) + ',{0:7.3f}'.format(np.average(rmse)))

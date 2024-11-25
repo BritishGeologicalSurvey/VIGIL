@@ -1827,16 +1827,16 @@ def find_best_match():
         rmse_it = (sq_diff['Value'].sum() / sq_diff.shape[0]) ** 0.5
         c_simulated_ts_records = c_simulated_ts_df.to_records()
         c_observed_ts_records = c_observed_ts_df.to_records()
-        station_output_file = open(stations_output_files[j_station], 'a')
-        for i_time in range(len(c_observed_ts_records)):
-            time_stamp = str(c_simulated_ts_records[i_time][0]).split('.')[0]
+        time_stamp_str_list = []
+        c_observed_step_list = []
+        c_simulated_step_list = []
+        for i_t in range(len(c_observed_ts_records)):
+            time_stamp = str(c_simulated_ts_records[i_t][0]).split('.')[0]
             time_stamp = datetime.datetime.strptime(time_stamp, '%Y-%m-%dT%H:%M:%S')
-            time_stamp_str = datetime.datetime.strftime(time_stamp, '%Y%m%dT%H:%M:%S')
-            c_observed_step = float(c_observed_ts_records[i_time][1])
-            c_simulated_step = float(c_simulated_ts_records[i_time][1])
-            station_output_file.write(time_stamp_str + ',{0:7.3f}'.format(c_observed_step)
-                                      + ',{0:7.3f}'.format(c_simulated_step) + '\n')
-        return rmse_it
+            time_stamp_str_list.append(datetime.datetime.strftime(time_stamp, '%Y%m%d %H:%M:%S'))
+            c_observed_step_list.append(float(c_observed_ts_records[i_t][1]))
+            c_simulated_step_list.append(float(c_simulated_ts_records[i_t][1]))
+        return time_stamp_str_list, c_observed_step_list, c_simulated_step_list, rmse_it
 
     def find_minimum_rmse():
         min_rmse = 1000000000
@@ -1874,18 +1874,43 @@ def find_best_match():
             extract_observed_concentrations(measuring_stations[i_station]['station_file_path'])
         time_observed_time_series.append(time_observed_time_series_station)
         c_observed_time_series.append(c_observed_time_series_station)
+
+    stations_output_files_strings = []
+    for _ in range(len(measuring_stations)):
+        stations_output_files_strings.append([])
     for iteration in range(emission_search_iterations):
         rmse_stations = []
-        for j_station in range(len(measuring_stations)):
+        for i_station in range(len(measuring_stations)):
             c_simulated_time_series = extract_simulated_outputs(iteration + 1,
-                                                                measuring_stations[j_station]['station_X'],
-                                                                measuring_stations[j_station]['station_Y'],
-                                                                measuring_stations[j_station]['station_z'])
-            rmse_stations.append(calculate_error(c_observed_time_series[j_station],
-                                                 time_observed_time_series[j_station],
-                                                 c_simulated_time_series, time_simulated_time_series))
-        inversion_result.write('{:0>2}'.format(iteration + 1) + ',{0:7.3f}'.format(np.average(rmse_stations)) + '\n')
+                                                                measuring_stations[i_station]['station_X'],
+                                                                measuring_stations[i_station]['station_Y'],
+                                                                measuring_stations[i_station]['station_z'])
+            (time_stamp_elaborated_series, c_observed_elaborated_series, c_simulated_elaborated_series,
+             rmse_iteration) = calculate_error(c_observed_time_series[i_station], time_observed_time_series[i_station],
+                            c_simulated_time_series, time_simulated_time_series)
+            rmse_stations.append(rmse_iteration)
+            for i_time in range(len(time_stamp_elaborated_series)):
+                stations_output_files_strings[i_station].append('')
+            for i_time in range(len(time_stamp_elaborated_series)):
+                if iteration == 0:
+                    stations_output_files_strings[i_station][i_time] += (time_stamp_elaborated_series[i_time] +
+                                                        ',{0:7.3f}'.format(c_observed_elaborated_series[i_time])) + \
+                                                        ',{0:7.3f}'.format(c_simulated_elaborated_series[i_time])
+                elif iteration == emission_search_iterations - 1:
+                    stations_output_files_strings[i_station][i_time] += (
+                            ',{0:7.3f}'.format(c_observed_elaborated_series[i_time]) +
+                            ',{0:7.3f}'.format(c_simulated_elaborated_series[i_time])) + '\n'
+                else:
+                    stations_output_files_strings[i_station][i_time] += (
+                            ',{0:7.3f}'.format(c_observed_elaborated_series[i_time]) +
+                            ',{0:7.3f}'.format(c_simulated_elaborated_series[i_time]))
+            inversion_result.write('{:0>2}'.format(iteration + 1) + ',{0:7.3f}'.format(np.average(rmse_stations)) +
+                                   '\n')
         rmse_iterations.append(np.average(rmse_stations))
+    for i_station in range(len(measuring_stations)):
+        with open(stations_output_files[i_station], 'a') as station_output_file:
+            for i_time in range(len(time_stamp_elaborated_series)):
+                station_output_file.write(stations_output_files_strings[i_station][i_time])
     it_lowest_rmse = find_minimum_rmse()
     return it_lowest_rmse, rmse_iterations[it_lowest_rmse]
 
@@ -2042,7 +2067,9 @@ if inversion:
         for emission_search_it in range(emission_search_iterations):
             stations_time_series_header += ('Iteration_' + '{:0>2}'.format(emission_search_it + 1) +
                                             '_Simulated_C [ppm],')
+        stations_time_series_header += '\n'
         stations_time_series.write(stations_time_series_header)
+        stations_time_series.close()
     inversion_result = open(os.path.join(root, 'inversion', 'inversion_result.csv'), 'w')
     inversion_result.write('Iteration,RMSE\n')
     inversion_best_match = open(os.path.join(root, 'inversion', 'best_match.txt'), 'w')

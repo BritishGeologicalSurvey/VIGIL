@@ -1830,7 +1830,7 @@ def find_best_match():
         time_stamp_str_list = []
         c_observed_step_list = []
         c_simulated_step_list = []
-        for i_t in range(len(c_observed_ts_records)):
+        for i_t in range(len(c_observed_ts_records) - 1):
             time_stamp = str(c_simulated_ts_records[i_t][0]).split('.')[0]
             time_stamp = datetime.datetime.strptime(time_stamp, '%Y-%m-%dT%H:%M:%S')
             time_stamp_str_list.append(datetime.datetime.strftime(time_stamp, '%Y%m%d %H:%M:%S'))
@@ -1904,8 +1904,8 @@ def find_best_match():
                     stations_output_files_strings[i_station][i_time] += (
                             ',{0:7.3f}'.format(c_observed_elaborated_series[i_time]) +
                             ',{0:7.3f}'.format(c_simulated_elaborated_series[i_time]))
-            inversion_result.write('{:0>2}'.format(iteration + 1) + ',{0:7.3f}'.format(np.average(rmse_stations)) +
-                                   '\n')
+            inversion_result.write('{:0>2}'.format(iteration + 1) + ',{:0>2}'.format(i_station + 1) +
+                                   ',{0:7.3f}'.format(np.average(rmse_stations)) + '\n')
         rmse_iterations.append(np.average(rmse_stations))
     for i_station in range(len(measuring_stations)):
         with open(stations_output_files[i_station], 'a') as station_output_file:
@@ -2071,7 +2071,7 @@ if inversion:
         stations_time_series.write(stations_time_series_header)
         stations_time_series.close()
     inversion_result = open(os.path.join(root, 'inversion', 'inversion_result.csv'), 'w')
-    inversion_result.write('Iteration,RMSE\n')
+    inversion_result.write('Iteration,Station,RMSE\n')
     inversion_best_match = open(os.path.join(root, 'inversion', 'best_match.txt'), 'w')
     inversion_best_match.write('Iteration,RMSE\n')
     best_match_iteration, rmse = find_best_match()

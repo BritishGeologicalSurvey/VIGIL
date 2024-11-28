@@ -1495,7 +1495,10 @@ def run_simulations(max_np):
     n_node = 0
     node = ''
     if continuous_simulation:
-        max_np = 1
+        if inversion:
+            max_np = emission_search_iterations
+        else:
+            max_np = 1
     while n_elaborated_runs <= len(runs):
         ps = []
         start_run = n_elaborated_runs
@@ -1503,7 +1506,7 @@ def run_simulations(max_np):
         if end_run > len(runs):
             end_run = len(runs)
         try:
-            for run in runs[start_run:end_run + 1]:
+            for run in runs[start_run:end_run]:  # FABIO: attenzione, era end_run + 1. Check!!!
                 if 'disgas' in run:
                     solver = 'disgas'
                 elif 'twodee' in run:
@@ -1511,7 +1514,10 @@ def run_simulations(max_np):
                 else:
                     print('ERROR. Unable to identify the solver to use in run_simulations')
                     sys.exit()
-                day = run.split(os.sep)[-1]
+                if inversion:
+                    day = run.split(os.sep)[-2]
+                else:
+                    day = run.split(os.sep)[-1]
                 if len(nodes_list) > 0:
                     try:
                         node = nodes_list[n_node]
@@ -1523,7 +1529,12 @@ def run_simulations(max_np):
                     current_day = datetime.datetime.strptime(day, '%Y%m%d')
                     previous_day = current_day - datetime.timedelta(days=1)
                     previous_day = previous_day.strftime('%Y%m%d')
-                    previous_day_folder = os.path.join(root, 'simulations', 'runs', str(previous_day))
+                    if inversion:
+                        it_str = run.split(os.sep + day)[0]
+                        it_str = it_str.split('runs' + os.sep)[1]
+                        previous_day_folder = os.path.join(root, 'simulations', 'runs', it_str, str(previous_day))
+                    else:
+                        previous_day_folder = os.path.join(root, 'simulations', 'runs', str(previous_day))
                     try:
                         shutil.copyfile(os.path.join(previous_day_folder, 'restart.dat'),
                                         os.path.join(run, 'restart.dat'))
@@ -1550,6 +1561,8 @@ def run_simulations(max_np):
                     n_node += 1
                     if n_node >= len(nodes_list):
                         n_node = 0
+            for p in ps:
+                p.wait()
         except BaseException:
             print('Unable to run the simulations')
             sys.exit()
@@ -2015,6 +2028,8 @@ except FileNotFoundError:
     sys.exit()
 
 days = prepare_days()
+if inversion and len(days) > 1:
+    continuous_simulation = True
 
 runs_disgas = []
 runs_twodee = []
@@ -2040,6 +2055,15 @@ elif len(runs_twodee) == 0:
     twodee_on = False
 
 runs = runs_disgas + runs_twodee
+if inversion and len(days) > 1:
+    sorted_runs = []
+    emission_search_iterations = 5
+    for sim_day in days:
+        day_runs = []
+        for run_to_sort in runs:
+            if run_to_sort.split(os.sep)[-2] == sim_day:
+                sorted_runs.append(run_to_sort)
+    runs = sorted_runs
 run_simulations(max_number_processes)
 
 if disgas_on:

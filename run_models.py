@@ -1532,9 +1532,10 @@ def run_simulations(max_np):
                     if inversion:
                         it_str = run.split(os.sep + day)[0]
                         it_str = it_str.split('runs' + os.sep)[1]
-                        previous_day_folder = os.path.join(root, 'simulations', 'runs', it_str, str(previous_day))
+                        previous_day_folder = os.path.join(root, 'simulations', 'runs', it_str, str(previous_day),
+                                                           solver)
                     else:
-                        previous_day_folder = os.path.join(root, 'simulations', 'runs', str(previous_day))
+                        previous_day_folder = os.path.join(root, 'simulations', 'runs', str(previous_day), solver)
                     try:
                         shutil.copyfile(os.path.join(previous_day_folder, 'restart.dat'),
                                         os.path.join(run, 'restart.dat'))

@@ -1788,10 +1788,15 @@ def find_best_match():
         time_steps = []
         c_observations = []
         with open(station_file) as c_observed_file:
-            for line in c_observed_file:
+            records = [line.rstrip() for line in c_observed_file]
+            header_splitted = records[0].split(',')
+            for i_header in range(len(header_splitted)):
+                if tracking_specie == header_splitted[i_header]:
+                    ts_index = i_header
+            for record in records[1:]:
                 try:
-                    time_steps.append(datetime.datetime.strptime(line.split(',')[0], '%d/%m/%Y %H:%M'))
-                    c_observations.append(float(line.split(',')[1]))
+                    time_steps.append(datetime.datetime.strptime(record.split(',')[0], '%d/%m/%Y %H:%M'))
+                    c_observations.append(float(record.split(',')[ts_index]))
                 except ValueError:
                     continue
                 except IndexError:
@@ -1817,13 +1822,13 @@ def find_best_match():
         c_interpolated_time_series_station = []
         for i_day in range(len(days)):
             for output_file in all_output_files_sl[i_day]:
-                i_time = output_file.split('c_001_')[1]
-                i_time = int(i_time.split('.grd')[0])
+                i_time_step = output_file.split('c_001_')[1]
+                i_time_step = int(i_time.split('.grd')[0])
                 for i_level in range(0, len(output_heights_list)):
                     if output_heights_list[i_level] == z_station:
                         file_to_use = os.path.join(root, 'simulations', 'runs', '{:02d}'.format(it), days[i_day],
                                                 'outfiles', 'c_' + '{:03d}'.format(i_level + 1) +
-                                                '_{:06d}'.format(i_time) + '.grd')
+                                                '_{:06d}'.format(i_time_step) + '.grd')
                         c_interpolated_time_series_station.append(interpolate(x_station, y_station, file_to_use))
                         break
         return c_interpolated_time_series_station

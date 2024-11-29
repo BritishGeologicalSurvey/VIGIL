@@ -1567,7 +1567,7 @@ def run_simulations(max_np):
             print('Unable to run the simulations')
             sys.exit()
         n_elaborated_runs = end_run
-        if n_elaborated_runs == len(days) or n_elaborated_runs == emission_search_iterations:
+        if n_elaborated_runs == len(days) or n_elaborated_runs == emission_search_iterations * len(days):
             break
         for p in ps:
             p.wait()

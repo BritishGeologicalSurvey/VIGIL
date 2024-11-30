@@ -1824,7 +1824,7 @@ def find_best_match():
         for i_day in range(len(days)):
             for output_file in all_output_files_sl[i_day]:
                 i_time_step = output_file.split('c_001_')[1]
-                i_time_step = int(i_time.split('.grd')[0])
+                i_time_step = int(i_time_step.split('.grd')[0])
                 for i_level in range(0, len(output_heights_list)):
                     if output_heights_list[i_level] == z_station:
                         file_to_use = os.path.join(root, 'simulations', 'runs', '{:02d}'.format(it), days[i_day],
@@ -1834,8 +1834,14 @@ def find_best_match():
                         break
         return c_interpolated_time_series_station
 
-    def calculate_error(c_observed_ts, t_observed_ts, c_simulated_ts, t_simulated_ts):
+    def calculate_error(c_observed_ts, t_observed_ts, c_simulated_ts_temp, t_simulated_ts_temp):
         import pandas as pd
+        ts_indexes = []
+        for i_time_step in range(len(t_simulated_ts_temp)):
+            if min(t_observed_ts) <= t_simulated_ts_temp[i_time_step] <= max(t_observed_ts):
+                ts_indexes.append(i_time_step)
+        c_simulated_ts = [c_simulated_ts_temp[i_time_step] for i_time_step in ts_indexes]
+        t_simulated_ts = [t_simulated_ts_temp[i_time_step] for i_time_step in ts_indexes]
         c_simulated_ts_df = pd.DataFrame({"Time": t_simulated_ts, "Value": c_simulated_ts})
         c_observed_ts_df = pd.DataFrame({"Time": t_observed_ts, "Value": c_observed_ts})
         c_simulated_ts_df.set_index('Time', inplace=True)

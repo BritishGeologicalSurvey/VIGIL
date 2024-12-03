@@ -51,7 +51,7 @@ def read_arguments():
     parser.add_argument('-PDEM', '--prob_distr_emission', default='', help='Probability distribution function to '
                         'randomly sample the emission rate. Options: uniform, normal, ecdf')
     parser.add_argument('-PDPAR', '--prob_distr_params', default='', help='If -PDEM=uniform: minimum, maximum. '
-                        'If -PDEM=gaussian: median, standard deviation. If -PDEM=ecdf, a flux.txt file should be '
+                        'If -PDEM=normal: median, standard deviation. If -PDEM=ecdf, a flux.txt file should be '
                         'provided')
     parser.add_argument('-RD', '--run_duration', default=24, help='Run duration (hours). Currently fractions of hours '
                         'or duration > 24 hours are not allowed')
@@ -389,6 +389,7 @@ def read_arguments():
             print('ERROR. Inversion mode but no valid numbers of search iterations provided')
             sys.exit()
         inversion_in = True
+        random_emission_in = 'True'
         if not os.path.exists(os.path.join(os.getcwd(), 'inversion')):
             print('ERROR. Folder with files necessary to run in inversion mode missing')
             sys.exit()
@@ -441,8 +442,7 @@ def read_arguments():
     else:
         print('ERROR. Wrong value for variable -I --inversion')
         sys.exit()
-    if random_emission_in.lower == 'true':
-        random_emission_in = True
+    if random_emission_in.lower == 'true' or inversion_in:
         if prob_distr_emission_in == '':
             print('ERROR. Random emission rate activated but no probability distribution function provided')
             sys.exit()

@@ -49,10 +49,11 @@ def read_arguments():
                         'for each source in the domain. False: use specified emission rate. Activated by default in '
                         'inversion mode',)
     parser.add_argument('-PDEM', '--prob_distr_emission', default='', help='Probability distribution function to '
-                        'randomly sample the emission rate. Options: uniform, normal, ecdf')
+                        'randomly sample the emission rate. Options: uniform, normal, ecdf. Note: if specified, '
+                        'parameters provided in sources_input.txt will be ignored')
     parser.add_argument('-PDPAR', '--prob_distr_params', default='', help='If -PDEM=uniform: minimum, maximum. '
                         'If -PDEM=normal: median, standard deviation. If -PDEM=ecdf, a flux.txt file should be '
-                        'provided')
+                        'provided. Note: if specified, parameters provided in sources_input.txt will be ignored')
     parser.add_argument('-RD', '--run_duration', default=24, help='Run duration (hours). Currently fractions of hours '
                         'or duration > 24 hours are not allowed')
     parser.add_argument('-OI', '--output_interval', default=1, help='Output interval (hours). Currently fractions of '
@@ -444,8 +445,12 @@ def read_arguments():
         sys.exit()
     if random_emission_in.lower == 'true' or inversion_in:
         if prob_distr_emission_in == '':
-            print('ERROR. Random emission rate activated but no probability distribution function provided')
-            sys.exit()
+            if os.path.isfile('sources_input.txt'):
+                print('Probability distribution function of the source emission rate not provided. Retrieving it from '
+                      'sources_input.txt')
+            else:
+                print('ERROR. Random emission rate activated but no probability distribution function provided')
+                sys.exit()
         else:
             if prob_distr_emission_in != 'uniform' and prob_distr_emission_in != 'normal' \
                     and prob_distr_emission_in != 'ecdf':
@@ -463,7 +468,12 @@ def read_arguments():
                     print('ERROR. No parameters for the emission rate probability distribution function provided')
                     sys.exit()
                 else:
-                    prob_distr_params_in = [float(prob_distr_params_in[i]) for i in range(0, len(prob_distr_params_in))]
+                    try:
+                        prob_distr_params_in = [float(prob_distr_params_in[i]) for i in
+                                                range(0, len(prob_distr_params_in))]
+                    except ValueError:
+                        print('ERROR. Invalid entry for the source probability distribution parameters provided')
+                        sys.exit()
     elif random_emission_in.lower() == 'false':
         random_emission_in = False
         try:
@@ -652,6 +662,9 @@ def pre_process(run_mode):
             random_dy.append(choices(dys, k=1)[0])
             random_dur.append(choices(durs, k=1)[0])
             random_temperatures.append(gas_temperature)
+            random_pdf.append(prob_distr_emission)
+            random_pdf_pars.append(prob_distr_params)
+            random_ecdf_files.append('flux.csv')
         return (
             random_eastings,
             random_northings,
@@ -662,11 +675,14 @@ def pre_process(run_mode):
             random_dy,
             random_dur,
             random_temperatures,
+            random_pdf,
+            random_pdf_pars,
+            random_ecdf_files
         )
 
-    def sample_ecdf_fluxes():
+    def sample_ecdf_fluxes(ecdf_file):
         fluxes_in = []
-        with open('flux.txt') as flux_file:
+        with open(ecdf_file) as flux_file:
             for line_flux in flux_file:
                 fluxes_in.append(float(line_flux))
         flux_file.close()
@@ -689,6 +705,9 @@ def pre_process(run_mode):
     random_dur = []
     gas_fluxes = []
     random_temperatures = []
+    random_pdf = []
+    random_pdf_pars = []
+    random_ecdf_files = []
     dur_min = 1
     dur_max = 86400
     source_size_min = 0.1
@@ -709,6 +728,9 @@ def pre_process(run_mode):
             random_dy,
             random_dur,
             random_temperatures,
+            random_pdf,
+            random_pdf_pars,
+            random_ecdf_files
         ) = sample_random_sources(
             n_random_sources,
             'probability_map.grd',
@@ -726,12 +748,15 @@ def pre_process(run_mode):
     dy_src = random_dy
     dur = random_dur
     source_temperatures = random_temperatures
+    source_pdf = random_pdf
+    source_pdf_params = random_pdf_pars
+    source_ecdf_files = random_ecdf_files
     n_sources = 0
     try:
         with open('sources_input.txt', 'r', encoding='utf-8', errors='surrogateescape') as locations_file:
             for line in locations_file:
                 try:
-                    records = line.split('\t')
+                    records = line.split(',')
                     easting.append(float(records[0]))
                     northing.append(float(records[1]))
                     elevations.append(float(records[2]))
@@ -741,6 +766,19 @@ def pre_process(run_mode):
                     dx_src.append(float(records[6]))
                     dy_src.append(float(records[7]))
                     dur.append(float(records[8]))
+                    if prob_distr_emission == '':
+                        source_pdf.append(records[9])
+                        pdf_params_file = records[10]
+                        try:
+                            source_pdf_params.append([float(param) for param in pdf_params_file.split(';')])
+                            source_ecdf_files.append('')
+                        except ValueError:
+                            source_pdf_params.append([])
+                            source_ecdf_files.append(pdf_params_file.split(';')[0].strip())
+                    else:
+                        source_pdf.append(prob_distr_emission)
+                        source_pdf_params.append(prob_distr_params)
+                        source_ecdf_files.append('flux.csv')
                     n_sources += 1
                 except ValueError:
                     continue
@@ -759,21 +797,27 @@ def pre_process(run_mode):
             dx_src.append(source_dx)
             dy_src.append(source_dy)
             dur.append(source_dur)
+            # the same probability distribution parameters to all sources
+            source_pdf.append(prob_distr_emission)
+            source_pdf_params.append(prob_distr_params)
+            source_ecdf_files.append('flux.csv')
         n_sources = len(easting)
 
     for j_source in range(0, n_sources):
         if inversion:
-            if prob_distr_emission == 'ecdf':
-                fluxes = [sample_ecdf_fluxes()[0] for _ in range(1, emission_search_iterations + 1)]
-            elif prob_distr_emission == 'uniform':
-                fluxes = [np.random.uniform(prob_distr_params[0], prob_distr_params[1]) for _
+            if source_pdf[j_source] == 'ecdf':
+                fluxes = [sample_ecdf_fluxes(source_ecdf_files[j_source])[0] for _ in
+                          range(1, emission_search_iterations + 1)]
+            elif source_pdf[j_source] == 'uniform':
+                fluxes = [np.random.uniform(source_pdf_params[j_source][0], source_pdf_params[j_source][1]) for _
                           in range(1, emission_search_iterations + 1)]
             else:
-                fluxes = [np.random.normal(prob_distr_params[0], prob_distr_params[1]) for _
+                fluxes = [np.random.normal(source_pdf_params[j_source][0], source_pdf_params[j_source][1]) for _
                           in range(1, emission_search_iterations + 1)]
                 for i_flux in range(0, len(fluxes)):
                     while fluxes[i_flux] <= 0:
-                        fluxes[i_flux] = np.random.uniform(prob_distr_params[0], prob_distr_params[1])
+                        fluxes[i_flux] = np.random.uniform(source_pdf_params[j_source][0],
+                                                           source_pdf_params[j_source][1])
             gas_fluxes.append(fluxes)
         else:
             if not random_emission:
@@ -782,15 +826,18 @@ def pre_process(run_mode):
                 else:
                     gas_fluxes.append([fluxes_input[j_source] for _ in days])
             else:
-                if prob_distr_emission == 'ecdf':
-                    fluxes = [sample_ecdf_fluxes()[0] for _ in days]
-                elif prob_distr_emission == 'uniform':
-                    fluxes = [np.random.uniform(prob_distr_params[0], prob_distr_params[1]) for _ in days]
+                if source_pdf[j_source] == 'ecdf':
+                    fluxes = [sample_ecdf_fluxes(source_ecdf_files[j_source])[0] for _ in days]
+                elif source_pdf[j_source] == 'uniform':
+                    fluxes = [np.random.uniform(source_pdf_params[j_source][0], source_pdf_params[j_source][1])
+                              for _ in days]
                 else:
-                    fluxes = [np.random.normal(prob_distr_params[0], prob_distr_params[1]) for _ in days]
+                    fluxes = [np.random.normal(source_pdf_params[j_source][0], source_pdf_params[j_source][1])
+                              for _ in days]
                     for i_flux in range(0, len(fluxes)):
                         while fluxes[i_flux] <= 0:
-                            fluxes[i_flux] = np.random.uniform(prob_distr_params[0], prob_distr_params[1])
+                            fluxes[i_flux] = np.random.uniform(source_pdf_params[j_source][0],
+                                                               source_pdf_params[j_source][1])
                 gas_fluxes.append(fluxes)
     simulations = os.path.join(root, 'simulations')
     diagno = os.path.join(simulations, 'diagno')

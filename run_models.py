@@ -2116,7 +2116,6 @@ elif len(runs_twodee) == 0:
 runs = runs_disgas + runs_twodee
 if inversion and len(days) > 1:
     sorted_runs = []
-    emission_search_iterations = 5
     for sim_day in days:
         day_runs = []
         for run_to_sort in runs:

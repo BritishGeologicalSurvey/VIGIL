@@ -18,7 +18,7 @@ def read_arguments():
                         'continuous between the specified start and end dates. Possible options are True or False')
     parser.add_argument('-I', '--inversion', default='False', help='Specify if we are running an inversion simulation. '
                                                                    'Possible options are True or False')
-    parser.add_argument('-ESI', '--emission_search_iterations', default='', help='Specify number of iterations')
+    parser.add_argument('-ESI', '--emission_search_iterations', default=0, help='Specify number of iterations')
     parser.add_argument('-RS', '--random_sources', default='False', help='True: randomly select NS locations from a '
                         'probability map. False: fixed source locations from file sources_input.txt',)
     parser.add_argument('-NS', '--nsources', default='random', help='Specify a number for a fixed number of sources. '

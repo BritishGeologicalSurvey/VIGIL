@@ -369,7 +369,7 @@ def read_arguments():
         output_heights_in = output_heights_in.split(',')
         output_heights_in_str = ''
         output_heights_in = [float(output_height) for output_height in output_heights_in]
-        if 0.0 not in output_heights_in:  # 0 m level is necessary for DISGAS is the source height is set to 0 m abg
+        if 0.0 not in output_heights_in:  # 0 m level is necessary for DISGAS if the source height is set to 0 m abg
             output_heights_in.append(0.0)
         if 10.0 > max(output_heights_in):
             output_heights_in.append(10.0)  # 10.0 is the reference level for wind measurements in diagno.inp. This

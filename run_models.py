@@ -1843,8 +1843,10 @@ def find_best_match():
                     ts_index = i_header
             for record in records[1:]:
                 try:
-                    time_steps.append(datetime.datetime.strptime(record.split(',')[0], '%d/%m/%Y %H:%M'))
-                    c_observations.append(float(record.split(',')[ts_index]))
+                    time_step = datetime.datetime.strptime(record.split(',')[0], '%d/%m/%Y %H:%M')
+                    if time_step <= max_simulated_time:
+                        time_steps.append(datetime.datetime.strptime(record.split(',')[0], '%d/%m/%Y %H:%M'))
+                        c_observations.append(float(record.split(',')[ts_index]))
                 except ValueError:
                     continue
                 except IndexError:
@@ -1940,6 +1942,7 @@ def find_best_match():
         for _ in output_files_sl:
             time += datetime.timedelta(hours=1)
             time_simulated_time_series.append(time)
+    max_simulated_time = time
 
     for i_station in range(len(measuring_stations)):
         time_observed_time_series_station, c_observed_time_series_station = \
@@ -1970,11 +1973,9 @@ def find_best_match():
                                                         ',{0:7.3f}'.format(c_simulated_elaborated_series[i_time])
                 elif iteration == emission_search_iterations - 1:
                     stations_output_files_strings[i_station][i_time] += (
-                            ',{0:7.3f}'.format(c_observed_elaborated_series[i_time]) +
                             ',{0:7.3f}'.format(c_simulated_elaborated_series[i_time])) + '\n'
                 else:
                     stations_output_files_strings[i_station][i_time] += (
-                            ',{0:7.3f}'.format(c_observed_elaborated_series[i_time]) +
                             ',{0:7.3f}'.format(c_simulated_elaborated_series[i_time]))
             inversion_result.write('{:0>2}'.format(iteration + 1) + ',{:0>2}'.format(i_station + 1) +
                                    ',{0:7.3f}'.format(np.average(rmse_stations)) + '\n')

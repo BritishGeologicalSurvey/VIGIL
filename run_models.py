@@ -1844,7 +1844,7 @@ def find_best_match():
             for record in records[1:]:
                 try:
                     time_step = datetime.datetime.strptime(record.split(',')[0], '%d/%m/%Y %H:%M')
-                    if time_step <= max_simulated_time:
+                    if min_simulated_time <= time_step <= max_simulated_time:
                         time_steps.append(datetime.datetime.strptime(record.split(',')[0], '%d/%m/%Y %H:%M'))
                         c_observations.append(float(record.split(',')[ts_index]))
                 except ValueError:
@@ -1929,6 +1929,7 @@ def find_best_match():
     c_observed_time_series = []
     time_observed_time_series = []
     time = datetime.datetime.strptime(days[0], '%Y%m%d')
+    min_simulated_time = time
     all_output_files_sl = []
     for day in days:
         output_files_sl = []

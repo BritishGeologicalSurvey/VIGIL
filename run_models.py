@@ -982,6 +982,7 @@ def pre_process(run_mode):
                                     x_source += dx
                                 y_source += dy
                         else:
+                            # FABIO: qui (e anche in twodee), sommare tutte le sorgenti che ricadono in una singola cella computazionale
                             if inversion:
                                 source_file.write('{0:7.3f}'.format(easting[j_source]) + ' ' +
                                                   '{0:7.3f}'.format(northing[j_source]) + ' ' +
@@ -1110,18 +1111,41 @@ def pre_process(run_mode):
                 except (FileExistsError, FileNotFoundError):
                     print('ERROR with surface_data.txt')
                 with open(os.path.join(twodee_daily, 'source.dat'), 'w', encoding='utf-8', errors='surrogateescape',) \
-                    as source_file:
+                        as source_file:
                     for j in range(0, n_sources):
-                        if inversion:
-                            source_file.write('{0:7.3f}'.format(easting[j]) + ' ' + '{0:7.3f}'.format(northing[j]) + ' '
-                                          + '{0:7.3f}'.format(gas_fluxes[j][iteration - 1]) + ' '
-                                          + '{0:7.2f}'.format(dx_src[j]) + ' ' + '{0:7.2f}'.format(dy_src[j])
-                                          + ' KG_SEC 0 ' + '{0:7.3f}'.format(dur[j]) + '\n')
+                        if disgas_on:
+                            if dx_src[j_source] * dy_src[j_source] > dx * dy:
+                                # Split the source across the computational cells to make it consistent with DISGAS
+                                # approach in case of automatic scenario detection
+                                nx_source = int(dx_src[j_source] / dx) + 1
+                                ny_source = int(dy_src[j_source] / dy) + 1
+                                x_or_source = easting[j_source] - dx_src[j_source] / 2
+                                y_or_source = northing[j_source] - dy_src[j_source] / 2
+                                if inversion:
+                                    splitted_flux = gas_fluxes[j_source][iteration - 1] / (nx_source * ny_source)
+                                else:
+                                    splitted_flux = gas_fluxes[j_source][i_day] / (nx_source * ny_source)
+                                y_source = y_or_source
+                                for jj_source in range(0, ny_source):
+                                    x_source = x_or_source
+                                    for ii_source in range(0, nx_source):
+                                        source_file.write(
+                                            '{0:7.3f}'.format(x_source) + ' ' + '{0:7.3f}'.format(y_source)
+                                            + ' ' + '{0:7.3f}'.format(splitted_flux) + '{0:7.2f}'.format(dx) + ' '
+                                            + '{0:7.2f}'.format(dy) + ' KG_SEC 0 ' + '{0:7.3f}'.format(dur[j]) + '\n')
+                                        x_source += dx
+                                    y_source += dy
                         else:
-                            source_file.write('{0:7.3f}'.format(easting[j]) + ' ' + '{0:7.3f}'.format(northing[j]) + ' '
-                                          + '{0:7.3f}'.format(gas_fluxes[j][i_day]) + ' ' + '{0:7.2f}'.format(dx_src[j])
-                                          + ' ' + '{0:7.2f}'.format(dy_src[j]) + ' KG_SEC 0 '
-                                          + '{0:7.3f}'.format(dur[j]) + '\n')
+                            if inversion:
+                                source_file.write('{0:7.3f}'.format(easting[j]) + ' ' + '{0:7.3f}'.format(northing[j])
+                                                  + ' ' + '{0:7.3f}'.format(gas_fluxes[j][iteration - 1]) + ' '
+                                                  + '{0:7.2f}'.format(dx_src[j]) + ' ' + '{0:7.2f}'.format(dy_src[j])
+                                                  + ' KG_SEC 0 ' + '{0:7.3f}'.format(dur[j]) + '\n')
+                            else:
+                                source_file.write('{0:7.3f}'.format(easting[j]) + ' ' + '{0:7.3f}'.format(northing[j])
+                                                  + ' ' + '{0:7.3f}'.format(gas_fluxes[j][i_day]) + ' '
+                                                  + '{0:7.2f}'.format(dx_src[j]) + ' ' + '{0:7.2f}'.format(dy_src[j])
+                                                  + ' KG_SEC 0 ' + '{0:7.3f}'.format(dur[j]) + '\n')
                 source_file.close()
                 # read and memorize twodee.inp file. First read and memorize the domain properties of diagno, since
                 # twodee's domain must coincide with it
@@ -1484,10 +1508,7 @@ def read_diagno_outputs():
         q_average_sources = [gas_fluxes_sources[i_source][i_day] / rho_gas_sources[i_source]
                              for i_source in range(0, sources_number)]
         for i_source in range(0, len(wind_time_average_sources)):
-            if twodee_on:
-                area_source = dx_sources[i_source] * dy_sources[i_source]
-            else:
-                area_source = dx * dy
+            area_source = dx * dy
             r_source = (area_source / 3.1416) ** 0.5
             try:
                 ri_source = (1 / wind_time_average_sources[i_source] ** 2) * ((g_prime_sources[i_source] *

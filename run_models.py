@@ -371,6 +371,9 @@ def read_arguments():
         output_heights_in = [float(output_height) for output_height in output_heights_in]
         if 0.0 not in output_heights_in:  # 0 m level is necessary for DISGAS if the source height is set to 0 m abg
             output_heights_in.append(0.0)
+        if 2.0 not in output_heights_in:
+            output_heights_in.append(2.0) # 2 m level is necessary as reference level for Ri calculation in the
+            # automatic scenario mode
         if 10.0 > max(output_heights_in):
             output_heights_in.append(10.0)  # 10.0 is the reference level for wind measurements in diagno.inp. This
             # can be generalized, at the moment ZSWIND in diagno.inp is not changed in VIGIL
@@ -958,41 +961,89 @@ def pre_process(run_mode):
                 except FileExistsError:
                     print('Folder ' + disgas_daily + ' already exists')
                 disgas_input = os.path.join(disgas_daily, 'disgas.inp')
+                reelaborated_sources_temp = []
+                reelaborated_sources = []
+                for j_source in range(0, n_sources):
+                    if dx_src[j_source] * dy_src[j_source] > dx * dy:
+                        # Split the source across the computational cells, since currently DISGAS does only allow
+                        # point sources
+                        nx_source = int(dx_src[j_source] / dx) + 1
+                        ny_source = int(dy_src[j_source] / dy) + 1
+                        x_or_source = easting[j_source] - dx_src[j_source] / 2
+                        y_or_source = northing[j_source] - dy_src[j_source] / 2
+                        if inversion:
+                            splitted_flux = gas_fluxes[j_source][iteration - 1] / (nx_source * ny_source)
+                        else:
+                            splitted_flux = gas_fluxes[j_source][i_day] / (nx_source * ny_source)
+                        y_source = y_or_source
+                        for jj_source in range(0, ny_source):
+                            x_source = x_or_source
+                            for ii_source in range(0, nx_source):
+                                reelaborated_sources.append([x_source, y_source, elevations[j_source],
+                                                                  splitted_flux])
+                                x_source += dx
+                            y_source += dy
+                    else:
+                        if inversion:
+                            index_flux = iteration - 1
+                        else:
+                            index_flux = i_day
+                        easting_search = bottom_left_easting
+                        northing_search = bottom_left_northing
+                        pos_index = 0
+                        while easting_search <= top_right_easting:
+                            while northing_search <= top_right_northing:
+                                if easting_search <= easting[j_source] <= easting_search + dx and \
+                                        northing_search <= northing[j_source] <= northing_search + dy:
+                                    reelaborated_sources_temp.append(
+                                        [easting_search, northing_search, elevations[j_source],
+                                         gas_fluxes[j_source][index_flux], pos_index])
+                                pos_index += 1
+                                northing_search += dy
+                            northing_search = bottom_left_northing
+                            easting_search += dx
+                        start_k = 1
+                        reelaborated_sources_indexes = []
+                if len(reelaborated_sources_temp) > 0:
+                    for j_merged_source in range(len(reelaborated_sources_temp)):
+                        for k_merged_source in range(start_k, len(reelaborated_sources_temp)):
+                            if reelaborated_sources_temp[j_merged_source][4] == \
+                                    reelaborated_sources_temp[k_merged_source][4]:
+                                reelaborated_sources.append([reelaborated_sources_temp[j_merged_source][0],
+                                                             reelaborated_sources_temp[j_merged_source][1],
+                                                             (reelaborated_sources_temp[j_merged_source][2] +
+                                                             reelaborated_sources_temp[k_merged_source][2]) / 2,
+                                                             reelaborated_sources_temp[j_merged_source][3] +
+                                                             reelaborated_sources_temp[k_merged_source][3]])
+                                reelaborated_sources_indexes.append(k_merged_source)
+                                reelaborated_sources_indexes.append(j_merged_source)
+                            else:
+                                if [reelaborated_sources_temp[k_merged_source][0],
+                                    reelaborated_sources_temp[k_merged_source][1],
+                                    reelaborated_sources_temp[k_merged_source][2],
+                                    reelaborated_sources_temp[k_merged_source][3]] not in reelaborated_sources and \
+                                        k_merged_source not in reelaborated_sources_indexes:
+                                    reelaborated_sources.append([reelaborated_sources_temp[k_merged_source][0],
+                                                           reelaborated_sources_temp[k_merged_source][1],
+                                                           reelaborated_sources_temp[k_merged_source][2],
+                                                           reelaborated_sources_temp[k_merged_source][3]])
+                        if [reelaborated_sources_temp[j_merged_source][0],
+                            reelaborated_sources_temp[j_merged_source][1],
+                            reelaborated_sources_temp[j_merged_source][2],
+                            reelaborated_sources_temp[j_merged_source][3]] not in reelaborated_sources and \
+                                j_merged_source not in reelaborated_sources_indexes:
+                            reelaborated_sources.append([reelaborated_sources_temp[j_merged_source][0],
+                                                   reelaborated_sources_temp[j_merged_source][1],
+                                                   reelaborated_sources_temp[j_merged_source][2],
+                                                   reelaborated_sources_temp[j_merged_source][3]])
+                        start_k += 1
                 with open(os.path.join(disgas_daily, 'source.dat'), 'w', encoding='utf-8', errors='surrogateescape',) \
                         as source_file:
-                    for j_source in range(0, n_sources):
-                        if dx_src[j_source] * dy_src[j_source] > dx * dy:
-                            # Split the source across the computational cells, since currently DISGAS does only allow
-                            # point sources
-                            nx_source = int(dx_src[j_source] / dx) + 1
-                            ny_source = int(dy_src[j_source] / dy) + 1
-                            x_or_source = easting[j_source] - dx_src[j_source] / 2
-                            y_or_source = northing[j_source] - dy_src[j_source] / 2
-                            if inversion:
-                                splitted_flux = gas_fluxes[j_source][iteration - 1] / (nx_source * ny_source)
-                            else:
-                                splitted_flux = gas_fluxes[j_source][i_day] / (nx_source * ny_source)
-                            y_source = y_or_source
-                            for jj_source in range(0, ny_source):
-                                x_source = x_or_source
-                                for ii_source in range(0, nx_source):
-                                    source_file.write('{0:7.3f}'.format(x_source) + ' ' + '{0:7.3f}'.format(y_source)
-                                                      + ' ' + '{0:7.2f}'.format(elevations[j_source]) + ' '
-                                                      + str(splitted_flux) + '\n')
-                                    x_source += dx
-                                y_source += dy
-                        else:
-                            # FABIO: qui (e anche in twodee), sommare tutte le sorgenti che ricadono in una singola cella computazionale
-                            if inversion:
-                                source_file.write('{0:7.3f}'.format(easting[j_source]) + ' ' +
-                                                  '{0:7.3f}'.format(northing[j_source]) + ' ' +
-                                                  '{0:7.2f}'.format(elevations[j_source]) + ' ' +
-                                                  str(gas_fluxes[j_source][iteration - 1]) + '\n')
-                            else:
-                                source_file.write('{0:7.3f}'.format(easting[j_source]) + ' ' +
-                                              '{0:7.3f}'.format(northing[j_source]) + ' ' +
-                                              '{0:7.2f}'.format(elevations[j_source]) + ' ' +
-                                              str(gas_fluxes[j_source][i_day]) + '\n')
+                    for j_source in range(len(reelaborated_sources)):
+                        source_file.write('{0:7.3f}'.format(reelaborated_sources[j_source][0]) + ' ' +
+                                          '{0:7.3f}'.format(reelaborated_sources[j_source][1]) + ' ' +
+                                          '{0:7.2f}'.format(reelaborated_sources[j_source][2]) + ' ' +
+                                          '{0:7.2f}'.format(reelaborated_sources[j_source][3]) + '\n')
                 source_file.close()
                 roughness_file_exist = True
                 try:
@@ -1110,42 +1161,45 @@ def pre_process(run_mode):
                                     'surface_data.txt'),)
                 except (FileExistsError, FileNotFoundError):
                     print('ERROR with surface_data.txt')
-                with open(os.path.join(twodee_daily, 'source.dat'), 'w', encoding='utf-8', errors='surrogateescape',) \
-                        as source_file:
-                    for j in range(0, n_sources):
-                        if disgas_on:
-                            if dx_src[j_source] * dy_src[j_source] > dx * dy:
-                                # Split the source across the computational cells to make it consistent with DISGAS
-                                # approach in case of automatic scenario detection
-                                nx_source = int(dx_src[j_source] / dx) + 1
-                                ny_source = int(dy_src[j_source] / dy) + 1
-                                x_or_source = easting[j_source] - dx_src[j_source] / 2
-                                y_or_source = northing[j_source] - dy_src[j_source] / 2
-                                if inversion:
-                                    splitted_flux = gas_fluxes[j_source][iteration - 1] / (nx_source * ny_source)
-                                else:
-                                    splitted_flux = gas_fluxes[j_source][i_day] / (nx_source * ny_source)
-                                y_source = y_or_source
-                                for jj_source in range(0, ny_source):
-                                    x_source = x_or_source
-                                    for ii_source in range(0, nx_source):
-                                        source_file.write(
-                                            '{0:7.3f}'.format(x_source) + ' ' + '{0:7.3f}'.format(y_source)
-                                            + ' ' + '{0:7.3f}'.format(splitted_flux) + '{0:7.2f}'.format(dx) + ' '
-                                            + '{0:7.2f}'.format(dy) + ' KG_SEC 0 ' + '{0:7.3f}'.format(dur[j]) + '\n')
-                                        x_source += dx
-                                    y_source += dy
+                reelaborated_sources = []
+                for j_source in range(0, n_sources):
+                    if disgas_on and dx_src[j_source] * dy_src[j_source] > dx * dy:
+                        # Split the source across the computational cells to make it consistent with DISGAS
+                        # approach in case of automatic scenario detection
+                        nx_source = int(dx_src[j_source] / dx) + 1
+                        ny_source = int(dy_src[j_source] / dy) + 1
+                        x_or_source = easting[j_source] - dx_src[j_source] / 2
+                        y_or_source = northing[j_source] - dy_src[j_source] / 2
+                        if inversion:
+                            splitted_flux = gas_fluxes[j_source][iteration - 1] / (nx_source * ny_source)
                         else:
-                            if inversion:
-                                source_file.write('{0:7.3f}'.format(easting[j]) + ' ' + '{0:7.3f}'.format(northing[j])
-                                                  + ' ' + '{0:7.3f}'.format(gas_fluxes[j][iteration - 1]) + ' '
-                                                  + '{0:7.2f}'.format(dx_src[j]) + ' ' + '{0:7.2f}'.format(dy_src[j])
-                                                  + ' KG_SEC 0 ' + '{0:7.3f}'.format(dur[j]) + '\n')
-                            else:
-                                source_file.write('{0:7.3f}'.format(easting[j]) + ' ' + '{0:7.3f}'.format(northing[j])
-                                                  + ' ' + '{0:7.3f}'.format(gas_fluxes[j][i_day]) + ' '
-                                                  + '{0:7.2f}'.format(dx_src[j]) + ' ' + '{0:7.2f}'.format(dy_src[j])
-                                                  + ' KG_SEC 0 ' + '{0:7.3f}'.format(dur[j]) + '\n')
+                            splitted_flux = gas_fluxes[j_source][i_day] / (nx_source * ny_source)
+                        y_source = y_or_source
+                        for jj_source in range(0, ny_source):
+                            x_source = x_or_source
+                            for ii_source in range(0, nx_source):
+                                reelaborated_sources.append([x_source, y_source, splitted_flux, dx, dy, dur[j_source]])
+                                x_source += dx
+                            y_source += dy
+                    else:
+                        if inversion:
+                            index_flux = iteration - 1
+                        else:
+                            index_flux = i_day
+                        easting_search = bottom_left_easting
+                        northing_search = bottom_left_northing
+                        reelaborated_sources.append([easting[j_source], northing[j_source], gas_fluxes[j_source][index_flux], 
+                                                    dx_src[j_source], dy_src[j_source], dur[j_source]])
+                    
+                with open(os.path.join(twodee_daily, 'source.dat'), 'w', encoding='utf-8', errors='surrogateescape', ) \
+                                    as source_file:
+                    for j_source in range(len(reelaborated_sources)):
+                        source_file.write('{0:7.3f}'.format(reelaborated_sources[j_source][0]) + ' '
+                        + '{0:7.3f}'.format(reelaborated_sources[j_source][1]) + ' '
+                        + '{0:7.3f}'.format(reelaborated_sources[j_source][2]) + ' '
+                        + '{0:7.2f}'.format(reelaborated_sources[j_source][3]) + ' '
+                        + '{0:7.2f}'.format(reelaborated_sources[j_source][4]) + ' KG_SEC 0 '
+                        + '{0:7.3f}'.format(reelaborated_sources[j_source][5]) + '\n')
                 source_file.close()
                 # read and memorize twodee.inp file. First read and memorize the domain properties of diagno, since
                 # twodee's domain must coincide with it
@@ -1277,7 +1331,7 @@ def run_diagno(max_np):
                 diagno_tracking_points.write(str(len(easting_sources)) + '\n')
                 for i_source in range(0, len(easting_sources)):
                     diagno_tracking_points.write(str(i_source + 1) + ' ' + str(easting_sources[i_source]) + ' ' +
-                                                 str(northing_sources[i_source]) + ' 10.0\n')
+                                                 str(northing_sources[i_source]) + ' 2.0\n')
 
     prepare_diagno()
     n_elaborated_days = 0

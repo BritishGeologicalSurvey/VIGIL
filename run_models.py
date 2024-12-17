@@ -1994,7 +1994,7 @@ def find_best_match():
             if rmse_iterations[i_it] <= min_rmse:
                 min_rmse = rmse_iterations[i_it]
                 it_min_rmse = i_it
-        return it_min_rmse
+        return it_min_rmse + 1
 
     output_heights_list = output_heights.split(' ')
     output_heights_list = output_heights_list[0:len(output_heights_list)-1]

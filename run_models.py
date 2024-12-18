@@ -1002,8 +1002,8 @@ def pre_process(run_mode):
                                 northing_search += dy
                             northing_search = bottom_left_northing
                             easting_search += dx
-                        start_k = 1
-                        reelaborated_sources_indexes = []
+                start_k = 1
+                reelaborated_sources_indexes = []
                 if len(reelaborated_sources_temp) > 0:
                     for j_merged_source in range(len(reelaborated_sources_temp)):
                         for k_merged_source in range(start_k, len(reelaborated_sources_temp)):
@@ -1186,13 +1186,12 @@ def pre_process(run_mode):
                             index_flux = iteration - 1
                         else:
                             index_flux = i_day
-                        easting_search = bottom_left_easting
-                        northing_search = bottom_left_northing
-                        reelaborated_sources.append([easting[j_source], northing[j_source], gas_fluxes[j_source][index_flux], 
-                                                    dx_src[j_source], dy_src[j_source], dur[j_source]])
+                        reelaborated_sources.append([easting[j_source], northing[j_source],
+                                                     gas_fluxes[j_source][index_flux],
+                                                     dx_src[j_source], dy_src[j_source], dur[j_source]])
                     
                 with open(os.path.join(twodee_daily, 'source.dat'), 'w', encoding='utf-8', errors='surrogateescape', ) \
-                                    as source_file:
+                     as source_file:
                     for j_source in range(len(reelaborated_sources)):
                         source_file.write('{0:7.3f}'.format(reelaborated_sources[j_source][0]) + ' '
                         + '{0:7.3f}'.format(reelaborated_sources[j_source][1]) + ' '

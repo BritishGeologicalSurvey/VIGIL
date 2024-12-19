@@ -769,7 +769,7 @@ def pre_process(run_mode):
                     dx_src.append(float(records[6]))
                     dy_src.append(float(records[7]))
                     dur.append(float(records[8]))
-                    if prob_distr_emission == '':
+                    if prob_distr_emission == '' and (random_sources or inversion):
                         source_pdf.append(records[9])
                         pdf_params_file = records[10]
                         try:

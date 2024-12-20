@@ -963,6 +963,8 @@ def pre_process(run_mode):
                 disgas_input = os.path.join(disgas_daily, 'disgas.inp')
                 reelaborated_sources_temp = []
                 reelaborated_sources = []
+                pos_index = 0
+                merge = False
                 for j_source in range(0, n_sources):
                     if dx_src[j_source] * dy_src[j_source] > dx * dy:
                         # Split the source across the computational cells, since currently DISGAS does only allow
@@ -980,10 +982,11 @@ def pre_process(run_mode):
                             x_source = x_or_source
                             for ii_source in range(0, nx_source):
                                 reelaborated_sources.append([x_source, y_source, elevations[j_source],
-                                                                  splitted_flux])
+                                                             splitted_flux])
                                 x_source += dx
                             y_source += dy
                     else:
+                        merge = True
                         if inversion:
                             index_flux = iteration - 1
                         else:
@@ -1002,48 +1005,34 @@ def pre_process(run_mode):
                                 northing_search += dy
                             northing_search = bottom_left_northing
                             easting_search += dx
-                start_k = 1
-                reelaborated_sources_indexes = []
-                if len(reelaborated_sources_temp) > 0:
-                    for j_merged_source in range(len(reelaborated_sources_temp)):
-                        for k_merged_source in range(start_k, len(reelaborated_sources_temp)):
-                            if reelaborated_sources_temp[j_merged_source][4] == \
-                                    reelaborated_sources_temp[k_merged_source][4]:
-                                reelaborated_sources.append([reelaborated_sources_temp[j_merged_source][0],
-                                                             reelaborated_sources_temp[j_merged_source][1],
-                                                             (reelaborated_sources_temp[j_merged_source][2] +
-                                                             reelaborated_sources_temp[k_merged_source][2]) / 2,
-                                                             reelaborated_sources_temp[j_merged_source][3] +
-                                                             reelaborated_sources_temp[k_merged_source][3]])
-                                reelaborated_sources_indexes.append(k_merged_source)
-                                reelaborated_sources_indexes.append(j_merged_source)
-                            else:
-                                if [reelaborated_sources_temp[k_merged_source][0],
-                                    reelaborated_sources_temp[k_merged_source][1],
-                                    reelaborated_sources_temp[k_merged_source][2],
-                                    reelaborated_sources_temp[k_merged_source][3]] not in reelaborated_sources and \
-                                        k_merged_source not in reelaborated_sources_indexes:
-                                    reelaborated_sources.append([reelaborated_sources_temp[k_merged_source][0],
-                                                           reelaborated_sources_temp[k_merged_source][1],
-                                                           reelaborated_sources_temp[k_merged_source][2],
-                                                           reelaborated_sources_temp[k_merged_source][3]])
-                        if [reelaborated_sources_temp[j_merged_source][0],
-                            reelaborated_sources_temp[j_merged_source][1],
-                            reelaborated_sources_temp[j_merged_source][2],
-                            reelaborated_sources_temp[j_merged_source][3]] not in reelaborated_sources and \
-                                j_merged_source not in reelaborated_sources_indexes:
-                            reelaborated_sources.append([reelaborated_sources_temp[j_merged_source][0],
-                                                   reelaborated_sources_temp[j_merged_source][1],
-                                                   reelaborated_sources_temp[j_merged_source][2],
-                                                   reelaborated_sources_temp[j_merged_source][3]])
-                        start_k += 1
+                if merge:
+                    for position in range(pos_index):
+                        reelaborated_sources.append([])
+                    for j_merged_source in range(pos_index):
+                        for reelaborated_source in reelaborated_sources_temp:
+                            if reelaborated_source[4] == j_merged_source:
+                                reelaborated_sources[j_merged_source].append([reelaborated_source[0],
+                                                                              reelaborated_source[1],
+                                                                              reelaborated_source[2],
+                                                                              reelaborated_source[3]])
+                    reelaborated_sources_temp = list(filter(lambda a: a != [], reelaborated_sources))
+                    reelaborated_sources = []
+                    for reelaborated_source_temp in reelaborated_sources_temp:
+                        avg_elevation = 0
+                        merged_flux = 0
+                        for i_temp_source in range(len(reelaborated_source_temp)):
+                            avg_elevation += reelaborated_source_temp[i_temp_source][2]
+                            merged_flux += reelaborated_source_temp[i_temp_source][3]
+                        avg_elevation = avg_elevation / len(reelaborated_source_temp)
+                        reelaborated_sources.append([reelaborated_source_temp[0][0], reelaborated_source_temp[0][1],
+                                                   avg_elevation, merged_flux])
                 with open(os.path.join(disgas_daily, 'source.dat'), 'w', encoding='utf-8', errors='surrogateescape',) \
                         as source_file:
                     for j_source in range(len(reelaborated_sources)):
                         source_file.write('{0:7.3f}'.format(reelaborated_sources[j_source][0]) + ' ' +
                                           '{0:7.3f}'.format(reelaborated_sources[j_source][1]) + ' ' +
                                           '{0:7.2f}'.format(reelaborated_sources[j_source][2]) + ' ' +
-                                          '{0:7.2f}'.format(reelaborated_sources[j_source][3]) + '\n')
+                                          '{0:9.5f}'.format(reelaborated_sources[j_source][3]) + '\n')
                 source_file.close()
                 roughness_file_exist = True
                 try:
@@ -1198,7 +1187,7 @@ def pre_process(run_mode):
                         + '{0:7.3f}'.format(reelaborated_sources[j_source][2]) + ' '
                         + '{0:7.2f}'.format(reelaborated_sources[j_source][3]) + ' '
                         + '{0:7.2f}'.format(reelaborated_sources[j_source][4]) + ' KG_SEC 0 '
-                        + '{0:7.3f}'.format(reelaborated_sources[j_source][5]) + '\n')
+                        + '{0:9.5f}'.format(reelaborated_sources[j_source][5]) + '\n')
                 source_file.close()
                 # read and memorize twodee.inp file. First read and memorize the domain properties of diagno, since
                 # twodee's domain must coincide with it

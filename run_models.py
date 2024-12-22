@@ -1396,7 +1396,6 @@ def read_diagno_outputs():
             twodee_inp_new = os.path.join(twodee_folder, 'twodee.inp_new')
             disgas_input_records = []
             twodee_input_records = []
-            ii_day = days.index(day_simulation_in)
             try:
                 os.mkdir(os.path.join(disgas_folder, 'outfiles'))
             except FileExistsError:
@@ -1416,7 +1415,7 @@ def read_diagno_outputs():
                         + ' '
                         + '{0:7.2f}'.format(elevation_sources[j_source])
                         + ' '
-                        + str(gas_fluxes_sources[j_source][ii_day])
+                        + str(gas_fluxes_sources[j_source])
                         + '\n')
             with open(os.path.join(twodee_folder, 'source.dat'), 'w', encoding='utf-8', errors='surrogateescape', ) \
                     as source_file:
@@ -1426,7 +1425,7 @@ def read_diagno_outputs():
                         + ' '
                         + '{0:7.3f}'.format(northing_sources[j_source])
                         + ' '
-                        + '{0:7.3f}'.format(gas_fluxes_sources[j_source][ii_day])
+                        + '{0:7.3f}'.format(gas_fluxes_sources[j_source])
                         + ' '
                         + '{0:7.2f}'.format(dx_sources[j_source])
                         + ' '
@@ -1495,8 +1494,8 @@ def read_diagno_outputs():
         index_sources_twodee = []
         index_sources_disgas = []
         wind_time_average_sources = []
-        # diagno_output_file = os.path.join(root, 'simulations', 'diagno', day_simulation, 'diagno.out')
         diagno_input_file = os.path.join(root, 'simulations', 'diagno', day_simulation, 'diagno.inp')
+        surface_data = os.path.join(root, 'simulations', 'diagno', day_simulation, 'surface_data.txt')
         with open(diagno_input_file, 'r') as diagno_input_data:
             for line in diagno_input_data:
                 if 'NX\n' in line:
@@ -1509,6 +1508,8 @@ def read_diagno_outputs():
                     yor_diagno = float(line.split('UTMYOR')[0]) * 1000
                 elif 'TINF\n' in line:
                     tz0 = float(line.split('TINF')[0])
+        p_air = np.average(np.loadtxt(surface_data, skiprows=1)[:, 3])
+        tz0 = np.average(np.loadtxt(surface_data, skiprows=1)[:, 2])
         rho_air = p_air / (r_air * tz0)
         for i_source in range(0, sources_number):
             t_source = temperatures_sources[i_source]
@@ -1517,7 +1518,7 @@ def read_diagno_outputs():
             tracking_point_file = os.path.join(root, 'simulations', 'diagno', day_simulation, 'tracking_point_' +
                                                str(i_source + 1) + '.dat')
             wind_time_average_sources.append(np.average(np.loadtxt(tracking_point_file)[:, 2]))
-        q_average_sources = [gas_fluxes_sources[i_source][i_day] / rho_gas_sources[i_source]
+        q_average_sources = [gas_fluxes_sources[i_source] / rho_gas_sources[i_source]
                              for i_source in range(0, sources_number)]
         for i_source in range(0, len(wind_time_average_sources)):
             area_source = dx * dy
@@ -1553,8 +1554,6 @@ def read_diagno_outputs():
                     break
 
     runs_folder = os.path.join(root, 'simulations', 'runs')
-    # tz0 = 298
-    p_air = 101325
     r_air = 287
     n_elaborated_days = 0
     while n_elaborated_days < len(days):
@@ -2139,6 +2138,16 @@ if disgas_on and twodee_on:  # We are in automatic scenario detection mode, henc
     # data at the source locations to calculate the Richardson number at the source and assign the right solver to each
     # simulation, for this reason we re-initialize the runs vectors
     read_diagno_outputs()
+    with open('automatic_scenario_log.txt', 'w') as automatic_scenario_log:
+        automatic_scenario_log.write('Number of DISGAS simulations: ' + '{:0>2}'.format(len(runs_disgas)) + '\n')
+        automatic_scenario_log.write('Number of TWODEE simulations: ' + '{:0>2}'.format(len(runs_twodee)) + '\n')
+        automatic_scenario_log.write('\n')
+        automatic_scenario_log.write('*****DISGAS simulations*****\n')
+        for run_disgas in runs_disgas:
+            automatic_scenario_log.write(run_disgas + '\n')
+        automatic_scenario_log.write('*****TWODEE simulations*****\n')
+        for run_twodee in runs_twodee:
+            automatic_scenario_log.write(run_twodee + '\n')
 
 if not disgas_on and not twodee_on:
     sys.exit()

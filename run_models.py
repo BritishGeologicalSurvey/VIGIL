@@ -1647,8 +1647,12 @@ def run_simulations(max_np):
             print('Unable to run the simulations')
             sys.exit()
         n_elaborated_runs = end_run
-        if n_elaborated_runs == len(days) or n_elaborated_runs == emission_search_iterations * len(days):
-            break
+        if inversion:
+            if n_elaborated_runs == emission_search_iterations * len(days):
+                break
+        else:
+            if n_elaborated_runs == len(runs):
+                break
         for p in ps:
             p.wait()
     for p in ps:

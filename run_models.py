@@ -1284,7 +1284,6 @@ def run_diagno(max_np):
                     print('File ' + f + ' already present in ' + diagno)
             shutil.copy(topography, os.path.join(diagno_daily, 'topography.grd'))
             shutil.rmtree(path)
-            # FABIO: create tracking_points.dat for diagno
             with open(os.path.join(diagno_daily, 'tracking_points.dat'), 'w') as diagno_tracking_points:
                 diagno_tracking_points.write(str(len(easting_sources)) + '\n')
                 for i_source in range(0, len(easting_sources)):
@@ -1585,7 +1584,7 @@ def run_simulations(max_np):
         if end_run > len(runs):
             end_run = len(runs)
         try:
-            for run in runs[start_run:end_run]:  # FABIO: attenzione, era end_run + 1. Check!!!
+            for run in runs[start_run:end_run]:
                 if 'disgas' in run:
                     solver = 'disgas'
                 elif 'twodee' in run:

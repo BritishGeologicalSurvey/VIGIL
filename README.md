@@ -4,6 +4,7 @@
 > modelling (weather data download and processing; running DISGAS and TWODEE
 > models; post-process and plot results) for use in gas pollution modelling.
 
+[![DOI](https://zenodo.org/badge/368542636.svg)](https://doi.org/10.5281/zenodo.14793460)
 
 ## Package content and description
 

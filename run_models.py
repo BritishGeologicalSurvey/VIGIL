@@ -788,6 +788,9 @@ def pre_process(run_mode):
                 except IndexError:
                     print('ERROR. Badly formatted sources_input.txt file (probably one or more data are missing')
                     sys.exit()
+            if n_sources == 0:
+                print('ERROR. Badly formatted sources_input.txt file (probably one or more data are missing')
+                sys.exit()
     except FileNotFoundError:
         if not random_sources:
             easting.append(source_easting)
@@ -805,8 +808,10 @@ def pre_process(run_mode):
             source_pdf_params.append(prob_distr_params)
             source_ecdf_files.append('flux.csv')
         n_sources = len(easting)
-
     for j_source in range(0, n_sources):
+        if dur[j_source] < len(days) * 86400:
+            print('ERROR. Source emission duration less than total run duration')
+            sys.exit()
         if inversion:
             if source_pdf[j_source] == 'ecdf':
                 fluxes = [sample_ecdf_fluxes(source_ecdf_files[j_source])[0] for _ in
@@ -2123,7 +2128,7 @@ except FileNotFoundError:
     print('ERROR. File gas_properties.csv not found')
     sys.exit()
 
-days = prepare_days()
+days  = prepare_days()
 if inversion and len(days) > 1:
     continuous_simulation = True
 

@@ -1798,10 +1798,13 @@ def elaborate_outputs():
         shutil.copytree(disgas_outfiles_folder, outfiles_folder)
         # Remove time 0 outputs produced by DISGAS only, to be consistent with TWODEE outputs
         for output_file in os.listdir(outfiles_folder):
-            file_time_step = output_file.split('c_')[1]
-            file_time_step = file_time_step.split('_')[1]
-            file_time_step = file_time_step.split('.grd')[0]
-            if int(file_time_step) == 0:
+            if 'c_' in output_file:
+                file_time_step = output_file.split('c_')[1]
+                file_time_step = file_time_step.split('_')[1]
+                file_time_step = file_time_step.split('.grd')[0]
+                if int(file_time_step) == 0:
+                    os.remove(os.path.join(outfiles_folder, output_file))
+            else:
                 os.remove(os.path.join(outfiles_folder, output_file))
         if len(runs_twodee) == 0:
             shutil.rmtree(disgas_outfiles_folder)

@@ -258,15 +258,14 @@ def automatic_weather(analysis_start_in):
         def era5_request_pressure(folder_grib, year_pl, month_pl, day_pl):
             import cdsapi
 
+            print('Downloading file from ERA5 database')
             check_pl_era5 = 1
             grib_file = os.path.join(folder_grib, 'pressure_levels.grib')
-            print('Downloading file from ERA5 database')
-            c = cdsapi.Client()
             try:
+                dataset = 'reanalysis-era5-pressure-levels'
+                c = cdsapi.Client()
                 print('Retrieving pressure-levels data')
-                c.retrieve(
-                    'reanalysis-era5-pressure-levels',
-                    {
+                request = {
                         'pressure_level': [
                             '1',
                             '2',
@@ -339,14 +338,14 @@ def automatic_weather(analysis_start_in):
                             '23:00',
                         ],
                         'product_type': 'reanalysis',
-                        'year': year_pl,
-                        'day': day_pl,
-                        'month': month_pl,
-                        'area': area,
-                        'format': 'grib',
-                    },
-                    grib_file,
-                )
+                        'year': [year_pl],
+                        'day': [day_pl],
+                        'month': [month_pl],
+                        'area': [area],
+                        'data_format': 'grib',
+                        "download_format": "unarchived"
+                    }
+                c.retrieve(dataset, request, grib_file)#.download()
             except (Exception, ConnectionError):
                 print('Unable to retrieve ERA5 pressure level data')
                 check_pl_era5 = 0
@@ -355,15 +354,14 @@ def automatic_weather(analysis_start_in):
         def era5_request_single(folder_grib, year_sl, month_sl, day_sl):
             import cdsapi
 
-            check_sl_era5 = 1
             print('Downloading file from ERA5 database')
+            check_sl_era5 = 1
             grib_file = os.path.join(folder_grib, 'surface.grib')
-            c = cdsapi.Client()
             try:
+                dataset = 'reanalysis-era5-single-levels'
+                c = cdsapi.Client()
                 print('Retrieving single levels data')
-                c.retrieve(
-                    'reanalysis-era5-single-levels',
-                    {
+                request = {
                         'variable': [
                             '10m_u_component_of_wind',
                             '10m_v_component_of_wind',
@@ -398,14 +396,13 @@ def automatic_weather(analysis_start_in):
                             '23:00',
                         ],
                         'product_type': 'reanalysis',
-                        'year': year_sl,
-                        'day': day_sl,
-                        'month': month_sl,
-                        'area': area,
-                        'format': 'grib',
-                    },
-                    grib_file,
-                )
+                        'year': [year_sl],
+                        'day': [day_sl],
+                        'month': [month_sl],
+                        'area': [area],
+                        'data_format': 'grib',
+                    }
+                c.retrieve(dataset, request, grib_file)
             except (Exception, ConnectionError):
                 print('Unable to retrieve ERA5 single level data')
                 check_sl_era5 = 0
@@ -429,9 +426,7 @@ def automatic_weather(analysis_start_in):
             area = [lat_n, lon_w, lat_s, lon_e]
             # Retrieve files
             check_pl = era5_request_pressure(data_folder_era5, year_retday, month_retday, day_retday)
-
             check_sl = era5_request_single(data_folder_era5, year_retday, month_retday, day_retday)
-
             if check_pl == 0:
                 with open('log_weather.txt', 'a+', encoding='utf-8', errors='surrogateescape') as logger_pl:
                     logger_pl.write(datetime.datetime.strftime(datetime.datetime.utcnow(), '%Y-%m-%d-%H:%M:%S') +

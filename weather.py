@@ -120,7 +120,8 @@ def read_arguments():
             print('Unable to retrieve volcano information from the ESPs database and no location information have been '
                   'provided')
         except Exception as e:
-            print("An error occurred:", e)
+            print("An error occurred: 'https://webapps.bgs.ac.uk/research/volcanoes/esp/volcanoExport.xlsx not found")
+            print("Retrieving information from the Smithsonian Institute database")
             try:
                 urllib.request.urlretrieve('https://volcano.si.edu/database/list_volcano_holocene_excel.cfm',
                                            'GVP_Volcano_List_Holocene.xml')

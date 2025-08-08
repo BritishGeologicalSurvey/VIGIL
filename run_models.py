@@ -20,7 +20,7 @@ def read_arguments():
                                                                    'Possible options are True or False')
     parser.add_argument('-ESI', '--emission_search_iterations', default=0, help='Specify number of iterations')
     parser.add_argument('-RS', '--random_sources', default='False', help='True: randomly select NS locations from a '
-                        'probability map. False: fixed source locations from file sources_input.txt',)
+                        'probability map. False: fixed source locations from file sources_input.csv',)
     parser.add_argument('-NS', '--nsources', default='random', help='Specify a number for a fixed number of sources. '
                         'If random, then randomly select the number of sources from an interval',)
     parser.add_argument('-SINT', '--sources_interval', default='', help='Type the minimum and maximum number of '
@@ -50,10 +50,10 @@ def read_arguments():
                         'inversion mode',)
     parser.add_argument('-PDEM', '--prob_distr_emission', default='', help='Probability distribution function to '
                         'randomly sample the emission rate. Options: uniform, normal, ecdf. Note: if specified, '
-                        'parameters provided in sources_input.txt will be ignored')
+                        'parameters provided in sources_input.csv will be ignored')
     parser.add_argument('-PDPAR', '--prob_distr_params', default='', help='If -PDEM=uniform: minimum, maximum. '
                         'If -PDEM=normal: median, standard deviation. If -PDEM=ecdf, a flux.txt file should be '
-                        'provided. Note: if specified, parameters provided in sources_input.txt will be ignored')
+                        'provided. Note: if specified, parameters provided in sources_input.csv will be ignored')
     parser.add_argument('-RD', '--run_duration', default=24, help='Run duration (hours). Currently fractions of hours '
                         'or duration > 24 hours are not allowed')
     parser.add_argument('-OI', '--output_interval', default=1, help='Output interval (hours). Currently fractions of '
@@ -63,7 +63,7 @@ def read_arguments():
     parser.add_argument('-DI', '--diagno', default='on', help='on or off, to run Diagno. Turn it off only if Diagno has'
                         ' already been run')
     parser.add_argument('-DM', '--dispersion_model', default='off', help='Twodee, Disgas, Automatic, None')
-    parser.add_argument('-US', '--use_slurm', default='False', help='True or False, to use SLURM Workload Manager')
+    parser.add_argument('-JS', '--job_scheduler', default='None', help='Possible options: None, Slurm')
     parser.add_argument('-SP', '--slurm_partition', default='', help='Name of the cluster partition to run the Slurm '
                         'jobs')
     parser.add_argument('-TS', '--tracking_specie', default='', help='The original emitted specie that is tracked in '
@@ -97,7 +97,7 @@ def read_arguments():
         sys.exit()
     model = args.dispersion_model
     diagno = args.diagno
-    use_slurm = args.use_slurm
+    job_scheduler_in = args.job_scheduler
     slurm_partition = args.slurm_partition
     source_dx_in = args.source_dx
     source_dy_in = args.source_dy
@@ -230,7 +230,7 @@ def read_arguments():
         top_right_easting_in = bottom_left_easting_in + dx_in * nx_in
     if bottom_left_northing_in + dy_in * ny_in != top_right_northing_in:
         top_right_northing_in = bottom_left_northing_in + dy_in * ny_in
-    if random_sources_in.lower == 'true':
+    if random_sources_in.lower() == 'true':
         random_sources_in = True
         try:
             np.loadtxt('probability_map.grd', skiprows=5)
@@ -258,10 +258,10 @@ def read_arguments():
         else:
             random_sources_in = False
             try:
-                sources_file = open('sources_input.txt', 'r')
+                sources_file = open('sources_input.csv', 'r')
                 sources_file.close()
             except FileNotFoundError:
-                print('File sources_input.txt not found. Using one source from input data')
+                print('File sources_input.csv not found. Using one source from input data')
                 if len(source_location) != 4:
                     print('ERROR. Please provide valid entries for -SLOC --sources_location')
                     sys.exit()
@@ -336,14 +336,12 @@ def read_arguments():
         except ValueError:
             print('ERROR. Please provide a valid number for the variable -SDUR --source_dur')
             sys.exit()
-    if use_slurm.lower() == 'true':
-        use_slurm = True
+    job_scheduler_in = job_scheduler_in.lower()
+    if job_scheduler_in == 'slurm':
         if slurm_partition == '':
-            print('ERROR. Cluster partition must be declared if use_slurm is on')
-    elif use_slurm.lower() == 'false':
-        use_slurm = False
-    else:
-        print('ERROR. Please provide a valid entry for the variable -US --use_slurm')
+            print('ERROR. Cluster partition must be declared if Slurm is the selected job scheduler')
+    elif job_scheduler_in != 'none':
+        print('ERROR. Please provide a valid entry for the variable -JS --job_scheduler')
         sys.exit()
     if tracking_specie_in == '':
         print('ERROR. Please specify the name of the tracked specie -TS --tracking_specie')
@@ -446,11 +444,11 @@ def read_arguments():
     else:
         print('ERROR. Wrong value for variable -I --inversion')
         sys.exit()
-    if random_emission_in.lower == 'true' or inversion_in:
+    if random_emission_in.lower() == 'true' or inversion_in:
         if prob_distr_emission_in == '':
-            if os.path.isfile('sources_input.txt'):
+            if os.path.isfile('sources_input.csv'):
                 print('Probability distribution function of the source emission rate not provided. Retrieving it from '
-                      'sources_input.txt')
+                      'sources_input.csv')
             else:
                 print('ERROR. Random emission rate activated but no probability distribution function provided')
                 sys.exit()
@@ -480,7 +478,7 @@ def read_arguments():
     elif random_emission_in.lower() == 'false':
         random_emission_in = False
         try:
-            sources_file = open('sources_input.txt', 'r')
+            sources_file = open('sources_input.csv', 'r')
             sources_file.close()
         except FileNotFoundError:
             try:
@@ -526,7 +524,7 @@ def read_arguments():
         diagno,
         twodee,
         disgas,
-        use_slurm,
+        job_scheduler_in,
         slurm_partition,
         tracking_specie_in,
         run_duration_in,
@@ -667,7 +665,7 @@ def pre_process(run_mode):
             random_temperatures.append(gas_temperature)
             random_pdf.append(prob_distr_emission)
             random_pdf_pars.append(prob_distr_params)
-            random_ecdf_files.append('flux.csv')
+            random_ecdf_files.append('flux.txt')
         return (
             random_eastings,
             random_northings,
@@ -756,7 +754,7 @@ def pre_process(run_mode):
     source_ecdf_files = random_ecdf_files
     n_sources = 0
     try:
-        with open('sources_input.txt', 'r', encoding='utf-8', errors='surrogateescape') as locations_file:
+        with open('sources_input.csv', 'r', encoding='utf-8', errors='surrogateescape') as locations_file:
             for line in locations_file:
                 try:
                     records = line.split(',')
@@ -781,15 +779,15 @@ def pre_process(run_mode):
                     else:
                         source_pdf.append(prob_distr_emission)
                         source_pdf_params.append(prob_distr_params)
-                        source_ecdf_files.append('flux.csv')
+                        source_ecdf_files.append('flux.txt')
                     n_sources += 1
                 except ValueError:
                     continue
                 except IndexError:
-                    print('ERROR. Badly formatted sources_input.txt file (probably one or more data are missing')
+                    print('ERROR. Badly formatted sources_input.csv file (probably one or more data are missing')
                     sys.exit()
             if n_sources == 0:
-                print('ERROR. Badly formatted sources_input.txt file (probably one or more data are missing')
+                print('ERROR. Badly formatted sources_input.csv file (probably one or more data are missing')
                 sys.exit()
     except FileNotFoundError:
         if not random_sources:
@@ -798,7 +796,7 @@ def pre_process(run_mode):
             elevations.append(source_el)
             probabilities.append(1.0)
             fluxes_input.append(source_emission)
-            source_temperatures.append(gas_temperature)  # If problems with reading sources_input.txt, assign
+            source_temperatures.append(gas_temperature)  # If problems with reading sources_input.csv, assign
             # the same temperauture to all sources
             dx_src.append(source_dx)
             dy_src.append(source_dy)
@@ -806,12 +804,11 @@ def pre_process(run_mode):
             # the same probability distribution parameters to all sources
             source_pdf.append(prob_distr_emission)
             source_pdf_params.append(prob_distr_params)
-            source_ecdf_files.append('flux.csv')
+            source_ecdf_files.append('flux.txt')
         n_sources = len(easting)
     for j_source in range(0, n_sources):
-        if dur[j_source] < len(days) * 86400:
-            print('ERROR. Source emission duration less than total run duration')
-            sys.exit()
+        if continuous_simulation and dur[j_source] < len(days) * 86400:
+            print('Warning. Source emission duration less than total run duration')
         if inversion:
             if source_pdf[j_source] == 'ecdf':
                 fluxes = [sample_ecdf_fluxes(source_ecdf_files[j_source])[0] for _ in
@@ -912,36 +909,56 @@ def pre_process(run_mode):
                             if inversion:
                                 reelaborated_sources_temp.append([easting_search, northing_search, elevations[j_source],
                                                                   dx, dy, dur[j_source],
-                                                                  gas_fluxes[j_source][iteration - 1], pos_index])
+                                                                  gas_fluxes[j_source][iteration - 1], pos_index, j_source])
                             else:
                                 reelaborated_sources_temp.append([easting_search, northing_search, elevations[j_source],
                                                                   dx, dy, dur[j_source],
-                                                                  gas_fluxes[j_source], pos_index])
+                                                                  gas_fluxes[j_source], pos_index, j_source])
                         pos_index += 1
                         northing_search += dy
                     northing_search = bottom_left_northing
                     easting_search += dx
         if merge:
-            for position in range(pos_index):
-                reelaborated_sources.append([])
-            for j_merged_source in range(pos_index):
+            if len(reelaborated_sources_temp) > 1:
+                pos_indexes = []
                 for reelaborated_source in reelaborated_sources_temp:
-                    if reelaborated_source[7] == j_merged_source:
-                        reelaborated_sources[j_merged_source].append(reelaborated_source[0:7])
-            reelaborated_sources_temp = list(filter(lambda a: a != [], reelaborated_sources))
-            reelaborated_sources = []
-            for reelaborated_source_temp in reelaborated_sources_temp:
-                avg_elevation = 0
-                avg_duration = 0
-                merged_flux = 0
-                for i_temp_source in range(len(reelaborated_source_temp)):
-                    avg_elevation += reelaborated_source_temp[i_temp_source][2]
-                    avg_duration += reelaborated_source_temp[i_temp_source][5]
-                    merged_flux += reelaborated_source_temp[i_temp_source][6]
-                avg_elevation = avg_elevation / len(reelaborated_source_temp)
-                avg_duration = avg_duration / len(reelaborated_source_temp)
-                reelaborated_sources.append([reelaborated_source_temp[0][0], reelaborated_source_temp[0][1],
-                                             avg_elevation, dx, dy, avg_duration, merged_flux])
+                    if reelaborated_source[7] not in pos_indexes:
+                        pos_indexes.append(reelaborated_source[7])
+                indexes_pos_indexes = []
+                for pos_index in pos_indexes:
+                    indexes = []
+                    for i_st in range(len(reelaborated_sources_temp)):
+                        if pos_index in reelaborated_sources_temp[i_st]:
+                            indexes.append(i_st)
+                    indexes_pos_indexes.append(indexes)
+                elevations_list = []
+                durations_list = []
+                fluxes_list = []
+                for i_st in range(len(pos_indexes)):
+                    avg_elevation = 0
+                    avg_duration = 0
+                    avg_x_source = 0
+                    avg_y_source = 0
+                    merged_flux = 0
+                    for j_st in indexes_pos_indexes[i_st]:
+                        avg_x_source += reelaborated_sources_temp[j_st][0]
+                        avg_y_source += reelaborated_sources_temp[j_st][1]
+                        avg_elevation += reelaborated_sources_temp[j_st][2]
+                        avg_duration += reelaborated_sources_temp[j_st][5]
+                        merged_flux += reelaborated_sources_temp[j_st][6]
+                    avg_x_source = avg_x_source / len(indexes_pos_indexes[i_st])
+                    avg_y_source = avg_y_source / len(indexes_pos_indexes[i_st])
+                    avg_elevation = avg_elevation / len(indexes_pos_indexes[i_st])
+                    avg_duration = avg_duration / len(indexes_pos_indexes[i_st])
+                    elevations_list.append([pos_indexes[i_st], avg_elevation])
+                    durations_list.append([pos_indexes[i_st], avg_duration])
+                    fluxes_list.append([pos_indexes[i_st], merged_flux])
+                    reelaborated_sources.append([avg_x_source, avg_y_source, avg_elevation, dx, dy, avg_duration, merged_flux])
+            else:
+                jj_source = reelaborated_sources_temp[0][8]
+                reelaborated_sources.append([easting[jj_source], northing[jj_source], elevations[jj_source],
+                                                                  dx, dy, dur[jj_source],
+                                                                  gas_fluxes[jj_source]])
         for i_day in range(0, len(days)):
             day = days[i_day]
             diagno_daily = os.path.join(diagno, str(day))
@@ -1224,7 +1241,7 @@ def pre_process(run_mode):
                         elif 'AVERAGED_TEMPERATURE_(C)' in record:
                             twodee_input_file.write('  AVERAGED_TEMPERATURE_(C) = ' + str(gas_temperature) + '\n')
                             # Average temperature initialized with the temperature specified in gas_properties.csv.
-                            # If T for each source is provided in sources_input.txt, this will be reassigned
+                            # If T for each source is provided in sources_input.csv, this will be reassigned
                         elif 'RESTART_RUN' in record:
                             if run_mode == 'restart':
                                 twodee_input_file.write('  RESTART_RUN = YES\n')
@@ -1268,13 +1285,15 @@ def pre_process(run_mode):
 def run_diagno(max_np):
     def prepare_diagno():
         diagno = os.path.join(root, 'simulations', 'diagno')
+        run_directories = []
         try:
             os.mkdir(diagno)
         except FileExistsError:
             print('Folder ' + diagno + ' already exists')
-        for i_day in range(0, len(days)):
-            day_diagno = days[i_day]
+        for i_day_diagno in range(0, len(days)):
+            day_diagno = days[i_day_diagno]
             diagno_daily = os.path.join(diagno, str(day_diagno))
+            run_directories.append(diagno_daily + '\n')
             path = os.path.join(root, 'simulations', str(day_diagno))
             files = os.listdir(path)
             try:
@@ -1294,8 +1313,9 @@ def run_diagno(max_np):
                 for i_source in range(0, len(easting_sources)):
                     diagno_tracking_points.write(str(i_source + 1) + ' ' + str(easting_sources[i_source]) + ' ' +
                                                  str(northing_sources[i_source]) + ' 2.0\n')
+        return run_directories
 
-    prepare_diagno()
+    diagno_run_directories = prepare_diagno()
     n_elaborated_days = 0
     n_node = 0
     max_height = 0
@@ -1307,15 +1327,15 @@ def run_diagno(max_np):
         if end_day > len(days):
             end_day = len(days)
         try:
-            for day in days[start_day:end_day]:
+            for i_day in range(start_day, end_day):
                 if len(nodes_list) > 0:
                     try:
                         node = nodes_list[n_node]
                     except IndexError:
                         node = ''
-                diagno_folder = os.path.join(root, 'simulations', 'diagno', day)
+                diagno_folder = diagno_run_directories[i_day].split('\n')[0]
                 os.chdir(diagno_folder)
-                if slurm:
+                if job_scheduler == 'slurm':
                     try:
                         p = subprocess.Popen(['srun', '-n', '1', '--partition=' + partition, 'presfc', '&'])
                     except FileNotFoundError:
@@ -1331,7 +1351,7 @@ def run_diagno(max_np):
                 ps.append(p)
                 if shutil.which('preupr') is not None and \
                         (not os.path.exists(os.path.join(root, 'weather_stations_list.txt'))):
-                    if slurm:
+                    if job_scheduler == 'slurm':
                         try:
                             p = subprocess.Popen(['srun', '-n', '1', '--partition=' + partition, 'preupr', '&'])
                         except FileNotFoundError:
@@ -1345,7 +1365,7 @@ def run_diagno(max_np):
                             sys.exit()
                     p.wait()
                     ps.append(p)
-                if slurm:
+                if job_scheduler == 'slurm':
                     try:
                         p = subprocess.Popen(['srun', '-n', '1', '--partition=' + partition, '--nodelist=' + node,
                                               'diagno', '&'])
@@ -1626,7 +1646,7 @@ def run_simulations(max_np):
                         print('ERROR. Restart run requested but file ' +
                               os.path.join(previous_day_folder, 'restart.dat') + ' not found')
                         sys.exit()
-                if slurm:
+                if job_scheduler == 'slurm':
                     try:
                         p = subprocess.Popen(['srun', '-n', '1', '--partition=' + partition, '--nodelist=' + node,
                                               solver, input_file, log_file])
@@ -2069,7 +2089,7 @@ topography = os.path.join(root, 'topography.grd')
     diagno_on,
     twodee_on,
     disgas_on,
-    slurm,
+    job_scheduler,
     partition,
     tracking_specie,
     run_duration,
@@ -2082,7 +2102,7 @@ if not disgas_on and not twodee_on and not diagno_on:
     print('DIAGNO, DISGAS, TWODEE are all turned off')
     sys.exit()
 
-if slurm:
+if job_scheduler == 'slurm':
     list_available_nodes = []
     result = subprocess.run(['sinfo', '-o=%N'], stdout=subprocess.PIPE)
     sinfo_node_output = result.stdout.decode('utf-8')

@@ -56,7 +56,7 @@ def read_arguments():
                         'resolution (in m a.s.l.). Used only if -PT True',)
     parser.add_argument('-PR', '--plot_resolution', default=600, help='Specify plot resolution in dpi')
     parser.add_argument('-TP', '--tracking_points', default='False', help='Extrapolate gas concentration at locations '
-                        'specified in the file tracking_points.txt')
+                        'specified in the file tracking_points.csv')
     args = parser.parse_args()
     plot_in = args.plot
     calculate_ecdf_in = args.calculate_ecdf
@@ -217,8 +217,8 @@ def read_arguments():
         sys.exit()
     if tracking_points_in.lower() == 'true':
         tracking_points_in = True
-        if not os.path.isfile('tracking_points.txt'):
-            print('WARNING. Tracking points option activated but file tracking_points.txt not found. Continuing '
+        if not os.path.isfile('tracking_points.csv'):
+            print('WARNING. Tracking points option activated but file tracking_points.csv not found. Continuing '
                   'without this option')
             tracking_points_in = False
     elif tracking_points_in.lower() == 'false':
@@ -553,13 +553,13 @@ def gas_properties():
 def elaborate_tracking_points():
     import utm
     stations_out = []
-    tracking_points_file = os.path.join(root, 'tracking_points.txt')
+    tracking_points_file = os.path.join(root, 'tracking_points.csv')
     station_id = 0
     with open(tracking_points_file, 'r') as tracking_points_file_read:
         for line in tracking_points_file_read:
-            x = line.split('\t')[0]
-            y = line.split('\t')[1]
-            z = line.split('\t')[2]
+            x = line.split(',')[0]
+            y = line.split(',')[1]
+            z = line.split(',')[2]
             try:
                 station_x = float(x)
                 station_y = float(y)

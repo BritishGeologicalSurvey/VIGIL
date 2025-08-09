@@ -909,7 +909,8 @@ def pre_process(run_mode):
                             if inversion:
                                 reelaborated_sources_temp.append([easting_search, northing_search, elevations[j_source],
                                                                   dx, dy, dur[j_source],
-                                                                  gas_fluxes[j_source][iteration - 1], pos_index, j_source])
+                                                                  gas_fluxes[j_source][iteration - 1], pos_index,
+                                                                  j_source])
                             else:
                                 reelaborated_sources_temp.append([easting_search, northing_search, elevations[j_source],
                                                                   dx, dy, dur[j_source],

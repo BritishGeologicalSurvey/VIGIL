@@ -2152,7 +2152,7 @@ except FileNotFoundError:
     print('ERROR. File gas_properties.csv not found')
     sys.exit()
 
-days  = prepare_days()
+days = prepare_days()
 if inversion and len(days) > 1:
     continuous_simulation = True
 

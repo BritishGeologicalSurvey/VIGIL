@@ -1389,7 +1389,7 @@ def automatic_weather(analysis_start_in):
     if mode == 'forecast' or era5_on:
         tref, tsoil, press = prepare_diagno_files(data_folder, year, month, day)
     if weather_station_on:
-        stations_input = open('weather_stations_list.txt', 'r', encoding='utf-8-sig', errors='surrogateescape',)
+        stations_input = open('weather_stations_list.csv', 'r', encoding='utf-8-sig', errors='surrogateescape',)
         print('Analysing weather station data for day ' + str(analysis_start_in)[0:10])
         records = []
         for line in stations_input:
@@ -1401,13 +1401,13 @@ def automatic_weather(analysis_start_in):
         station_data_files = []
         zst = []
         while i <= n_weather_stations:
-            station_lat = float(records[i].split('\t')[0])
-            station_lon = float(records[i].split('\t')[1])
+            station_lat = float(records[i].split(',')[0])
+            station_lon = float(records[i].split(',')[1])
             out_utm = utm.from_latlon(station_lat, station_lon)
             eastings.append(out_utm[0] / 1000)
             northings.append(out_utm[1] / 1000)
-            zst.append(float(records[i].split('\t')[2]))
-            station_data_file = records[i].split('\t')[3]
+            zst.append(float(records[i].split(',')[2]))
+            station_data_file = records[i].split(',')[3]
             try:
                 test = open(os.path.join(root, 'weather_stations', station_data_file), 'r')
                 test.close()

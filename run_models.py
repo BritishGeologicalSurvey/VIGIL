@@ -1983,7 +1983,7 @@ def find_best_match():
             if rmse_iterations[i_it] <= min_rmse:
                 min_rmse = rmse_iterations[i_it]
                 it_min_rmse = i_it
-        return it_min_rmse + 1
+        return it_min_rmse
 
     output_heights_list = output_heights.split(' ')
     output_heights_list = output_heights_list[0:len(output_heights_list)-1]
@@ -2233,4 +2233,4 @@ if inversion:
     inversion_best_match = open(os.path.join(root, 'inversion', 'best_match.txt'), 'w')
     inversion_best_match.write('Iteration,RMSE\n')
     best_match_iteration, rmse = find_best_match()
-    inversion_best_match.write('{:0>2}'.format(best_match_iteration) + ',{0:7.3f}'.format(np.average(rmse)))
+    inversion_best_match.write('{:0>2}'.format(best_match_iteration + 1) + ',{0:7.3f}'.format(np.average(rmse)))

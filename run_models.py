@@ -1943,6 +1943,7 @@ def find_best_match():
                         file_to_use = os.path.join(root, 'simulations', 'runs', '{:02d}'.format(it), days[i_day],
                                                 'outfiles', 'c_' + '{:03d}'.format(i_level + 1) +
                                                 '_{:06d}'.format(i_time_step) + '.grd')
+                        print(file_to_use)
                         c_interpolated_time_series_station.append(interpolate(x_station, y_station, file_to_use))
                         break
         return c_interpolated_time_series_station

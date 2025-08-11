@@ -142,7 +142,7 @@ optional arguments:
 Python script to process the outputs of run_models.py to produce plots, statistical outputs and tracking points. 
 The following flags control the execution of post_process.py:
 usage: post_process.py [-h] [-P PLOT] [-ECDF CALCULATE_ECDF] [-PER PERSISTENCE] [-EX EX_PROB] [-T TIME_STEPS] [-L LEVELS] [-D DAYS_PLOT] [-C CONVERT] [-S SPECIES] [-TS TRACKING_SPECIE] [-N NPROC] [-U UNITS]
-                       [-PL PLOT_LIMITS] [-PI PLOT_ISOLINES] [-TA TIME_AV] [-OF OUTPUT_FORMAT] [-PT PLOT_TOPOGRAPHY] [-TI TOPOGRAPHY_ISOLINES] [-PR PLOT_RESOLUTION] [-TP TRACKING_POINTS]
+                       [-PL PLOT_LIMITS] [-PI PLOT_ISOLINES] [-TA TIME_AV] [-OF OUTPUT_FORMAT] [-PT PLOT_TOPOGRAPHY] [-TI TOPOGRAPHY_ISOLINES] [-PR PLOT_RESOLUTION] [-TP TRACKING_POINTS] [-I INVERSION]
 
 Input data
 
@@ -188,6 +188,8 @@ optional arguments:
                         Specify plot resolution in dpi (default: 600)
   -TP TRACKING_POINTS, --tracking_points TRACKING_POINTS
                         Extrapolate gas concentration at locations specified in the file tracking_points.txt (default: False)
+ -I INVERSION, --inversion INVERSION
+                        Inversion mode run (True or False). (default: False)
 
 
 ```

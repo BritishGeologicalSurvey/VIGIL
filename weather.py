@@ -605,7 +605,6 @@ def automatic_weather(analysis_start_in):
         # url = ('http://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/gfs.' + year_anl + month_anl + day_anl + '/' + anl)
         while True:
             try:
-                print(url)
                 urllib.request.urlopen(url)
                 break
             except urllib.error.HTTPError:
@@ -730,7 +729,6 @@ def automatic_weather(analysis_start_in):
             slon_sources.append(slon_source)
             slat_sources.append(slat_source)
             time_profile += timedelta(hours=1)
-        print(urls)
         n_downloaded_days = 0
         pools_dwnl = []
         n_pool_dwnl = 0

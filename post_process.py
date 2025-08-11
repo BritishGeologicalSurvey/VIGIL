@@ -36,7 +36,7 @@ def read_arguments():
                                                               'Type all to plot all the days',)
     parser.add_argument('-C', '--convert', default='False', help='If True, convert output concentration into other '
                                                                  'species listed with the command -S (--species)',)
-    parser.add_argument('-S', '--species', default='', help='List of gas species (e.g. CO2)')
+    parser.add_argument('-S', '--species', default=None, help='List of gas species (e.g. CO2)')
     parser.add_argument('-TS', '--tracking_specie', default=None, help='The original emitted specie that is tracked '
                                                                        'in the simulation')
     parser.add_argument('-N', '--nproc', default=1, help='Maximum number of allowed simultaneous processes',)
@@ -57,6 +57,7 @@ def read_arguments():
     parser.add_argument('-PR', '--plot_resolution', default=600, help='Specify plot resolution in dpi')
     parser.add_argument('-TP', '--tracking_points', default='False', help='Extrapolate gas concentration at locations '
                         'specified in the file tracking_points.csv')
+    parser.add_argument('-I', '--inversion', default='False', help='Inversion mode run (True or False).')
     args = parser.parse_args()
     plot_in = args.plot
     calculate_ecdf_in = args.calculate_ecdf
@@ -78,6 +79,7 @@ def read_arguments():
     dz_lines_res_in = args.topography_isolines
     plot_resolution_in = args.plot_resolution
     tracking_points_in = args.tracking_points
+    inversion_in = args.inversion
     ex_prob = ex_prob_in.split(',')
     time_steps_in = time_steps_in.split(',')
     levels_in = levels_in.split(',')
@@ -85,7 +87,6 @@ def read_arguments():
     plot_limits = plot_limits_in.split(',')
     plot_isolines_s = plot_isolines_in.split(',')
     plot_isolines_in = []
-    species_in = species_in.split(',')
     days_to_plot_in = []
     try:
         max_number_processes_in = int(os.environ['SLURM_NTASKS'])
@@ -136,9 +137,11 @@ def read_arguments():
     if original_specie_in is None:
         print('ERROR. Please specify the name of the tracked specie')
         sys.exit()
-    if species_in == '':
+    if species_in is None:
         print('ERROR. Please specify at least one gas specie name')
         sys.exit()
+    else:
+        species_in = species_in.split(',')
     if convert_in.lower() == 'true':
         convert_in = True
     elif convert_in.lower() == 'false':
@@ -226,6 +229,13 @@ def read_arguments():
     else:
         print('ERROR. Wrong value for variable -TP --tracking_points')
         sys.exit()
+    if inversion_in.lower() == 'true':
+        inversion_in = True
+    elif inversion_in.lower() == 'false':
+        inversion_in = False
+    else:
+        print('ERROR. Wrong value for variable -I --inversion')
+        sys.exit()
     return (
         plot_in,
         calculate_ecdf_in,
@@ -247,17 +257,21 @@ def read_arguments():
         plot_topography_layer_in,
         dz_lines_res_in,
         plot_resolution_in,
-        tracking_points_in
+        tracking_points_in,
+        inversion_in
     )
 
 
 def folder_structure():
     outputs_dir = os.path.join(root, 'post_processing')
     original_output_dir = os.path.join(root, 'simulations', 'runs')
-    processed_output_dir = os.path.join(outputs_dir, 'runs_processed')
     ecdf_dir = os.path.join(outputs_dir, 'output_ecdf')
     ecdf_tracking_points_dir = os.path.join(ecdf_dir, 'tracking_points')
     persistence_dir = os.path.join(outputs_dir, 'output_persistence')
+    if inversion_run:
+        inversion_runs_dirs = os.listdir(original_output_dir)
+    else:
+        inversion_runs_dirs = ['']
     try:
         os.mkdir('post_processing')
     except FileExistsError:
@@ -266,10 +280,6 @@ def folder_structure():
         os.mkdir(outputs_dir)
     except FileExistsError:
         print('Folder ' + outputs_dir + ' already exists')
-    try:
-        os.mkdir(processed_output_dir)
-    except FileExistsError:
-        print('Folder ' + processed_output_dir + ' already exists')
     try:
         os.mkdir(ecdf_dir)
     except FileExistsError:
@@ -283,7 +293,6 @@ def folder_structure():
     except FileExistsError:
         print('Folder ' + persistence_dir + ' already exists')
     graphical_outputs_dir = os.path.join(outputs_dir, 'graphical_outputs')
-    graphical_outputs_simulations_dir = os.path.join(graphical_outputs_dir, 'simulations')
     graphical_outputs_ecdf_dir = os.path.join(graphical_outputs_dir, 'ecdf')
     graphical_outputs_ecdf_tracking_points_dir = os.path.join(graphical_outputs_ecdf_dir, 'tracking_points')
     graphical_outputs_persistence_dir = os.path.join(graphical_outputs_dir, 'persistence')
@@ -291,10 +300,6 @@ def folder_structure():
         os.mkdir(graphical_outputs_dir)
     except FileExistsError:
         print('Folder ' + graphical_outputs_dir + ' already exists')
-    try:
-        os.mkdir(graphical_outputs_simulations_dir)
-    except FileExistsError:
-        print('Folder ' + graphical_outputs_simulations_dir + ' already exists')
     try:
         os.mkdir(graphical_outputs_ecdf_dir)
     except FileExistsError:
@@ -307,6 +312,20 @@ def folder_structure():
         os.mkdir(graphical_outputs_persistence_dir)
     except FileExistsError:
         print('Folder ' + graphical_outputs_persistence_dir + ' already exists')
+    if inversion_run:
+        processed_output_dir = os.path.join(outputs_dir, 'inversion_runs_processed')
+        graphical_outputs_simulations_dir = os.path.join(graphical_outputs_dir, 'simulations_inversion')
+    else:
+        processed_output_dir = os.path.join(outputs_dir, 'runs_processed')
+        graphical_outputs_simulations_dir = os.path.join(graphical_outputs_dir, 'simulations')
+    try:
+        os.mkdir(processed_output_dir)
+    except FileExistsError:
+        print('Folder ' + processed_output_dir + ' already exists')
+    try:
+        os.mkdir(graphical_outputs_simulations_dir)
+    except FileExistsError:
+        print('Folder ' + graphical_outputs_simulations_dir + ' already exists')
     return (
         outputs_dir,
         original_output_dir,
@@ -318,7 +337,8 @@ def folder_structure():
         graphical_outputs_simulations_dir,
         graphical_outputs_ecdf_dir,
         graphical_outputs_ecdf_tracking_points_dir,
-        graphical_outputs_persistence_dir
+        graphical_outputs_persistence_dir,
+        inversion_runs_dirs
     )
 
 
@@ -586,7 +606,7 @@ def elaborate_tracking_points():
     return stations_out
 
 
-def elaborate_day(day_input):
+def elaborate_day(run_input):
     def converter(input_file, processed_file, specie_input):
         conc = np.loadtxt(input_file, skiprows=5)
         conc[conc < 0] = 0
@@ -869,7 +889,9 @@ def elaborate_day(day_input):
                 k += 1
         return files_time_steps + files_time_averaging_steps, c_tp
 
-    run_folder = os.path.join(original_output_folder, day_input)
+    inversion_run_input = run_input[0]
+    day_input = run_input[1]
+    run_folder = os.path.join(original_output_folder, inversion_run_input, day_input)
     run_folder_subfolders = os.listdir(run_folder)
     if 'twodee' in run_folder_subfolders:
         model = 'twodee'
@@ -880,7 +902,12 @@ def elaborate_day(day_input):
         if 'twodee' in run_folder_subfolders:
             model = 'merged'
     model_output_folder = os.path.join(run_folder, 'outfiles')
-    model_processed_output_folder_daily = os.path.join(processed_output_folder, day_input)
+    if inversion_run_input:
+        try:
+            os.mkdir(os.path.join(processed_output_folder, inversion_run_input))
+        except FileExistsError:
+            print('Folder ' + os.path.join(processed_output_folder, inversion_run_input) + ' already exists')
+    model_processed_output_folder_daily = os.path.join(processed_output_folder, inversion_run_input, day_input)
     try:
         os.mkdir(model_processed_output_folder_daily)
     except FileExistsError:
@@ -905,7 +932,7 @@ def elaborate_day(day_input):
             files_list.append(file)
             files_list_path.append(os.path.join(model_output_folder, file))
             models.append(model)
-    for specie in species[1:]:
+    for _ in species[1:]:
         files_list_path += files_list_path
         models += models
     converted_files = []
@@ -1474,86 +1501,95 @@ def save_plots(min_con_in, max_con_in):
     output_files = []
 
     graphical_outputs = os.path.join(outputs_folder, 'graphical_outputs')
-    graphical_outputs_simulations = os.path.join(graphical_outputs, 'simulations')
+    if inversion_run:
+        graphical_outputs_simulations = os.path.join(graphical_outputs, 'simulations_inversion')
+    else:
+        graphical_outputs_simulations = os.path.join(graphical_outputs, 'simulations')
     graphical_outputs_ecdf = os.path.join(graphical_outputs, 'ecdf')
-    for day_to_plot in days_to_plot:
-        graphical_outputs_daily = os.path.join(graphical_outputs_simulations, day_to_plot)
+    for inv_run in inversion_runs_folders:
+        graphical_outputs_inversion = os.path.join(graphical_outputs_simulations, inv_run)
         try:
-            os.mkdir(graphical_outputs_daily)
+            os.mkdir(graphical_outputs_inversion)
         except FileExistsError:
-            print('Folder ' + graphical_outputs_daily + ' already exists')
-        model_processed_output_folder_daily = os.path.join(processed_output_folder, day_to_plot)
-        model_processed_output_folder_species = []
-        for specie in species:
-            model_processed_output_folder_species.append(os.path.join(model_processed_output_folder_daily, specie))
-        for specie in species:
+            print('Folder ' + graphical_outputs_inversion + ' already exists')
+        for day_to_plot in days_to_plot:
+            graphical_outputs_daily = os.path.join(graphical_outputs_inversion, day_to_plot)
             try:
-                os.mkdir(os.path.join(graphical_outputs_daily, specie))
+                os.mkdir(graphical_outputs_daily)
             except FileExistsError:
-                print('Folder ' + os.path.join(graphical_outputs_daily, specie) + ' already exists')
-        files_list_path = []
-        files_list = []
-        for folder in model_processed_output_folder_species:
-            files_list_temp = os.listdir(folder)
-            for file in files_list_temp:
-                if 'TP' in file:
-                    continue
-                files_list.append(file)
-                files_list_path.append(os.path.join(folder, file))
-        i = 0
-        for file in files_list_path:
-            file_specie = file.split(model_processed_output_folder_daily)
-            file_specie = file_specie[1].split(files_list[i])
-            file_specie = re.sub('\W+', '', file_specie[0])
-            file_name_splitted = files_list[i].split('_')
-            file_level = file_name_splitted[1]
-            file_time_step = file_name_splitted[2].split('.')[0]
-            try:
-                file_time_step_datetime = datetime.datetime.strptime(file_time_step, '%Y%m%d%H%M')
-            except ValueError:
-                file_time_step_datetime = datetime.datetime.strptime('999912310000', '%Y%m%d%H%M')
-            simulation_start = datetime.datetime.strptime(day_to_plot + '{:02d}'.format(hour_start), '%Y%m%d%H%M')
-            output_file_name = files_list[i].split('.grd')[0]
-            output_file_name += '.png'
-            if levels[0] == 'all':
-                if time_steps[0] == 'all':
-                    files_to_plot.append(file)
-                    output_files.append(os.path.join(graphical_outputs_daily, file_specie, output_file_name))
-                else:
-                    for time_step in time_steps:
-                        time_step_seconds = hour_start + dt * int(time_step)
-                        time_step_datetime = simulation_start + datetime.timedelta(seconds=time_step_seconds)
-                        if time_step_datetime == file_time_step_datetime:
-                            files_to_plot.append(file)
-                            output_files.append(os.path.join(graphical_outputs_daily, file_specie, output_file_name,))
-                if 'tavg' in file_time_step:
-                    files_to_plot.append(file)
-                    tavg_output_file_name = file.split(os.sep)[-1].split('.grd')[0]
-                    tavg_output_file_name = tavg_output_file_name + '.png'
-                    output_files.append(os.path.join(graphical_outputs_daily, file_specie, tavg_output_file_name,))
-            else:
-                if time_steps[0] == 'all':
-                    for level in levels:
-                        if file_level == processed_files_levels[int(level) - 1]:
-                            files_to_plot.append(file)
-                            output_files.append(os.path.join(graphical_outputs_daily, file_specie, output_file_name,))
-                else:
-                    for level in levels:
+                print('Folder ' + graphical_outputs_daily + ' already exists')
+            model_processed_output_folder_daily = os.path.join(processed_output_folder, inv_run, day_to_plot)
+            model_processed_output_folder_species = []
+            for specie in species:
+                model_processed_output_folder_species.append(os.path.join(model_processed_output_folder_daily, specie))
+            for specie in species:
+                try:
+                    os.mkdir(os.path.join(graphical_outputs_daily, specie))
+                except FileExistsError:
+                    print('Folder ' + os.path.join(graphical_outputs_daily, specie) + ' already exists')
+            files_list_path = []
+            files_list = []
+            for folder in model_processed_output_folder_species:
+                files_list_temp = os.listdir(folder)
+                for file in files_list_temp:
+                    if 'TP' in file:
+                        continue
+                    files_list.append(file)
+                    files_list_path.append(os.path.join(folder, file))
+            i = 0
+            for file in files_list_path:
+                file_specie = file.split(model_processed_output_folder_daily)
+                file_specie = file_specie[1].split(files_list[i])
+                file_specie = re.sub('\W+', '', file_specie[0])
+                file_name_splitted = files_list[i].split('_')
+                file_level = file_name_splitted[1]
+                file_time_step = file_name_splitted[2].split('.')[0]
+                try:
+                    file_time_step_datetime = datetime.datetime.strptime(file_time_step, '%Y%m%d%H%M')
+                except ValueError:
+                    file_time_step_datetime = datetime.datetime.strptime('999912310000', '%Y%m%d%H%M')
+                simulation_start = datetime.datetime.strptime(day_to_plot + '{:02d}'.format(hour_start), '%Y%m%d%H%M')
+                output_file_name = files_list[i].split('.grd')[0]
+                output_file_name += '.png'
+                if levels[0] == 'all':
+                    if time_steps[0] == 'all':
+                        files_to_plot.append(file)
+                        output_files.append(os.path.join(graphical_outputs_daily, file_specie, output_file_name))
+                    else:
                         for time_step in time_steps:
                             time_step_seconds = hour_start + dt * int(time_step)
                             time_step_datetime = simulation_start + datetime.timedelta(seconds=time_step_seconds)
-                            if time_step_datetime == file_time_step_datetime \
-                                    and file_level == processed_files_levels[int(level) - 1]:
+                            if time_step_datetime == file_time_step_datetime:
                                 files_to_plot.append(file)
-                                output_files.append(os.path.join(graphical_outputs_daily, file_specie,
-                                                                 output_file_name,))
-                for level in levels:
-                    if 'tavg' in file_time_step and file_level == processed_files_levels[int(level) - 1]:
+                                output_files.append(os.path.join(graphical_outputs_daily, file_specie, output_file_name,))
+                    if 'tavg' in file_time_step:
                         files_to_plot.append(file)
                         tavg_output_file_name = file.split(os.sep)[-1].split('.grd')[0]
                         tavg_output_file_name = tavg_output_file_name + '.png'
                         output_files.append(os.path.join(graphical_outputs_daily, file_specie, tavg_output_file_name,))
-            i += 1
+                else:
+                    if time_steps[0] == 'all':
+                        for level in levels:
+                            if file_level == processed_files_levels[int(level) - 1]:
+                                files_to_plot.append(file)
+                                output_files.append(os.path.join(graphical_outputs_daily, file_specie, output_file_name,))
+                    else:
+                        for level in levels:
+                            for time_step in time_steps:
+                                time_step_seconds = hour_start + dt * int(time_step)
+                                time_step_datetime = simulation_start + datetime.timedelta(seconds=time_step_seconds)
+                                if time_step_datetime == file_time_step_datetime \
+                                        and file_level == processed_files_levels[int(level) - 1]:
+                                    files_to_plot.append(file)
+                                    output_files.append(os.path.join(graphical_outputs_daily, file_specie,
+                                                                     output_file_name,))
+                    for level in levels:
+                        if 'tavg' in file_time_step and file_level == processed_files_levels[int(level) - 1]:
+                            files_to_plot.append(file)
+                            tavg_output_file_name = file.split(os.sep)[-1].split('.grd')[0]
+                            tavg_output_file_name = tavg_output_file_name + '.png'
+                            output_files.append(os.path.join(graphical_outputs_daily, file_specie, tavg_output_file_name,))
+                i += 1
 
     if calculate_ecdf:
         for exceedance_probability in exceedance_probabilities:
@@ -1705,7 +1741,8 @@ root = os.getcwd()
     plot_topography_layer,
     dz_lines_res,
     plot_resolution,
-    tracking_points
+    tracking_points,
+    inversion_run
 ) = read_arguments()
 
 
@@ -1720,7 +1757,8 @@ root = os.getcwd()
     graphical_outputs_simulations_folder,
     graphical_outputs_ecdf_folder,
     graphical_outputs_ecdf_tracking_points_folder,
-    graphical_outputs_persistence_folder
+    graphical_outputs_persistence_folder,
+    inversion_runs_folders
 ) = folder_structure()
 
 if __name__ == '__main__':
@@ -1752,20 +1790,42 @@ if __name__ == '__main__':
              for k in range(0, len(stations))] for l_sp in range(0, len(species))]
     n_completed_processes = 0
     returned_values = []
-    while n_completed_processes <= len(days):
+    runs_combinations = []
+    if inversion_run:
+        for inversion_run in inversion_runs_folders:
+            for day in days:
+                runs_combinations.append([inversion_run, day])
+    else:
+        for day in days:
+            runs_combinations.append(['', day])
+    while n_completed_processes <= len(runs_combinations):
         start = n_completed_processes
         end = n_completed_processes + max_number_processes
-        if end > len(days):
-            end = len(days)
+        if end > len(runs_combinations):
+            end = len(runs_combinations)
         pool = Pool(max_number_processes)
-        returned_values_temp = pool.map(elaborate_day, days[start:end])
+        returned_values_temp = pool.map(elaborate_day, runs_combinations[start:end])
         for returned_value_temp in returned_values_temp:
             returned_values.append(returned_value_temp)
         pool.close()
         pool.join()
         n_completed_processes = end
-        if n_completed_processes == len(days):
+        if n_completed_processes == len(runs_combinations):
             break
+    # while n_completed_processes <= len(days):
+    #     start = n_completed_processes
+    #     end = n_completed_processes + max_number_processes
+    #     if end > len(days):
+    #         end = len(days)
+    #     pool = Pool(max_number_processes)
+    #     returned_values_temp = pool.map(elaborate_day, days[start:end])
+    #     for returned_value_temp in returned_values_temp:
+    #         returned_values.append(returned_value_temp)
+    #     pool.close()
+    #     pool.join()
+    #     n_completed_processes = end
+    #     if n_completed_processes == len(days):
+    #         break
     for returned_value in returned_values:
         all_time_steps = returned_value[1]
         processed_files_levels = returned_value[2]

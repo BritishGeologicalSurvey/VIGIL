@@ -9,6 +9,7 @@ import pandas as pd
 import sys
 import urllib.request
 
+
 def read_arguments():
     parser = argparse.ArgumentParser(description='Input data', 
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -602,7 +603,6 @@ def automatic_weather(analysis_start_in):
         day_anl = day_now
         url = ('https://nomads.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.' + year_anl + month_anl + day_anl + '/' +
                anl)
-        # url = ('http://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/gfs.' + year_anl + month_anl + day_anl + '/' + anl)
         while True:
             try:
                 urllib.request.urlopen(url)
@@ -632,8 +632,6 @@ def automatic_weather(analysis_start_in):
                 anl = str(ianl)
             url = ('https://nomads.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.' + year_anl + month_anl + day_anl + '/'
                    + anl)
-            # url = ('http://www.ftp.ncep.noaa.gov/data/nccf/com/gfs/prod/gfs.' + year_anl + month_anl + day_anl + '/' +
-            #        anl)
         print('Most up to date GFS analysis: ' + url)
 
         # Retrieve weather data that best matches current time

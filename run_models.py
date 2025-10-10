@@ -1731,7 +1731,6 @@ def converter(run_in):
                 converted_output_file.write(record)
             converted_output_file.write(str(np.amin(c_ppm)) + '  ' + str(np.amax(c_ppm)) + '\n')
             np.savetxt(converted_output_file, c_ppm, fmt='%.5e')
-
     outfiles_folder = os.path.join(run_in, 'outfiles')
     temp_folder = os.path.join(outfiles_folder, 'temp')
     try:

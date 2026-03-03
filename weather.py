@@ -33,6 +33,8 @@ def read_arguments():
     parser.add_argument('-NS', '--samples', default=1, help='Number of days to sample')
     parser.add_argument('-ERA5', '--era5', default='False', help='True: Use ERA5 reanalysis. False: Do not use ERA5 '
                         'reanalysis')
+    parser.add_argument('-WRF', '--wrf', default='False', help='True: Use WRF data for any mode. '
+                                                               'False: Do not use WRF data')
     parser.add_argument('-WST', '--station', default='False', help='True: Use weather station data. False: Do not use '
                         'weather station data',)
     parser.add_argument('-N', '--nproc', default=1, help='Maximum number of allowed simultaneous processes')
@@ -53,6 +55,7 @@ def read_arguments():
     volc_lon_in = float(args.lon)
     elevation_in = float(args.elev)
     era5_on_in = args.era5
+    wrf_on_in = args.wrf
     weather_station_on_in = args.station
     nproc = args.nproc
     twodee = args.twodee
@@ -80,6 +83,13 @@ def read_arguments():
     else:
         print('ERROR. Wrong value for variable -ERA5 --ERA5')
         sys.exit()
+    if wrf_on_in.lower() == 'true':
+        wrf_on_in = True
+    elif wrf_on_in.lower() == 'false':
+        wrf_on_in = False
+    else:
+        print('ERROR. Wrong value for variable -WRF --WRF')
+        sys.exit()
     if weather_station_on_in.lower() == 'true':
         weather_station_on_in = True
     elif weather_station_on_in.lower() == 'false':
@@ -88,8 +98,8 @@ def read_arguments():
         print('ERROR. Wrong value for variable --station')
         sys.exit()
     if mode_in == 'reanalysis' or mode_in == 'inversion':
-        if not era5_on_in and not weather_station_on_in:
-            print('ERROR. Either ERA5 or weather station data should be activated in reanalysis mode')
+        if not era5_on_in and not weather_station_on_in and not wrf_on_in:
+            print('ERROR. Either ERA5, WRF or weather station data should be activated in reanalysis mode')
             sys.exit()
     elif mode_in == 'forecast':
         if era5_on_in:
@@ -98,8 +108,11 @@ def read_arguments():
         if weather_station_on_in:
             print('WARNING. Weather station data cannot be used in forecast mode. Turning weather stations off')
             weather_station_on_in = False
-    if weather_station_on_in and era5_on_in:
+    if weather_station_on_in and (era5_on_in or wrf_on_in):
         print('ERROR. It is currently not possible to use both reanalysis and weather station data')
+        sys.exit()
+    if era5_on_in and wrf_on_in:
+        print('ERROR. It is not possible to use both ERA5 and WRF reanalysis data')
         sys.exit()
     if volc_lat_in == 999 and volc_lon_in == 999 and elevation_in == 999:
         try:
@@ -240,6 +253,7 @@ def read_arguments():
         analysis_start_in,
         analysis_stop_in,
         era5_on_in,
+        wrf_on_in,
         weather_station_on_in,
         elevation_in,
         volc_lat_in,
@@ -799,6 +813,10 @@ def automatic_weather(analysis_start_in):
                 simulation_day += timedelta(hours=1)
 
     def prepare_diagno_files(data_folder_diagno, year_diagno, month_diagno, day_diagno):
+
+        def extract_wrf_data():
+            print('Ciao')
+
         def extract_grib_data(folder_profile, validity_profile, wtfile_profile):
             from math import atan2, pi
 
@@ -1375,14 +1393,14 @@ def automatic_weather(analysis_start_in):
         copy('diagno.inp', os.path.join(data_folder, 'diagno.inp'))
     except FileNotFoundError:
         print('File diagno.inp not found')
-    if mode == 'forecast':
+    if mode == 'forecast' and not wrf_on:
         if analysis_start_in == time_start:
             print('Retrieving GFS data for day ' + str(analysis_start_in)[0:10])
             gfs_retrieve(volc_lon, volc_lat, ((time_stop - time_start).days + 1) * 24, analysis_start_in)
     if era5_on:
         print('Retrieving ERA5 data for day ' + str(analysis_start_in)[0:10])
         era5_retrieve(volc_lon, volc_lat, analysis_start_in)
-    if mode == 'forecast' or era5_on:
+    if mode == 'forecast' or era5_on or wrf_on:
         tref, tsoil, press = prepare_diagno_files(data_folder, year, month, day)
     if weather_station_on:
         stations_input = open('weather_stations_list.csv', 'r', encoding='utf-8-sig', errors='surrogateescape',)
@@ -1437,6 +1455,7 @@ simulations = os.path.join(root, 'simulations')
     analysis_start,
     analysis_stop,
     era5_on,
+    wrf_on,
     weather_station_on,
     elevation,
     volc_lat,

@@ -815,6 +815,8 @@ def automatic_weather(analysis_start_in):
     def prepare_diagno_files(data_folder_diagno, year_diagno, month_diagno, day_diagno):
 
         def extract_wrf_data():
+            import netCDF4
+            # Inserire prima un controllo sui time step disponibili
             print('Ciao')
 
         def extract_grib_data(folder_profile, validity_profile, wtfile_profile):
@@ -962,6 +964,8 @@ def automatic_weather(analysis_start_in):
         tref_vector = []
         tsoil_vector = []
         press_vector = []
+        if wrf_on:
+            wind, direction, height, gamma_pl, u, v, t2m, wind_sl, direction_sl, tz0, gamma_sl, pz0 = extract_wrf_data()
         try:
             diagno_preupr = open(os.path.join(data_folder_diagno, 'preupr.dat'), 'w', encoding='utf-8',
                                  errors='surrogateescape',)

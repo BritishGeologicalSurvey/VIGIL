@@ -2,7 +2,7 @@ name: vigil
 channels:
   - conda-forge
 dependencies:
-  - python=3.8
+  - python=3.14
   - cdsapi
   - matplotlib
   - openpyxl
@@ -10,3 +10,4 @@ dependencies:
   - pathos
   - utm
   - scipy
+  - netCDF
